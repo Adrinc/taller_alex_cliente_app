@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/models/models.dart';
+import 'package:nethive_neo/pages/empresa_negocios/empresa_negocios_page.dart';
 
 import 'package:nethive_neo/pages/pages.dart';
 
@@ -46,11 +47,7 @@ final GoRouter router = GoRouter(
               height: MediaQuery.of(context).size.height,
               child: const Center(child: Text('Book Page Main')));
         } else {
-          return Container(
-              color: Color.fromARGB(255, 7, 27, 180),
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height,
-              child: const Center(child: Text('Book Page Main')));
+          return const EmpresaNegociosPage();
         }
       },
     ),

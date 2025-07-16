@@ -502,8 +502,15 @@ class ComponentesProvider extends ChangeNotifier {
       return Container(
         height: height,
         width: width,
-        color: Colors.grey[300],
-        child: const Icon(Icons.device_unknown),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Image.asset(
+          'assets/images/placeholder_no_image.jpg',
+          height: height,
+          width: width,
+          fit: BoxFit.cover,
+        ),
       );
     } else if (image is Uint8List) {
       return Image.memory(
@@ -511,6 +518,14 @@ class ComponentesProvider extends ChangeNotifier {
         height: height,
         width: width,
         fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            'assets/images/placeholder_no_image.jpg',
+            height: height,
+            width: width,
+            fit: BoxFit.cover,
+          );
+        },
       );
     } else if (image is String) {
       return Image.network(
@@ -519,15 +534,20 @@ class ComponentesProvider extends ChangeNotifier {
         width: width,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          return Container(
+          return Image.asset(
+            'assets/images/placeholder_no_image.jpg',
             height: height,
             width: width,
-            color: Colors.grey[300],
-            child: const Icon(Icons.broken_image),
+            fit: BoxFit.cover,
           );
         },
       );
     }
-    return null;
+    return Image.asset(
+      'assets/images/placeholder_no_image.jpg',
+      height: height,
+      width: width,
+      fit: BoxFit.cover,
+    );
   }
 }

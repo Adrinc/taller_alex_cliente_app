@@ -120,6 +120,8 @@ class EmpresasNegociosProvider extends ChangeNotifier {
         'empresa_id': PlutoCell(value: negocio.empresaId),
         'nombre': PlutoCell(value: negocio.nombre),
         'direccion': PlutoCell(value: negocio.direccion),
+        'direccion_completa': PlutoCell(
+            value: negocio.direccion), // Nuevo campo para la segunda columna
         'latitud': PlutoCell(value: negocio.latitud.toString()),
         'longitud': PlutoCell(value: negocio.longitud.toString()),
         'tipo_local': PlutoCell(value: negocio.tipoLocal),
@@ -340,8 +342,15 @@ class EmpresasNegociosProvider extends ChangeNotifier {
       return Container(
         height: height,
         width: width,
-        color: Colors.grey[300],
-        child: const Icon(Icons.image_not_supported),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Image.asset(
+          'assets/images/placeholder_no_image.jpg',
+          height: height,
+          width: width,
+          fit: BoxFit.cover,
+        ),
       );
     } else if (image is Uint8List) {
       return Image.memory(
@@ -349,6 +358,14 @@ class EmpresasNegociosProvider extends ChangeNotifier {
         height: height,
         width: width,
         fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            'assets/images/placeholder_no_image.jpg',
+            height: height,
+            width: width,
+            fit: BoxFit.cover,
+          );
+        },
       );
     } else if (image is String) {
       return Image.network(
@@ -357,15 +374,20 @@ class EmpresasNegociosProvider extends ChangeNotifier {
         width: width,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          return Container(
+          return Image.asset(
+            'assets/images/placeholder_no_image.jpg',
             height: height,
             width: width,
-            color: Colors.grey[300],
-            child: const Icon(Icons.broken_image),
+            fit: BoxFit.cover,
           );
         },
       );
     }
-    return null;
+    return Image.asset(
+      'assets/images/placeholder_no_image.jpg',
+      height: height,
+      width: width,
+      fit: BoxFit.cover,
+    );
   }
 }
