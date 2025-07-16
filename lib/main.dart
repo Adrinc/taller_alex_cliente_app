@@ -10,6 +10,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:nethive_neo/providers/user_provider.dart';
 import 'package:nethive_neo/providers/visual_state_provider.dart';
 import 'package:nethive_neo/providers/users_provider.dart';
+import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
+import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:url_strategy/url_strategy.dart';
 
@@ -42,6 +44,8 @@ void main() async {
         ChangeNotifierProvider(
             create: (context) => VisualStateProvider(context)),
         ChangeNotifierProvider(create: (_) => UsersProvider()),
+        ChangeNotifierProvider(create: (_) => EmpresasNegociosProvider()),
+        ChangeNotifierProvider(create: (_) => ComponentesProvider()),
       ],
       child: const MyApp(),
     ),
