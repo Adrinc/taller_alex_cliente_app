@@ -48,7 +48,7 @@ void main() async {
   );
 }
 
-class MyApp extends StatefulWidget {
+/* class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
 
   @override
@@ -78,8 +78,8 @@ class _MyAppState extends State<MyApp> {
       home: const Placeholder(), // Cambia esto por tu pantalla inicial
     );
   }
-}
-/* class MyApp extends StatefulWidget {
+} */
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
 
   // This widget is the root of your application.
@@ -128,4 +128,4 @@ class _MyAppState extends State<MyApp> {
       ),
     );
   }
-} */
+}
