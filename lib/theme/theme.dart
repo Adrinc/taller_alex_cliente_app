@@ -135,39 +135,40 @@ abstract class AppTheme {
 
 class LightModeTheme extends AppTheme {
   @override
-  Color primaryColor = const Color(0xFF3B82F6); // Azul brillante del login
+  Color primaryColor = const Color(0xFF10B981); // Verde esmeralda principal
   @override
-  Color secondaryColor = const Color(0xFF10B981); // Verde esmeralda del login
+  Color secondaryColor = const Color(0xFF059669); // Verde más oscuro
   @override
-  Color tertiaryColor = const Color(0xFF0369A1); // Azul medio del login
+  Color tertiaryColor = const Color(0xFF0D9488); // Verde azulado
   @override
-  Color alternate = const Color(0xFF7C3AED); // Púrpura del login
+  Color alternate = const Color(0xFF3B82F6); // Azul de acento
   @override
-  Color primaryBackground = const Color(0xFFFFFFFF);
+  Color primaryBackground = const Color(0xFF0F172A); // Fondo muy oscuro
   @override
-  Color secondaryBackground = const Color(0xFFF8FAFC); // Gris muy claro
+  Color secondaryBackground =
+      const Color(0xFF1E293B); // Fondo secundario oscuro
   @override
-  Color tertiaryBackground = const Color(0xFFF1F5F9); // Gris claro azulado
+  Color tertiaryBackground = const Color(0xFF334155); // Fondo terciario
   @override
   Color transparentBackground =
-      const Color(0xFF1E293B).withOpacity(.1); // Azul oscuro transparente
+      const Color(0xFF1E293B).withOpacity(.1); // Fondo transparente
   @override
-  Color primaryText = const Color(0xFF0F172A); // Azul muy oscuro del login
+  Color primaryText = const Color(0xFFFFFFFF); // Texto blanco
   @override
-  Color secondaryText = const Color(0xFF1E293B); // Azul oscuro
+  Color secondaryText = const Color(0xFF94A3B8); // Texto gris claro
   @override
-  Color tertiaryText = const Color(0xFF64748B); // Gris azulado
+  Color tertiaryText = const Color(0xFF64748B); // Texto gris medio
   @override
-  Color hintText = const Color(0xFF94A3B8); // Gris claro
+  Color hintText = const Color(0xFF475569); // Texto de sugerencia
   @override
-  Color error = const Color(0xFFEF4444); // Rojo moderno
+  Color error = const Color(0xFFEF4444); // Rojo para errores
   @override
-  Color warning = const Color(0xFFF59E0B); // Amarillo moderno
+  Color warning = const Color(0xFFF59E0B); // Amarillo para advertencias
   @override
-  Color success = const Color(0xFF10B981); // Verde esmeralda del login
+  Color success = const Color(0xFF10B981); // Verde para éxito
   @override
   Color formBackground =
-      const Color(0xFF3B82F6).withOpacity(.05); // Azul muy claro
+      const Color(0xFF10B981).withOpacity(.05); // Fondo de formularios
 
   LightModeTheme({Mode? mode}) {
     if (mode != null) {
@@ -182,40 +183,68 @@ class LightModeTheme extends AppTheme {
 
 class DarkModeTheme extends AppTheme {
   @override
-  Color primaryColor = const Color(0xFF3B82F6); // Azul brillante del login
+  Color primaryColor = const Color(0xFF10B981); // Verde esmeralda principal
   @override
-  Color secondaryColor = const Color(0xFF10B981); // Verde esmeralda del login
+  Color secondaryColor = const Color(0xFF059669); // Verde más oscuro
   @override
-  Color tertiaryColor = const Color(0xFF0369A1); // Azul medio del login
+  Color tertiaryColor = const Color(0xFF0D9488); // Verde azulado
   @override
-  Color alternate = const Color(0xFF7C3AED); // Púrpura del login
+  Color alternate = const Color(0xFF3B82F6); // Azul de acento
   @override
-  Color primaryBackground =
-      const Color(0xFF0F172A); // Azul muy oscuro del login
+  Color primaryBackground = const Color(0xFF0F172A); // Fondo muy oscuro
   @override
-  Color secondaryBackground = const Color(0xFF1E293B); // Azul oscuro del login
+  Color secondaryBackground =
+      const Color(0xFF1E293B); // Fondo secundario oscuro
   @override
-  Color tertiaryBackground = const Color(0xFF334155); // Azul gris
+  Color tertiaryBackground = const Color(0xFF334155); // Fondo terciario
   @override
   Color transparentBackground =
-      const Color(0xFF1E293B).withOpacity(.3); // Azul oscuro transparente
+      const Color(0xFF1E293B).withOpacity(.3); // Fondo transparente
   @override
-  Color primaryText = const Color(0xFFFFFFFF); // Blanco para contraste
+  Color primaryText = const Color(0xFFFFFFFF); // Texto blanco
   @override
-  Color secondaryText = const Color(0xFFF1F5F9); // Gris muy claro
+  Color secondaryText = const Color(0xFF94A3B8); // Texto gris claro
   @override
-  Color tertiaryText = const Color(0xFF94A3B8); // Gris azulado claro
+  Color tertiaryText = const Color(0xFF64748B); // Texto gris medio
   @override
-  Color hintText = const Color(0xFF64748B); // Gris medio
+  Color hintText = const Color(0xFF475569); // Texto de sugerencia
   @override
-  Color error = const Color(0xFFEF4444); // Rojo moderno
+  Color error = const Color(0xFFEF4444); // Rojo para errores
   @override
-  Color warning = const Color(0xFFF59E0B); // Amarillo moderno
+  Color warning = const Color(0xFFF59E0B); // Amarillo para advertencias
   @override
-  Color success = const Color(0xFF10B981); // Verde esmeralda del login
+  Color success = const Color(0xFF10B981); // Verde para éxito
   @override
   Color formBackground =
-      const Color(0xFF3B82F6).withOpacity(.1); // Azul transparente
+      const Color(0xFF10B981).withOpacity(.1); // Fondo de formularios
+
+  // Nuevos gradientes modernos
+  LinearGradient get primaryGradient => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          primaryColor,
+          secondaryColor,
+        ],
+      );
+
+  LinearGradient get modernGradient => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          tertiaryColor,
+          primaryColor,
+        ],
+      );
+
+  LinearGradient get darkBackgroundGradient => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          primaryBackground,
+          secondaryBackground,
+        ],
+      );
 
   DarkModeTheme({Mode? mode}) {
     if (mode != null) {

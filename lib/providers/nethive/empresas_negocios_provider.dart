@@ -161,9 +161,10 @@ class EmpresasNegociosProvider extends ChangeNotifier {
 
       logoFileName = 'logo-$timestamp-${picker.files.single.name}';
       logoToUpload = picker.files.single.bytes;
-    }
 
-    notifyListeners();
+      // Notificar inmediatamente después de seleccionar
+      notifyListeners();
+    }
   }
 
   Future<void> selectImagen() async {
@@ -182,9 +183,10 @@ class EmpresasNegociosProvider extends ChangeNotifier {
 
       imagenFileName = 'imagen-$timestamp-${picker.files.single.name}';
       imagenToUpload = picker.files.single.bytes;
-    }
 
-    notifyListeners();
+      // Notificar inmediatamente después de seleccionar
+      notifyListeners();
+    }
   }
 
   Future<String?> uploadLogo() async {
