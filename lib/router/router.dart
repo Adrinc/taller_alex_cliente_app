@@ -1,14 +1,10 @@
-import 'package:nethive_neo/functions/no_transition_route.dart';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:nethive_neo/helpers/globals.dart';
-import 'package:nethive_neo/models/models.dart';
 import 'package:nethive_neo/pages/empresa_negocios/empresa_negocios_page.dart';
-
+import 'package:nethive_neo/pages/infrastructure/infrastructure_layout.dart';
 import 'package:nethive_neo/pages/pages.dart';
-
 import 'package:nethive_neo/services/navigation_service.dart';
 
 /// The route configuration.
@@ -45,10 +41,18 @@ final GoRouter router = GoRouter(
               color: Colors.amber,
               width: MediaQuery.of(context).size.width,
               height: MediaQuery.of(context).size.height,
-              child: const Center(child: Text('Book Page Main')));
+              child: const Center(child: Text('Empresa Negocios')));
         } else {
           return const EmpresaNegociosPage();
         }
+      },
+    ),
+    GoRoute(
+      path: '/infrastructure/:negocioId',
+      name: 'infrastructure',
+      builder: (BuildContext context, GoRouterState state) {
+        final negocioId = state.pathParameters['negocioId']!;
+        return InfrastructureLayout(negocioId: negocioId);
       },
     ),
     GoRoute(

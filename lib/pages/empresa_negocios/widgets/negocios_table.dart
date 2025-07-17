@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
 import 'package:nethive_neo/pages/widgets/animated_hover_button.dart';
 import 'package:nethive_neo/theme/theme.dart';
@@ -275,6 +276,87 @@ class NegociosTable extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            );
+          },
+        ),
+        PlutoColumn(
+          title: 'Infraestructura',
+          field: 'acceder_infraestructura',
+          titleTextAlign: PlutoColumnTextAlign.center,
+          textAlign: PlutoColumnTextAlign.center,
+          width: 200,
+          type: PlutoColumnType.text(),
+          enableEditingMode: false,
+          backgroundColor: AppTheme.of(context).primaryColor,
+          enableContextMenu: false,
+          enableDropToResize: false,
+          renderer: (rendererContext) {
+            return Container(
+              padding: const EdgeInsets.all(8),
+              child: Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.orange.shade600,
+                        Colors.deepOrange.shade500,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        final negocioId =
+                            rendererContext.row.cells['id']?.value;
+                        final negocioNombre =
+                            rendererContext.row.cells['nombre']?.value;
+
+                        if (negocioId != null) {
+                          // Navegar al layout principal con el negocio seleccionado
+                          context.go('/infrastructure/$negocioId');
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.developer_board,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Acceder a\nInfraestructura',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             );
           },

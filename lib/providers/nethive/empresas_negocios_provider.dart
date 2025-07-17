@@ -137,6 +137,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
               ? "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/imagenes/${negocio.imagenUrl}?${DateTime.now().millisecondsSinceEpoch}"
               : '',
         ),
+        'acceder_infraestructura': PlutoCell(value: negocio.id),
         'editar': PlutoCell(value: negocio.id),
         'eliminar': PlutoCell(value: negocio.id),
         'ver_componentes': PlutoCell(value: negocio.id),
