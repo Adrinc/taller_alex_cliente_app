@@ -392,7 +392,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'id',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        width: 100,
+                        /*  width: 100, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -418,7 +418,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'nombre',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.left,
-                        width: 200,
+                        /*  width: 200, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -495,7 +495,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'categoria_nombre',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        width: 140,
+                        /*  width: 140, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -539,7 +539,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'activo',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        width: 100,
+                        /*  width: 100, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -593,7 +593,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'en_uso',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        width: 100,
+                        /*  width: 100, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -631,7 +631,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'ubicacion',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.left,
-                        width: 180,
+                        /* width: 180, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -673,7 +673,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'descripcion',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.left,
-                        width: 200,
+                        /* width: 200, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -701,7 +701,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'fecha_registro',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        width: 120,
+                        /*  width: 120, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -726,7 +726,7 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'editar',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        width: 120,
+                        /* width: 120, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
