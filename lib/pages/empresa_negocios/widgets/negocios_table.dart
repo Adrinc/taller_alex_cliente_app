@@ -53,7 +53,7 @@ class NegociosTable extends StatelessWidget {
           ),
           menuBackgroundColor: AppTheme.of(context).secondaryBackground,
           gridBorderRadius: BorderRadius.circular(8),
-          rowHeight: 60,
+          rowHeight: 70,
         ),
         columnFilter: const PlutoGridColumnFilterConfig(
           filters: [
