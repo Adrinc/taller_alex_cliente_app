@@ -41,45 +41,40 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   Widget build(BuildContext context) {
+    final isLargeScreen = MediaQuery.of(context).size.width > 1200;
+    final isMediumScreen = MediaQuery.of(context).size.width > 800;
+    final isSmallScreen = MediaQuery.of(context).size.width <= 600;
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Consumer2<NavigationProvider, ComponentesProvider>(
         builder: (context, navigationProvider, componentesProvider, child) {
           return Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isSmallScreen ? 12 : 24),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Título de la página
-                  _buildPageTitle(),
+                  _buildPageTitle(isSmallScreen),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: isSmallScreen ? 16 : 24),
 
                   // Cards de estadísticas principales
-                  _buildStatsCards(componentesProvider),
+                  _buildStatsCards(componentesProvider, isLargeScreen,
+                      isMediumScreen, isSmallScreen),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: isSmallScreen ? 16 : 24),
 
                   // Gráficos y métricas
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: _buildComponentsOverview(componentesProvider),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: _buildAlertasRecientes(),
-                      ),
-                    ],
-                  ),
+                  _buildContentSection(componentesProvider, isLargeScreen,
+                      isMediumScreen, isSmallScreen),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: isSmallScreen ? 16 : 24),
 
                   // Actividad reciente
-                  _buildActivityFeed(),
+                  _buildActivityFeed(
+                      isLargeScreen, isMediumScreen, isSmallScreen),
                 ],
               ),
             ),
@@ -89,9 +84,9 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildPageTitle() {
+  Widget _buildPageTitle(bool isSmallScreen) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
       decoration: BoxDecoration(
         gradient: AppTheme.of(context).primaryGradient,
         borderRadius: BorderRadius.circular(16),
@@ -106,37 +101,39 @@ class _DashboardPageState extends State<DashboardPage>
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.dashboard,
               color: Colors.white,
-              size: 24,
+              size: isSmallScreen ? 20 : 24,
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: isSmallScreen ? 12 : 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Dashboard MDF/IDF',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: isSmallScreen ? 18 : 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  'Panel de control de infraestructura de red',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14,
+                if (!isSmallScreen) ...[
+                  Text(
+                    'Panel de control de infraestructura de red',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -145,50 +142,90 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildStatsCards(ComponentesProvider componentesProvider) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            'Componentes Totales',
-            '${componentesProvider.componentes.length}',
-            Icons.inventory_2,
-            Colors.blue,
-            'equipos registrados',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Componentes Activos',
+  Widget _buildStatsCards(ComponentesProvider componentesProvider,
+      bool isLargeScreen, bool isMediumScreen, bool isSmallScreen) {
+    final stats = [
+      {
+        'title': 'Componentes Totales',
+        'value': '${componentesProvider.componentes.length}',
+        'icon': Icons.inventory_2,
+        'color': Colors.blue,
+        'subtitle': 'equipos registrados',
+      },
+      {
+        'title': 'Componentes Activos',
+        'value':
             '${componentesProvider.componentes.where((c) => c.activo).length}',
-            Icons.power,
-            Colors.green,
-            'en funcionamiento',
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'En Uso',
+        'icon': Icons.power,
+        'color': Colors.green,
+        'subtitle': 'en funcionamiento',
+      },
+      {
+        'title': 'En Uso',
+        'value':
             '${componentesProvider.componentes.where((c) => c.enUso).length}',
-            Icons.trending_up,
-            Colors.orange,
-            'siendo utilizados',
-          ),
+        'icon': Icons.trending_up,
+        'color': Colors.orange,
+        'subtitle': 'siendo utilizados',
+      },
+      {
+        'title': 'Categorías',
+        'value': '${componentesProvider.categorias.length}',
+        'icon': Icons.category,
+        'color': Colors.purple,
+        'subtitle': 'tipos de equipos',
+      },
+    ];
+
+    if (isSmallScreen) {
+      // En móvil: 2x2 grid
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 1.1,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard(
-            'Categorías',
-            '${componentesProvider.categorias.length}',
-            Icons.category,
-            Colors.purple,
-            'tipos de equipos',
-          ),
-        ),
-      ],
-    );
+        itemCount: stats.length,
+        itemBuilder: (context, index) {
+          final stat = stats[index];
+          return _buildStatCard(
+            stat['title'] as String,
+            stat['value'] as String,
+            stat['icon'] as IconData,
+            stat['color'] as Color,
+            stat['subtitle'] as String,
+            isSmallScreen,
+          );
+        },
+      );
+    } else {
+      // En desktop/tablet: row horizontal
+      return Row(
+        children: stats.map((stat) {
+          final isLast = stat == stats.last;
+          return Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    stat['title'] as String,
+                    stat['value'] as String,
+                    stat['icon'] as IconData,
+                    stat['color'] as Color,
+                    stat['subtitle'] as String,
+                    isSmallScreen,
+                  ),
+                ),
+                if (!isLast) const SizedBox(width: 16),
+              ],
+            ),
+          );
+        }).toList(),
+      );
+    }
   }
 
   Widget _buildStatCard(
@@ -197,6 +234,7 @@ class _DashboardPageState extends State<DashboardPage>
     IconData icon,
     Color color,
     String subtitle,
+    bool isSmallScreen,
   ) {
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 800),
@@ -205,7 +243,7 @@ class _DashboardPageState extends State<DashboardPage>
         return Transform.scale(
           scale: 0.8 + (0.2 * animationValue),
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isSmallScreen ? 12 : 20),
             decoration: BoxDecoration(
               color: AppTheme.of(context).secondaryBackground,
               borderRadius: BorderRadius.circular(16),
@@ -223,39 +261,43 @@ class _DashboardPageState extends State<DashboardPage>
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
                       decoration: BoxDecoration(
                         color: color.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(icon, color: color, size: 20),
+                      child: Icon(icon,
+                          color: color, size: isSmallScreen ? 16 : 20),
                     ),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'MDF/IDF',
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                    if (!isSmallScreen) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'MDF/IDF',
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: isSmallScreen ? 8 : 16),
                 TweenAnimationBuilder<int>(
                   duration: Duration(
                       milliseconds: 1000 + (animationValue * 500).round()),
@@ -265,7 +307,7 @@ class _DashboardPageState extends State<DashboardPage>
                       animatedValue.toString(),
                       style: TextStyle(
                         color: AppTheme.of(context).primaryText,
-                        fontSize: 28,
+                        fontSize: isSmallScreen ? 20 : 28,
                         fontWeight: FontWeight.bold,
                       ),
                     );
@@ -276,17 +318,21 @@ class _DashboardPageState extends State<DashboardPage>
                   title,
                   style: TextStyle(
                     color: AppTheme.of(context).primaryText,
-                    fontSize: 14,
+                    fontSize: isSmallScreen ? 12 : 14,
                     fontWeight: FontWeight.w600,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: AppTheme.of(context).secondaryText,
-                    fontSize: 12,
+                if (!isSmallScreen) ...[
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: AppTheme.of(context).secondaryText,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -295,9 +341,39 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildComponentsOverview(ComponentesProvider componentesProvider) {
+  Widget _buildContentSection(ComponentesProvider componentesProvider,
+      bool isLargeScreen, bool isMediumScreen, bool isSmallScreen) {
+    if (isSmallScreen) {
+      // En móvil: columna vertical
+      return Column(
+        children: [
+          _buildComponentsOverview(componentesProvider, isSmallScreen),
+          const SizedBox(height: 16),
+          _buildAlertasRecientes(isSmallScreen),
+        ],
+      );
+    } else {
+      // En desktop/tablet: row horizontal
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: _buildComponentsOverview(componentesProvider, isSmallScreen),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: _buildAlertasRecientes(isSmallScreen),
+          ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildComponentsOverview(
+      ComponentesProvider componentesProvider, bool isSmallScreen) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
       decoration: BoxDecoration(
         color: AppTheme.of(context).secondaryBackground,
         borderRadius: BorderRadius.circular(16),
@@ -313,21 +389,27 @@ class _DashboardPageState extends State<DashboardPage>
               Icon(
                 Icons.pie_chart,
                 color: AppTheme.of(context).primaryColor,
-                size: 20,
+                size: isSmallScreen ? 18 : 20,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Distribución de Componentes por Categoría',
-                style: TextStyle(
-                  color: AppTheme.of(context).primaryText,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              SizedBox(width: isSmallScreen ? 6 : 8),
+              Expanded(
+                child: Text(
+                  isSmallScreen
+                      ? 'Componentes por Categoría'
+                      : 'Distribución de Componentes por Categoría',
+                  style: TextStyle(
+                    color: AppTheme.of(context).primaryText,
+                    fontSize: isSmallScreen ? 14 : 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          ...componentesProvider.categorias.take(5).map((categoria) {
+          SizedBox(height: isSmallScreen ? 16 : 20),
+          ...componentesProvider.categorias
+              .take(isSmallScreen ? 4 : 5)
+              .map((categoria) {
             final componentesDeCategoria = componentesProvider.componentes
                 .where((c) => c.categoriaId == categoria.id)
                 .length;
@@ -338,49 +420,59 @@ class _DashboardPageState extends State<DashboardPage>
                 : 0.0;
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Row(
+              margin: EdgeInsets.only(bottom: isSmallScreen ? 8 : 12),
+              child: Column(
                 children: [
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      categoria.nombre,
-                      style: TextStyle(
-                        color: AppTheme.of(context).primaryText,
-                        fontSize: 14,
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: isSmallScreen ? 2 : 3,
+                        child: Text(
+                          categoria.nombre,
+                          style: TextStyle(
+                            color: AppTheme.of(context).primaryText,
+                            fontSize: isSmallScreen ? 12 : 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: Container(
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: AppTheme.of(context).tertiaryBackground,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: porcentaje / 100,
+                      SizedBox(width: isSmallScreen ? 6 : 8),
+                      Expanded(
+                        flex: isSmallScreen ? 3 : 4,
                         child: Container(
+                          height: isSmallScreen ? 6 : 8,
                           decoration: BoxDecoration(
-                            gradient: AppTheme.of(context).primaryGradient,
+                            color: AppTheme.of(context).tertiaryBackground,
                             borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: porcentaje / 100,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.of(context).primaryGradient,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 60,
-                    child: Text(
-                      '$componentesDeCategoria (${porcentaje.toStringAsFixed(1)}%)',
-                      style: TextStyle(
-                        color: AppTheme.of(context).secondaryText,
-                        fontSize: 12,
+                      SizedBox(width: isSmallScreen ? 6 : 8),
+                      SizedBox(
+                        width: isSmallScreen ? 40 : 60,
+                        child: Text(
+                          isSmallScreen
+                              ? '$componentesDeCategoria'
+                              : '$componentesDeCategoria (${porcentaje.toStringAsFixed(1)}%)',
+                          style: TextStyle(
+                            color: AppTheme.of(context).secondaryText,
+                            fontSize: isSmallScreen ? 10 : 12,
+                          ),
+                          textAlign: TextAlign.end,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -391,7 +483,7 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildAlertasRecientes() {
+  Widget _buildAlertasRecientes(bool isSmallScreen) {
     final alertas = [
       {
         'tipo': 'Warning',
@@ -408,15 +500,16 @@ class _DashboardPageState extends State<DashboardPage>
         'mensaje': 'Mantenimiento programado completado',
         'tiempo': '1 hr'
       },
-      {
-        'tipo': 'Warning',
-        'mensaje': 'Capacidad de cable al 85%',
-        'tiempo': '2 hrs'
-      },
+      if (!isSmallScreen)
+        {
+          'tipo': 'Warning',
+          'mensaje': 'Capacidad de cable al 85%',
+          'tiempo': '2 hrs'
+        },
     ];
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
       decoration: BoxDecoration(
         color: AppTheme.of(context).secondaryBackground,
         borderRadius: BorderRadius.circular(16),
@@ -432,20 +525,20 @@ class _DashboardPageState extends State<DashboardPage>
               Icon(
                 Icons.warning,
                 color: Colors.orange,
-                size: 20,
+                size: isSmallScreen ? 18 : 20,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: isSmallScreen ? 6 : 8),
               Text(
                 'Alertas Recientes',
                 style: TextStyle(
                   color: AppTheme.of(context).primaryText,
-                  fontSize: 16,
+                  fontSize: isSmallScreen ? 14 : 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 12 : 16),
           ...alertas.map((alerta) {
             Color alertColor;
             IconData alertIcon;
@@ -465,8 +558,8 @@ class _DashboardPageState extends State<DashboardPage>
             }
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
+              margin: EdgeInsets.only(bottom: isSmallScreen ? 8 : 12),
+              padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
               decoration: BoxDecoration(
                 color: alertColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
@@ -476,8 +569,9 @@ class _DashboardPageState extends State<DashboardPage>
               ),
               child: Row(
                 children: [
-                  Icon(alertIcon, color: alertColor, size: 16),
-                  const SizedBox(width: 8),
+                  Icon(alertIcon,
+                      color: alertColor, size: isSmallScreen ? 14 : 16),
+                  SizedBox(width: isSmallScreen ? 6 : 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,15 +580,17 @@ class _DashboardPageState extends State<DashboardPage>
                           alerta['mensaje']!,
                           style: TextStyle(
                             color: AppTheme.of(context).primaryText,
-                            fontSize: 12,
+                            fontSize: isSmallScreen ? 11 : 12,
                             fontWeight: FontWeight.w500,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           'hace ${alerta['tiempo']}',
                           style: TextStyle(
                             color: AppTheme.of(context).secondaryText,
-                            fontSize: 10,
+                            fontSize: isSmallScreen ? 9 : 10,
                           ),
                         ),
                       ],
@@ -509,9 +605,10 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildActivityFeed() {
+  Widget _buildActivityFeed(
+      bool isLargeScreen, bool isMediumScreen, bool isSmallScreen) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
       decoration: BoxDecoration(
         color: AppTheme.of(context).secondaryBackground,
         borderRadius: BorderRadius.circular(16),
@@ -527,56 +624,93 @@ class _DashboardPageState extends State<DashboardPage>
               Icon(
                 Icons.timeline,
                 color: AppTheme.of(context).primaryColor,
-                size: 20,
+                size: isSmallScreen ? 18 : 20,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: isSmallScreen ? 6 : 8),
               Text(
                 'Actividad Reciente',
                 style: TextStyle(
                   color: AppTheme.of(context).primaryText,
-                  fontSize: 16,
+                  fontSize: isSmallScreen ? 14 : 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActivityItem(
-                  'Nuevo componente añadido',
-                  'Switch Cisco SG300-28 registrado en Rack 5',
-                  '10:30 AM',
-                  Icons.add_circle,
-                  Colors.green,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildActivityItem(
-                  'Mantenimiento completado',
-                  'Revisión de cables en Panel Principal',
-                  '09:15 AM',
-                  Icons.build_circle,
-                  Colors.blue,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildActivityItem(
-                  'Configuración actualizada',
-                  'Parámetros de red modificados',
-                  '08:45 AM',
-                  Icons.settings,
-                  Colors.purple,
-                ),
-              ),
-            ],
-          ),
+          SizedBox(height: isSmallScreen ? 12 : 16),
+          _buildActivityItems(isSmallScreen),
         ],
       ),
     );
+  }
+
+  Widget _buildActivityItems(bool isSmallScreen) {
+    final activities = [
+      {
+        'title': 'Nuevo componente añadido',
+        'description': 'Switch Cisco SG300-28 registrado en Rack 5',
+        'time': '10:30 AM',
+        'icon': Icons.add_circle,
+        'color': Colors.green,
+      },
+      {
+        'title': 'Mantenimiento completado',
+        'description': 'Revisión de cables en Panel Principal',
+        'time': '09:15 AM',
+        'icon': Icons.build_circle,
+        'color': Colors.blue,
+      },
+      {
+        'title': 'Configuración actualizada',
+        'description': 'Parámetros de red modificados',
+        'time': '08:45 AM',
+        'icon': Icons.settings,
+        'color': Colors.purple,
+      },
+    ];
+
+    if (isSmallScreen) {
+      // En móvil: lista vertical
+      return Column(
+        children: activities.map((activity) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: _buildActivityItem(
+              activity['title'] as String,
+              activity['description'] as String,
+              activity['time'] as String,
+              activity['icon'] as IconData,
+              activity['color'] as Color,
+              isSmallScreen,
+            ),
+          );
+        }).toList(),
+      );
+    } else {
+      // En desktop/tablet: fila horizontal
+      return Row(
+        children: activities.map((activity) {
+          final isLast = activity == activities.last;
+          return Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildActivityItem(
+                    activity['title'] as String,
+                    activity['description'] as String,
+                    activity['time'] as String,
+                    activity['icon'] as IconData,
+                    activity['color'] as Color,
+                    isSmallScreen,
+                  ),
+                ),
+                if (!isLast) const SizedBox(width: 16),
+              ],
+            ),
+          );
+        }).toList(),
+      );
+    }
   }
 
   Widget _buildActivityItem(
@@ -585,9 +719,10 @@ class _DashboardPageState extends State<DashboardPage>
     String time,
     IconData icon,
     Color color,
+    bool isSmallScreen,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -595,44 +730,99 @@ class _DashboardPageState extends State<DashboardPage>
           color: color.withOpacity(0.3),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                time,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+      child: isSmallScreen
+          ? Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 16),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: AppTheme.of(context).primaryText,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                color: AppTheme.of(context).primaryText,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            time,
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          color: AppTheme.of(context).secondaryText,
+                          fontSize: 11,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: color, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      time,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: AppTheme.of(context).primaryText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: AppTheme.of(context).secondaryText,
+                    fontSize: 12,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            description,
-            style: TextStyle(
-              color: AppTheme.of(context).secondaryText,
-              fontSize: 12,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
     );
   }
 }
