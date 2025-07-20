@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:nethive_neo/providers/nethive/navigation_provider.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/pages/infrastructure/widgets/infrastructure_sidemenu.dart';
+import 'package:nethive_neo/pages/infrastructure/widgets/mobile_navigation_modal.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/dashboard_page.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/inventario_page.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/topologia_page.dart';
@@ -212,10 +213,9 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
               borderRadius: BorderRadius.circular(12),
             ),
             child: Image.asset(
-              'assets/images/logo_nh.png',
-              width: 24,
-              height: 24,
-              color: Colors.white,
+              'assets/images/favicon.png',
+              width: 48,
+              height: 48,
             ),
           ),
 
@@ -345,16 +345,40 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.of(context).primaryColor.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Row(
             children: [
-              // Botón de menú
-              IconButton(
-                onPressed: () => Scaffold.of(context).openDrawer(),
-                icon: const Icon(Icons.menu, color: Colors.white),
+              // Botón de menú moderno que abre el modal
+              GestureDetector(
+                onTap: () => _showMobileNavigationModal(),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.menu,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
               ),
+
+              const SizedBox(width: 16),
 
               // Logo
               Container(
@@ -364,10 +388,9 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Image.asset(
-                  'assets/images/logo_nh.png',
-                  width: 20,
-                  height: 20,
-                  color: Colors.white,
+                  'assets/images/favicon.png',
+                  width: 24,
+                  height: 24,
                 ),
               ),
 
@@ -381,18 +404,34 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
                       'NETHIVE',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
                       ),
                     ),
                     Text(
                       currentMenuItem.title,
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
-                        fontSize: 12,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
+                ),
+              ),
+
+              // Indicador de módulo actual
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  currentMenuItem.icon,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
             ],
@@ -400,24 +439,68 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
 
           const SizedBox(height: 16),
 
-          // Info del negocio
+          // Info del negocio mejorada
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.business, color: Colors.white, size: 16),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    negocio.nombre,
-                    style: const TextStyle(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        negocio.nombre,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        negocio.tipoLocal,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'Activo',
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -425,6 +508,31 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Método para mostrar el modal de navegación móvil
+  void _showMobileNavigationModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.3,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: AppTheme.of(context).primaryBackground,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(25),
+              topRight: Radius.circular(25),
+            ),
+          ),
+          child: const MobileNavigationModal(),
+        ),
       ),
     );
   }

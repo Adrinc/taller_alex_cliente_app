@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nethive_neo/providers/nethive/navigation_provider.dart';
@@ -53,7 +54,7 @@ class _InfrastructureSidemenuState extends State<InfrastructureSidemenu>
       child: Consumer<NavigationProvider>(
         builder: (context, navigationProvider, child) {
           return Container(
-            width: widget.isExpanded ? 280 : 70,
+            width: widget.isExpanded ? 280 : 80,
             decoration: BoxDecoration(
               gradient: AppTheme.of(context).darkBackgroundGradient,
               border: Border(
@@ -137,14 +138,24 @@ class _InfrastructureSidemenuState extends State<InfrastructureSidemenu>
                     shaderCallback: (bounds) => LinearGradient(
                       colors: [Colors.white, Colors.white.withOpacity(0.8)],
                     ).createShader(bounds),
-                    child: const Text(
-                      'NETHIVE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
+                    child: Row(
+                      children: [
+                        Image.asset(
+                          'assets/images/favicon.png',
+                          width: 32,
+                          height: 32,
+                        ),
+                        const Gap(8),
+                        const Text(
+                          'NETHIVE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Text(

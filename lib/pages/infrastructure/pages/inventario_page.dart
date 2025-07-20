@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
+import 'package:nethive_neo/pages/infrastructure/widgets/componentes_cards_view.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class InventarioPage extends StatefulWidget {
@@ -41,10 +42,19 @@ class _InventarioPageState extends State<InventarioPage>
 
   @override
   Widget build(BuildContext context) {
+    final isLargeScreen = MediaQuery.of(context).size.width > 1200;
+    final isMobileScreen = MediaQuery.of(context).size.width <= 800;
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Consumer<ComponentesProvider>(
         builder: (context, componentesProvider, child) {
+          // Vista móvil con tarjetas
+          if (isMobileScreen) {
+            return const ComponentesCardsView();
+          }
+
+          // Vista de escritorio con tabla
           return Container(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -55,12 +65,13 @@ class _InventarioPageState extends State<InventarioPage>
 
                 const SizedBox(height: 24),
 
-                // Estadísticas rápidas
-                _buildQuickStats(componentesProvider),
+                // Estadísticas rápidas (solo en escritorio)
+                if (isLargeScreen) ...[
+                  _buildQuickStats(componentesProvider),
+                  const SizedBox(height: 24),
+                ],
 
-                const SizedBox(height: 24),
-
-                // Tabla de componentes (como en la imagen de referencia)
+                // Tabla de componentes (escritorio/tablet)
                 Expanded(
                   child: _buildComponentsTable(componentesProvider),
                 ),
