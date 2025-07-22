@@ -1,0 +1,685 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:go_router/go_router.dart';
+import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
+import 'package:nethive_neo/theme/theme.dart';
+
+class NegociosMapView extends StatefulWidget {
+  final EmpresasNegociosProvider provider;
+
+  const NegociosMapView({
+    Key? key,
+    required this.provider,
+  }) : super(key: key);
+
+  @override
+  State<NegociosMapView> createState() => _NegociosMapViewState();
+}
+
+class _NegociosMapViewState extends State<NegociosMapView>
+    with TickerProviderStateMixin {
+  final MapController _mapController = MapController();
+  late AnimationController _markerAnimationController;
+  late AnimationController _tooltipAnimationController;
+  late Animation<double> _markerAnimation;
+  late Animation<double> _tooltipAnimation;
+  late Animation<Offset> _tooltipSlideAnimation;
+
+  String? _hoveredNegocioId;
+  Offset? _tooltipPosition;
+  bool _showTooltip = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _markerAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _tooltipAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _markerAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.4,
+    ).animate(CurvedAnimation(
+      parent: _markerAnimationController,
+      curve: Curves.easeOutBack,
+    ));
+
+    _tooltipAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _tooltipAnimationController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _tooltipSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _tooltipAnimationController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    // Centrar el mapa después de que se construya
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _centerMapOnNegocios();
+    });
+  }
+
+  @override
+  void dispose() {
+    _markerAnimationController.dispose();
+    _tooltipAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _showTooltipForNegocio(String negocioId, Offset position) {
+    setState(() {
+      _hoveredNegocioId = negocioId;
+      _tooltipPosition = Offset(
+        position.dx + 20, // Offset del cursor para evitar interferencia
+        position.dy - 80, // Arriba del cursor
+      );
+      _showTooltip = true;
+    });
+
+    _markerAnimationController.forward();
+    _tooltipAnimationController.forward();
+  }
+
+  void _hideTooltip() {
+    _tooltipAnimationController.reverse().then((_) {
+      if (mounted) {
+        setState(() {
+          _hoveredNegocioId = null;
+          _showTooltip = false;
+          _tooltipPosition = null;
+        });
+      }
+    });
+    _markerAnimationController.reverse();
+  }
+
+  void _centerMapOnNegocios() {
+    if (widget.provider.negocios.isNotEmpty) {
+      final bounds = _calculateBounds();
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: bounds,
+          padding: const EdgeInsets.all(50),
+          maxZoom: 15,
+        ),
+      );
+    }
+  }
+
+  LatLngBounds _calculateBounds() {
+    if (widget.provider.negocios.isEmpty) {
+      return LatLngBounds(
+        const LatLng(-90, -180),
+        const LatLng(90, 180),
+      );
+    }
+
+    double minLat = widget.provider.negocios.first.latitud;
+    double maxLat = widget.provider.negocios.first.latitud;
+    double minLng = widget.provider.negocios.first.longitud;
+    double maxLng = widget.provider.negocios.first.longitud;
+
+    for (final negocio in widget.provider.negocios) {
+      minLat = minLat < negocio.latitud ? minLat : negocio.latitud;
+      maxLat = maxLat > negocio.latitud ? maxLat : negocio.latitud;
+      minLng = minLng < negocio.longitud ? minLng : negocio.longitud;
+      maxLng = maxLng > negocio.longitud ? maxLng : negocio.longitud;
+    }
+
+    return LatLngBounds(
+      LatLng(minLat, minLng),
+      LatLng(maxLat, maxLng),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.provider.negocios.isEmpty) {
+      return _buildEmptyMapState();
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            // Listener para detectar movimientos del mouse sobre el mapa
+            MouseRegion(
+              onExit: (_) => _hideTooltip(),
+              child: FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: const LatLng(19.4326, -99.1332),
+                  initialZoom: 10,
+                  minZoom: 3,
+                  maxZoom: 18,
+                ),
+                children: [
+                  // Capa de tiles del mapa
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.nethive.app',
+                  ),
+
+                  // Capa de marcadores
+                  MarkerLayer(
+                    markers: _buildMarkers(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Header del mapa con información
+            Positioned(
+              top: 20,
+              left: 20,
+              right: 20,
+              child: _buildMapHeader(),
+            ),
+
+            // Controles del mapa
+            Positioned(
+              bottom: 20,
+              right: 20,
+              child: _buildMapControls(),
+            ),
+
+            // Tooltip flotante con información del negocio
+            if (_showTooltip && _tooltipPosition != null)
+              Positioned(
+                left: _tooltipPosition!.dx
+                    .clamp(20.0, MediaQuery.of(context).size.width - 280),
+                top: _tooltipPosition!.dy
+                    .clamp(20.0, MediaQuery.of(context).size.height - 150),
+                child: _buildAnimatedTooltip(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Marker> _buildMarkers() {
+    return widget.provider.negocios.map((negocio) {
+      final isHovered = _hoveredNegocioId == negocio.id;
+
+      return Marker(
+        point: LatLng(negocio.latitud, negocio.longitud),
+        width: 50,
+        height: 50,
+        child: MouseRegion(
+          onEnter: (event) {
+            _showTooltipForNegocio(negocio.id, event.position);
+          },
+          onHover: (event) {
+            // Actualizar posición del tooltip sin recalcular todo
+            if (_hoveredNegocioId == negocio.id) {
+              setState(() {
+                _tooltipPosition = Offset(
+                  event.position.dx + 20,
+                  event.position.dy - 80,
+                );
+              });
+            }
+          },
+          child: GestureDetector(
+            onTap: () {
+              // Navegar a la infraestructura del negocio
+              context.go('/infrastructure/${negocio.id}');
+            },
+            child: AnimatedBuilder(
+              animation: _markerAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: isHovered ? _markerAnimation.value : 1.0,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: isHovered
+                          ? AppTheme.of(context).primaryGradient
+                          : AppTheme.of(context).modernGradient,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.of(context)
+                              .primaryColor
+                              .withOpacity(0.4),
+                          blurRadius: isHovered ? 15 : 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.white,
+                        width: isHovered ? 3 : 2,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.store,
+                      color: Colors.white,
+                      size: isHovered ? 22 : 18,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildAnimatedTooltip() {
+    final negocio = widget.provider.negocios.firstWhere(
+      (n) => n.id == _hoveredNegocioId,
+    );
+
+    return SlideTransition(
+      position: _tooltipSlideAnimation,
+      child: FadeTransition(
+        opacity: _tooltipAnimation,
+        child: ScaleTransition(
+          scale: _tooltipAnimation,
+          child: Container(
+            width: 260,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: AppTheme.of(context).modernGradient,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.of(context).primaryColor.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.store,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        negocio.nombre,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      color: Colors.white.withOpacity(0.8),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        negocio.direccion,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.business,
+                      color: Colors.white.withOpacity(0.8),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      negocio.tipoLocal,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.touch_app,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Clic para ver infraestructura',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMapHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: AppTheme.of(context).primaryGradient,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.of(context).primaryColor.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.map,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Mapa de Sucursales',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '${widget.provider.negocios.length} ubicaciones de ${widget.provider.empresaSeleccionada?.nombre ?? ""}',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.location_on,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'OpenStreetMap',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapControls() {
+    return Column(
+      children: [
+        // Botón de centrar mapa
+        Container(
+          decoration: BoxDecoration(
+            gradient: AppTheme.of(context).primaryGradient,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.of(context).primaryColor.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _centerMapOnNegocios,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Icon(
+                  Icons.center_focus_strong,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Botón de zoom in
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.of(context).secondaryBackground,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                _mapController.move(
+                  _mapController.camera.center,
+                  _mapController.camera.zoom + 1,
+                );
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Icon(
+                  Icons.add,
+                  color: AppTheme.of(context).primaryColor,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Botón de zoom out
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.of(context).secondaryBackground,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                _mapController.move(
+                  _mapController.camera.center,
+                  _mapController.camera.zoom - 1,
+                );
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Icon(
+                  Icons.remove,
+                  color: AppTheme.of(context).primaryColor,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyMapState() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.blue.withOpacity(0.1),
+            Colors.blue.withOpacity(0.3),
+            AppTheme.of(context).primaryColor.withOpacity(0.2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.of(context).primaryColor,
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: AppTheme.of(context).modernGradient,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.location_off,
+                size: 60,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Sin ubicaciones para mostrar',
+              style: TextStyle(
+                color: AppTheme.of(context).primaryColor,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Selecciona una empresa con sucursales\npara ver sus ubicaciones en el mapa',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.of(context).secondaryText,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool get isHovered => _hoveredNegocioId != null;
+}

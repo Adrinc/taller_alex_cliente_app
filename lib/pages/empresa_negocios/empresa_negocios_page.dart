@@ -5,8 +5,8 @@ import 'package:nethive_neo/pages/empresa_negocios/widgets/empresa_selector_side
 import 'package:nethive_neo/pages/empresa_negocios/widgets/negocios_table.dart';
 import 'package:nethive_neo/pages/empresa_negocios/widgets/negocios_cards_view.dart';
 import 'package:nethive_neo/pages/empresa_negocios/widgets/mobile_empresa_selector.dart';
+import 'package:nethive_neo/pages/empresa_negocios/widgets/negocios_map_view.dart';
 import 'package:nethive_neo/theme/theme.dart';
-import 'package:nethive_neo/helpers/globals.dart';
 
 class EmpresaNegociosPage extends StatefulWidget {
   const EmpresaNegociosPage({Key? key}) : super(key: key);
@@ -55,7 +55,6 @@ class _EmpresaNegociosPageState extends State<EmpresaNegociosPage>
   @override
   Widget build(BuildContext context) {
     final isLargeScreen = MediaQuery.of(context).size.width > 1200;
-    final isMediumScreen = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
       backgroundColor: AppTheme.of(context).primaryBackground,
@@ -589,85 +588,10 @@ class _EmpresaNegociosPageState extends State<EmpresaNegociosPage>
   }
 
   Widget _buildMapView() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.blue.withOpacity(0.1),
-            Colors.blue.withOpacity(0.3),
-            AppTheme.of(context).primaryColor.withOpacity(0.2),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppTheme.of(context).primaryColor,
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.of(context).primaryColor.withOpacity(0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Center(
-        child: TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 1500),
-          tween: Tween(begin: 0.0, end: 1.0),
-          builder: (context, value, child) {
-            return Transform.scale(
-              scale: 0.8 + (0.2 * value),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.of(context).modernGradient,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.map,
-                      size: 80,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Vista de Mapa',
-                    style: TextStyle(
-                      color: AppTheme.of(context).primaryColor,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Text(
-                      'Próximamente se implementará el mapa interactivo\ncon las ubicaciones de todas las sucursales',
-                      style: TextStyle(
-                        color: AppTheme.of(context).primaryColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
+    return Consumer<EmpresasNegociosProvider>(
+      builder: (context, provider, child) {
+        return NegociosMapView(provider: provider);
+      },
     );
   }
 
