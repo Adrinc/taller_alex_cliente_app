@@ -3,7 +3,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
+import 'package:nethive_neo/models/nethive/negocio_model.dart';
 import 'package:nethive_neo/theme/theme.dart';
+import 'package:nethive_neo/helpers/globals.dart';
 
 class NegociosMapView extends StatefulWidget {
   final EmpresasNegociosProvider provider;
@@ -83,8 +85,8 @@ class _NegociosMapViewState extends State<NegociosMapView>
     setState(() {
       _hoveredNegocioId = negocioId;
       _tooltipPosition = Offset(
-        position.dx + 20, // Offset del cursor para evitar interferencia
-        position.dy - 80, // Arriba del cursor
+        position.dx - 300, // Más cerca del cursor
+        position.dy - 500, // Más cerca del cursor
       );
       _showTooltip = true;
     });
@@ -232,6 +234,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
         width: 50,
         height: 50,
         child: MouseRegion(
+          cursor: SystemMouseCursors.click, // Cursor de puntero
           onEnter: (event) {
             _showTooltipForNegocio(negocio.id, event.position);
           },
@@ -240,8 +243,8 @@ class _NegociosMapViewState extends State<NegociosMapView>
             if (_hoveredNegocioId == negocio.id) {
               setState(() {
                 _tooltipPosition = Offset(
-                  event.position.dx + 20,
-                  event.position.dy - 80,
+                  event.position.dx - 300, // Más cerca del cursor
+                  event.position.dy - 400, // Más cerca del cursor
                 );
               });
             }
@@ -278,10 +281,8 @@ class _NegociosMapViewState extends State<NegociosMapView>
                         width: isHovered ? 3 : 2,
                       ),
                     ),
-                    child: Icon(
-                      Icons.store,
-                      color: Colors.white,
-                      size: isHovered ? 22 : 18,
+                    child: ClipOval(
+                      child: _buildMarkerContent(negocio, isHovered),
                     ),
                   ),
                 );
@@ -291,6 +292,51 @@ class _NegociosMapViewState extends State<NegociosMapView>
         ),
       );
     }).toList();
+  }
+
+  Widget _buildMarkerContent(Negocio negocio, bool isHovered) {
+    // Verificar si tiene imagen válida
+    if (negocio.imagenUrl != null && negocio.imagenUrl!.isNotEmpty) {
+      final imageUrl =
+          "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/imagenes/${negocio.imagenUrl}";
+
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: 40,
+        height: 40,
+        errorBuilder: (context, error, stackTrace) {
+          // Si falla la imagen, mostrar el ícono
+          return _buildMarkerIcon(isHovered);
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          // Mientras carga, mostrar el ícono
+          return _buildMarkerIcon(isHovered);
+        },
+      );
+    } else {
+      // Si no hay imagen, mostrar el ícono
+      return _buildMarkerIcon(isHovered);
+    }
+  }
+
+  Widget _buildMarkerIcon(bool isHovered) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.transparent,
+      ),
+      child: Icon(
+        Icons.store,
+        color: Colors.white,
+        size: isHovered ? 22 : 18,
+      ),
+    );
   }
 
   Widget _buildAnimatedTooltip() {
@@ -327,36 +373,68 @@ class _NegociosMapViewState extends State<NegociosMapView>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Header con imagen y nombre
                 Row(
                   children: [
+                    // Imagen del negocio o ícono por defecto
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      width: 50,
+                      height: 50,
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 2,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.store,
-                        color: Colors.white,
-                        size: 20,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: _buildTooltipImage(negocio),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        negocio.nombre,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            negocio.nombre,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              negocio.tipoLocal,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
+
+                // Información de ubicación
                 Row(
                   children: [
                     Icon(
@@ -379,47 +457,55 @@ class _NegociosMapViewState extends State<NegociosMapView>
                   ],
                 ),
                 const SizedBox(height: 8),
+
+                // Coordenadas
                 Row(
                   children: [
                     Icon(
-                      Icons.business,
+                      Icons.my_location,
                       color: Colors.white.withOpacity(0.8),
                       size: 16,
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      negocio.tipoLocal,
+                      'Lat: ${negocio.latitud.toStringAsFixed(4)}, Lng: ${negocio.longitud.toStringAsFixed(4)}',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
+
+                // Call to action
                 Container(
+                  width: double.infinity,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                    ),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.touch_app,
                         color: Colors.white,
-                        size: 14,
+                        size: 16,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 8),
                       Text(
                         'Clic para ver infraestructura',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -429,6 +515,60 @@ class _NegociosMapViewState extends State<NegociosMapView>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTooltipImage(Negocio negocio) {
+    // Verificar si tiene imagen válida
+    if (negocio.imagenUrl != null && negocio.imagenUrl!.isNotEmpty) {
+      final imageUrl =
+          "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/imagenes/${negocio.imagenUrl}";
+
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: 50,
+        height: 50,
+        errorBuilder: (context, error, stackTrace) {
+          // Si falla la imagen, mostrar el ícono
+          return _buildTooltipIcon();
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          }
+          // Mientras carga, mostrar un spinner
+          return Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      // Si no hay imagen, mostrar el ícono
+      return _buildTooltipIcon();
+    }
+  }
+
+  Widget _buildTooltipIcon() {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(
+        Icons.store,
+        color: Colors.white,
+        size: 24,
       ),
     );
   }
