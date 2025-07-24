@@ -45,15 +45,41 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
     ));
 
     // Establecer el negocio seleccionado
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Primero establecer en NavigationProvider
       context
           .read<NavigationProvider>()
           .setNegocioSeleccionado(widget.negocioId);
-      context
-          .read<ComponentesProvider>()
-          .setNegocioSeleccionado(widget.negocioId);
+
+      // Luego obtener la información completa y establecer en ComponentesProvider
+      await _setupComponentesProvider();
+
       _fadeController.forward();
     });
+  }
+
+  Future<void> _setupComponentesProvider() async {
+    try {
+      final navigationProvider = context.read<NavigationProvider>();
+      final componentesProvider = context.read<ComponentesProvider>();
+
+      // Esperar a que NavigationProvider cargue la información del negocio
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final negocio = navigationProvider.negocioSeleccionado;
+      final empresa = navigationProvider.empresaSeleccionada;
+
+      if (negocio != null && empresa != null) {
+        // Establecer el contexto completo en ComponentesProvider
+        await componentesProvider.setNegocioSeleccionado(
+          negocio.id,
+          negocio.nombre,
+          empresa.id,
+        );
+      }
+    } catch (e) {
+      print('Error al configurar ComponentesProvider: ${e.toString()}');
+    }
   }
 
   @override

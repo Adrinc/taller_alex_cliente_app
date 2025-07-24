@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
 import 'package:nethive_neo/pages/widgets/animated_hover_button.dart';
 import 'package:nethive_neo/theme/theme.dart';
+import 'package:provider/provider.dart';
+import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 
 class NegociosTable extends StatelessWidget {
   final EmpresasNegociosProvider provider;
@@ -320,10 +322,28 @@ class NegociosTable extends StatelessWidget {
                             rendererContext.row.cells['id']?.value;
                         final negocioNombre =
                             rendererContext.row.cells['nombre']?.value;
+                        final empresaId =
+                            rendererContext.row.cells['empresa_id']?.value;
 
-                        if (negocioId != null) {
-                          // Navegar al layout principal con el negocio seleccionado
-                          context.go('/infrastructure/$negocioId');
+                        if (negocioId != null &&
+                            negocioNombre != null &&
+                            empresaId != null) {
+                          // Establecer el contexto del negocio en ComponentesProvider
+                          final componentesProvider =
+                              Provider.of<ComponentesProvider>(context,
+                                  listen: false);
+                          componentesProvider
+                              .setNegocioSeleccionado(
+                            negocioId,
+                            negocioNombre,
+                            empresaId,
+                          )
+                              .then((_) {
+                            // Navegar al layout principal con el negocio seleccionado
+                            if (context.mounted) {
+                              context.go('/infrastructure/$negocioId');
+                            }
+                          });
                         }
                       },
                       borderRadius: BorderRadius.circular(12),

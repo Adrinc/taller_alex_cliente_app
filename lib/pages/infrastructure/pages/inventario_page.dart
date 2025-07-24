@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/pages/infrastructure/widgets/componentes_cards_view.dart';
+import 'package:nethive_neo/pages/infrastructure/widgets/edit_componente_dialog.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class InventarioPage extends StatefulWidget {
@@ -339,7 +340,7 @@ class _InventarioPageState extends State<InventarioPage>
             ),
           ),
 
-          // Tabla de componentes con PlutoGrid (como en la imagen de referencia)
+          // Tabla de componentes con PlutoGrid
           Expanded(
             child: componentesProvider.componentesRows.isEmpty
                 ? _buildEmptyState()
@@ -364,7 +365,13 @@ class _InventarioPageState extends State<InventarioPage>
                         scrollbarRadiusWhileDragging: const Radius.circular(10),
                       ),
                       style: PlutoGridStyleConfig(
-                        gridBorderColor: Colors.grey.withOpacity(0.3),
+                        enableRowColorAnimation: true,
+                        gridBorderColor:
+                            AppTheme.of(context).primaryColor.withOpacity(0.5),
+                        disabledIconColor:
+                            AppTheme.of(context).alternate.withOpacity(0.3),
+                        iconColor:
+                            AppTheme.of(context).alternate.withOpacity(0.3),
                         activatedBorderColor: AppTheme.of(context).primaryColor,
                         inactivatedBorderColor: Colors.grey.withOpacity(0.3),
                         gridBackgroundColor:
@@ -389,7 +396,7 @@ class _InventarioPageState extends State<InventarioPage>
                           bottomLeft: Radius.circular(16),
                           bottomRight: Radius.circular(16),
                         ),
-                        rowHeight: 55,
+                        rowHeight: 70,
                       ),
                       columnFilter: const PlutoGridColumnFilterConfig(
                         filters: [
@@ -401,9 +408,9 @@ class _InventarioPageState extends State<InventarioPage>
                       PlutoColumn(
                         title: 'ID',
                         field: 'id',
+                        width: 200,
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        /*  width: 100, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -429,7 +436,6 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'nombre',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.left,
-                        /*  width: 200, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -506,7 +512,6 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'categoria_nombre',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        /*  width: 140, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -550,7 +555,6 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'activo',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        /*  width: 100, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -604,7 +608,6 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'en_uso',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        /*  width: 100, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -642,7 +645,6 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'ubicacion',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.left,
-                        /* width: 180, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -684,7 +686,6 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'descripcion',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.left,
-                        /* width: 200, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -712,7 +713,6 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'fecha_registro',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        /*  width: 120, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
@@ -737,13 +737,19 @@ class _InventarioPageState extends State<InventarioPage>
                         field: 'editar',
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
-                        /* width: 120, */
                         type: PlutoColumnType.text(),
                         enableEditingMode: false,
                         backgroundColor: AppTheme.of(context).primaryColor,
                         enableContextMenu: false,
                         enableDropToResize: false,
                         renderer: (rendererContext) {
+                          final componenteId = rendererContext
+                                  .row.cells['id']?.value
+                                  .toString() ??
+                              '';
+                          final componente = componentesProvider
+                              .getComponenteById(componenteId);
+
                           return Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -751,15 +757,8 @@ class _InventarioPageState extends State<InventarioPage>
                               Tooltip(
                                 message: 'Ver detalles',
                                 child: InkWell(
-                                  onTap: () {
-                                    // TODO: Implementar vista de detalles
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content:
-                                            Text('Ver detalles próximamente'),
-                                      ),
-                                    );
-                                  },
+                                  onTap: () => _showComponentDetails(
+                                      componente, componentesProvider),
                                   child: Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
@@ -779,14 +778,8 @@ class _InventarioPageState extends State<InventarioPage>
                               Tooltip(
                                 message: 'Editar',
                                 child: InkWell(
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Editar componente próximamente'),
-                                      ),
-                                    );
-                                  },
+                                  onTap: () => _editComponent(
+                                      componente, componentesProvider),
                                   child: Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
@@ -806,14 +799,8 @@ class _InventarioPageState extends State<InventarioPage>
                               Tooltip(
                                 message: 'Eliminar',
                                 child: InkWell(
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Eliminar componente próximamente'),
-                                      ),
-                                    );
-                                  },
+                                  onTap: () => _deleteComponent(
+                                      componente, componentesProvider),
                                   child: Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
@@ -839,7 +826,7 @@ class _InventarioPageState extends State<InventarioPage>
                           event.stateManager;
                     },
                     createFooter: (stateManager) {
-                      stateManager.setPageSize(15, notify: false);
+                      stateManager.setPageSize(10, notify: false);
                       return PlutoPagination(stateManager);
                     },
                   ),
@@ -882,6 +869,261 @@ class _InventarioPageState extends State<InventarioPage>
               color: AppTheme.of(context).secondaryText,
               fontSize: 14,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Métodos para manejar las acciones de los botones
+  void _showComponentDetails(dynamic componente, ComponentesProvider provider) {
+    if (componente == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.of(context).primaryBackground,
+        title: Row(
+          children: [
+            Icon(
+              Icons.devices,
+              color: AppTheme.of(context).primaryColor,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                componente.nombre,
+                style: TextStyle(
+                  color: AppTheme.of(context).primaryText,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Container(
+          width: double.maxFinite,
+          constraints: const BoxConstraints(maxHeight: 400),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailRow('ID', componente.id.substring(0, 8) + '...'),
+                _buildDetailRow(
+                    'Categoría',
+                    provider.getCategoriaById(componente.categoriaId)?.nombre ??
+                        'Sin categoría'),
+                _buildDetailRow(
+                    'Estado', componente.activo ? 'Activo' : 'Inactivo'),
+                _buildDetailRow('En Uso', componente.enUso ? 'Sí' : 'No'),
+                if (componente.ubicacion != null &&
+                    componente.ubicacion!.isNotEmpty)
+                  _buildDetailRow('Ubicación', componente.ubicacion!),
+                if (componente.descripcion != null &&
+                    componente.descripcion!.isNotEmpty)
+                  _buildDetailRow('Descripción', componente.descripcion!),
+                _buildDetailRow(
+                    'Fecha de Registro',
+                    componente.fechaRegistro?.toString().split(' ')[0] ??
+                        'No disponible'),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cerrar',
+              style: TextStyle(color: AppTheme.of(context).primaryColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.of(context).secondaryBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.of(context).primaryColor.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: AppTheme.of(context).primaryColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: AppTheme.of(context).primaryText,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editComponent(dynamic componente, ComponentesProvider provider) {
+    if (componente == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => EditComponenteDialog(
+        provider: provider,
+        componente: componente,
+      ),
+    );
+  }
+
+  void _deleteComponent(dynamic componente, ComponentesProvider provider) {
+    if (componente == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.of(context).primaryBackground,
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: Colors.red,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Eliminar Componente',
+              style: TextStyle(
+                color: AppTheme.of(context).primaryText,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '¿Estás seguro de que deseas eliminar "${componente.nombre}"?\n\nEsta acción no se puede deshacer.',
+          style: TextStyle(
+            color: AppTheme.of(context).primaryText,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.of(context).secondaryText),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+
+              // Mostrar indicador de carga
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => Center(
+                  child: CircularProgressIndicator(
+                    color: AppTheme.of(context).primaryColor,
+                  ),
+                ),
+              );
+
+              try {
+                final success =
+                    await provider.eliminarComponente(componente.id);
+
+                Navigator.of(context).pop(); // Cerrar indicador de carga
+
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: const [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text(
+                            'Componente eliminado exitosamente',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: const [
+                          Icon(Icons.error, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text(
+                            'Error al eliminar el componente',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                Navigator.of(context).pop(); // Cerrar indicador de carga
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.warning, color: Colors.white),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Error: $e',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Eliminar'),
           ),
         ],
       ),

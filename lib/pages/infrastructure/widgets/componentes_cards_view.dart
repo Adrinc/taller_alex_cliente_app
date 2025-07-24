@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
+import 'package:nethive_neo/pages/infrastructure/widgets/edit_componente_dialog.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class ComponentesCardsView extends StatefulWidget {
@@ -443,10 +444,7 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
                           icon: Icons.edit,
                           color: AppTheme.of(context).primaryColor,
                           onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Editar próximamente')),
-                            );
+                            _showEditComponenteDialog(componente);
                           },
                         ),
                         const SizedBox(width: 4),
@@ -726,6 +724,17 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
             child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditComponenteDialog(dynamic componente) {
+    final provider = Provider.of<ComponentesProvider>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (context) => EditComponenteDialog(
+        provider: provider,
+        componente: componente,
       ),
     );
   }

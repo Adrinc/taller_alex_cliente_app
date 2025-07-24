@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_flow_chart/flutter_flow_chart.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
+import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
+import 'package:nethive_neo/models/nethive/componente_model.dart';
+import 'package:nethive_neo/models/nethive/conexion_componente_model.dart';
 
 class TopologiaPage extends StatefulWidget {
   const TopologiaPage({Key? key}) : super(key: key);
@@ -14,8 +20,22 @@ class _TopologiaPageState extends State<TopologiaPage>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  String _selectedView = 'rack'; // rack, network, floor
-  double _zoomLevel = 1.0;
+
+  String _selectedView = 'network'; // network, rack, floor
+  bool _isLoading = false;
+
+  // Dashboard para el FlowChart
+  late Dashboard dashboard;
+
+  // Elementos para referencias
+  late FlowElement mdfElement;
+  late FlowElement idf1Element;
+  late FlowElement idf2Element;
+  late FlowElement switch1Element;
+  late FlowElement switch2Element;
+  late FlowElement switch3Element;
+  late FlowElement switch4Element;
+  late FlowElement serverElement;
 
   @override
   void initState() {
@@ -31,7 +51,329 @@ class _TopologiaPageState extends State<TopologiaPage>
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
+
     _animationController.forward();
+    _initializeDashboard();
+
+    // Cargar datos después de que el widget esté construido
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRealTopologyData();
+    });
+  }
+
+  void _initializeDashboard() {
+    dashboard = Dashboard(
+      blockDefaultZoomGestures: false,
+      minimumZoomFactor: 0.25,
+    );
+  }
+
+  void _buildNetworkTopology() {
+    dashboard.removeAllElements();
+
+    // MDF Principal
+    mdfElement = FlowElement(
+      position: const Offset(400, 100),
+      size: const Size(160, 120),
+      text: 'MDF\nPrincipal',
+      textColor: Colors.white,
+      textSize: 14,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF2196F3),
+      borderColor: const Color(0xFF1976D2),
+      borderThickness: 3,
+      elevation: 8,
+      data: {
+        'type': 'MDF',
+        'name': 'MDF Principal',
+        'status': 'active',
+        'ports': '2/48',
+        'description':
+            'Main Distribution Frame\nSwitch Principal 48p\nPatch Panel 48p\nUPS Respaldo'
+      },
+      handlers: [
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+
+    // IDF 1
+    idf1Element = FlowElement(
+      position: const Offset(200, 300),
+      size: const Size(140, 100),
+      text: 'IDF 1\nPiso 1',
+      textColor: Colors.white,
+      textSize: 12,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF4CAF50),
+      borderColor: const Color(0xFF388E3C),
+      borderThickness: 2,
+      elevation: 6,
+      data: {
+        'type': 'IDF',
+        'name': 'IDF Piso 1',
+        'status': 'active',
+        'ports': '32/48',
+        'description':
+            'Intermediate Distribution Frame\nSwitch 48p\nPatch Panel\nUPS'
+      },
+      handlers: [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+
+    // IDF 2
+    idf2Element = FlowElement(
+      position: const Offset(600, 300),
+      size: const Size(140, 100),
+      text: 'IDF 2\nPiso 2',
+      textColor: Colors.white,
+      textSize: 12,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFFFF9800),
+      borderColor: const Color(0xFFF57C00),
+      borderThickness: 2,
+      elevation: 6,
+      data: {
+        'type': 'IDF',
+        'name': 'IDF Piso 2',
+        'status': 'warning',
+        'ports': '45/48',
+        'description':
+            'Intermediate Distribution Frame\nSwitch 48p\nPatch Panel\nUPS\n⚠️ Alta utilización'
+      },
+      handlers: [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+
+    // Switches de Acceso
+    switch1Element = FlowElement(
+      position: const Offset(125, 500),
+      size: const Size(120, 80),
+      text: 'Switch\nAcceso A1',
+      textColor: Colors.white,
+      textSize: 10,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF9C27B0),
+      borderColor: const Color(0xFF7B1FA2),
+      borderThickness: 2,
+      elevation: 4,
+      data: {
+        'type': 'AccessSwitch',
+        'name': 'Switch Acceso A1',
+        'status': 'active',
+        'ports': '16/24',
+        'description': 'Switch de Acceso\n24 puertos\nEn línea'
+      },
+      handlers: [
+        Handler.topCenter,
+      ],
+    );
+
+    switch2Element = FlowElement(
+      position: const Offset(275, 500),
+      size: const Size(120, 80),
+      text: 'Switch\nAcceso A2',
+      textColor: Colors.white,
+      textSize: 10,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF9C27B0),
+      borderColor: const Color(0xFF7B1FA2),
+      borderThickness: 2,
+      elevation: 4,
+      data: {
+        'type': 'AccessSwitch',
+        'name': 'Switch Acceso A2',
+        'status': 'active',
+        'ports': '20/24',
+        'description': 'Switch de Acceso\n24 puertos\nEn línea'
+      },
+      handlers: [
+        Handler.topCenter,
+      ],
+    );
+
+    switch3Element = FlowElement(
+      position: const Offset(525, 500),
+      size: const Size(120, 80),
+      text: 'Switch\nAcceso B1',
+      textColor: Colors.white,
+      textSize: 10,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF9C27B0),
+      borderColor: const Color(0xFF7B1FA2),
+      borderThickness: 2,
+      elevation: 4,
+      data: {
+        'type': 'AccessSwitch',
+        'name': 'Switch Acceso B1',
+        'status': 'active',
+        'ports': '18/24',
+        'description': 'Switch de Acceso\n24 puertos\nEn línea'
+      },
+      handlers: [
+        Handler.topCenter,
+      ],
+    );
+
+    switch4Element = FlowElement(
+      position: const Offset(675, 500),
+      size: const Size(120, 80),
+      text: 'Switch\nAcceso B2',
+      textColor: Colors.white,
+      textSize: 10,
+      textIsBold: false,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF757575),
+      borderColor: const Color(0xFF424242),
+      borderThickness: 2,
+      elevation: 2,
+      data: {
+        'type': 'AccessSwitch',
+        'name': 'Switch Acceso B2',
+        'status': 'disconnected',
+        'ports': '0/24',
+        'description': 'Switch de Acceso\n24 puertos\n🔴 Desconectado'
+      },
+      handlers: [
+        Handler.topCenter,
+      ],
+    );
+
+    // Servidor Principal
+    serverElement = FlowElement(
+      position: const Offset(400, 650),
+      size: const Size(150, 90),
+      text: 'Servidor\nPrincipal',
+      textColor: Colors.white,
+      textSize: 12,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFFE91E63),
+      borderColor: const Color(0xFFC2185B),
+      borderThickness: 3,
+      elevation: 6,
+      data: {
+        'type': 'Server',
+        'name': 'Servidor Principal',
+        'status': 'active',
+        'description':
+            'Servidor Principal\nWindows Server 2022\nRAM: 32GB\nStorage: 2TB SSD'
+      },
+      handlers: [
+        Handler.topCenter,
+      ],
+    );
+
+    // Agregar elementos al dashboard
+    dashboard.addElement(mdfElement);
+    dashboard.addElement(idf1Element);
+    dashboard.addElement(idf2Element);
+    dashboard.addElement(switch1Element);
+    dashboard.addElement(switch2Element);
+    dashboard.addElement(switch3Element);
+    dashboard.addElement(switch4Element);
+    dashboard.addElement(serverElement);
+
+    // Crear conexiones
+    _createConnections();
+  }
+
+  void _createConnections() {
+    // MDF -> IDF1 (Fibra)
+    mdfElement.next = [
+      ConnectionParams(
+        destElementId: idf1Element.id,
+        arrowParams: ArrowParams(
+          color: Colors.cyan,
+          thickness: 4,
+        ),
+      ),
+    ];
+
+    // MDF -> IDF2 (Fibra)
+    mdfElement.next = [
+      ...mdfElement.next ?? [],
+      ConnectionParams(
+        destElementId: idf2Element.id,
+        arrowParams: ArrowParams(
+          color: Colors.cyan,
+          thickness: 4,
+        ),
+      ),
+    ];
+
+    // IDF1 -> Switch A1 (UTP)
+    idf1Element.next = [
+      ConnectionParams(
+        destElementId: switch1Element.id,
+        arrowParams: ArrowParams(
+          color: Colors.yellow,
+          thickness: 3,
+        ),
+      ),
+    ];
+
+    // IDF1 -> Switch A2 (UTP)
+    idf1Element.next = [
+      ...idf1Element.next ?? [],
+      ConnectionParams(
+        destElementId: switch2Element.id,
+        arrowParams: ArrowParams(
+          color: Colors.yellow,
+          thickness: 3,
+        ),
+      ),
+    ];
+
+    // IDF2 -> Switch B1 (UTP)
+    idf2Element.next = [
+      ConnectionParams(
+        destElementId: switch3Element.id,
+        arrowParams: ArrowParams(
+          color: Colors.yellow,
+          thickness: 3,
+        ),
+      ),
+    ];
+
+    // IDF2 -> Switch B2 (UTP - Desconectado)
+    idf2Element.next = [
+      ...idf2Element.next ?? [],
+      ConnectionParams(
+        destElementId: switch4Element.id,
+        arrowParams: ArrowParams(
+          color: Colors.grey,
+          thickness: 2,
+        ),
+      ),
+    ];
+
+    // MDF -> Servidor (Dedicado)
+    mdfElement.next = [
+      ...mdfElement.next ?? [],
+      ConnectionParams(
+        destElementId: serverElement.id,
+        arrowParams: ArrowParams(
+          color: Colors.purple,
+          thickness: 5,
+        ),
+      ),
+    ];
   }
 
   @override
@@ -42,33 +384,34 @@ class _TopologiaPageState extends State<TopologiaPage>
 
   @override
   Widget build(BuildContext context) {
-    final isLargeScreen = MediaQuery.of(context).size.width > 1200;
     final isMediumScreen = MediaQuery.of(context).size.width > 800;
 
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Consumer<ComponentesProvider>(
         builder: (context, componentesProvider, child) {
+          if (_isLoading) {
+            return _buildLoadingView();
+          }
+
           return Container(
             padding: EdgeInsets.all(isMediumScreen ? 24 : 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header mejorado
-                _buildTopologyHeader(),
-
+                // Header profesional
+                _buildProfessionalHeader(),
                 const SizedBox(height: 24),
 
-                // Controles de vista y zoom
+                // Controles avanzados
                 if (isMediumScreen) ...[
-                  _buildTopologyControls(),
+                  _buildAdvancedControls(),
                   const SizedBox(height: 24),
                 ],
 
-                // Vista principal de topología
+                // Vista principal profesional
                 Expanded(
-                  child:
-                      _buildTopologyView(componentesProvider, isMediumScreen),
+                  child: _buildProfessionalTopologyView(isMediumScreen),
                 ),
               ],
             ),
@@ -78,7 +421,38 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  Widget _buildTopologyHeader() {
+  Widget _buildLoadingView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            strokeWidth: 3,
+            color: AppTheme.of(context).primaryColor,
+          ).animate().scale(duration: 600.ms).then(delay: 200.ms).fadeIn(),
+          const SizedBox(height: 24),
+          Text(
+            'Cargando topología de red...',
+            style: TextStyle(
+              color: AppTheme.of(context).primaryText,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ).animate().fadeIn(delay: 400.ms),
+          const SizedBox(height: 8),
+          Text(
+            'Construyendo infraestructura profesional',
+            style: TextStyle(
+              color: AppTheme.of(context).secondaryText,
+              fontSize: 14,
+            ),
+          ).animate().fadeIn(delay: 600.ms),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfessionalHeader() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -105,27 +479,33 @@ class _TopologiaPageState extends State<TopologiaPage>
               color: Colors.white,
               size: 24,
             ),
-          ),
+          )
+              .animate()
+              .scale(duration: 600.ms)
+              .then(delay: 200.ms)
+              .rotate(begin: 0, end: 0.1)
+              .then()
+              .rotate(begin: 0.1, end: 0),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Topología de Red MDF/IDF',
+                  'Topología Interactiva de Red',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
-                ),
+                ).animate().fadeIn(delay: 300.ms).slideX(begin: -0.3, end: 0),
                 Text(
-                  'Visualización interactiva de la infraestructura de telecomunicaciones',
+                  'Diagrama profesional con flutter_flow_chart',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
                   ),
-                ),
+                ).animate().fadeIn(delay: 500.ms).slideX(begin: -0.3, end: 0),
               ],
             ),
           ),
@@ -136,20 +516,20 @@ class _TopologiaPageState extends State<TopologiaPage>
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
-              'V2.0',
+              'FLOW',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
             ),
-          ),
+          ).animate().fadeIn(delay: 700.ms).scale(),
         ],
       ),
-    );
+    ).animate().fadeIn().slideY(begin: -0.3, end: 0);
   }
 
-  Widget _buildTopologyControls() {
+  Widget _buildAdvancedControls() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -173,20 +553,20 @@ class _TopologiaPageState extends State<TopologiaPage>
                   ),
                 ),
                 const SizedBox(width: 12),
-                _buildViewButton('rack', 'Rack', Icons.dns),
+                _buildViewButton('network', 'Diagrama Interactivo', Icons.hub),
                 const SizedBox(width: 8),
-                _buildViewButton('network', 'Red', Icons.hub),
+                _buildViewButton('rack', 'Vista Rack', Icons.dns),
                 const SizedBox(width: 8),
-                _buildViewButton('floor', 'Planta', Icons.map),
+                _buildViewButton('floor', 'Plano de Planta', Icons.map),
               ],
             ),
           ),
 
-          // Controles de zoom
+          // Controles de la topología
           Row(
             children: [
               Text(
-                'Zoom:',
+                'Controles:',
                 style: TextStyle(
                   color: AppTheme.of(context).primaryText,
                   fontWeight: FontWeight.w600,
@@ -194,34 +574,26 @@ class _TopologiaPageState extends State<TopologiaPage>
               ),
               const SizedBox(width: 12),
               IconButton(
-                onPressed: () => setState(
-                    () => _zoomLevel = (_zoomLevel - 0.2).clamp(0.5, 2.0)),
-                icon: const Icon(Icons.zoom_out),
-                tooltip: 'Alejar',
-              ),
-              Text(
-                '${(_zoomLevel * 100).round()}%',
-                style: TextStyle(
-                  color: AppTheme.of(context).secondaryText,
-                  fontSize: 12,
-                ),
+                onPressed: () {
+                  setState(() {
+                    _buildNetworkTopology();
+                  });
+                },
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Actualizar topología',
               ),
               IconButton(
-                onPressed: () => setState(
-                    () => _zoomLevel = (_zoomLevel + 0.2).clamp(0.5, 2.0)),
-                icon: const Icon(Icons.zoom_in),
-                tooltip: 'Acercar',
-              ),
-              IconButton(
-                onPressed: () => setState(() => _zoomLevel = 1.0),
+                onPressed: () {
+                  dashboard.setZoomFactor(1.0);
+                },
                 icon: const Icon(Icons.center_focus_strong),
-                tooltip: 'Restablecer zoom',
+                tooltip: 'Centrar vista',
               ),
             ],
           ),
         ],
       ),
-    );
+    ).animate().fadeIn(delay: 200.ms).slideY(begin: -0.2, end: 0);
   }
 
   Widget _buildViewButton(String value, String label, IconData icon) {
@@ -267,20 +639,19 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  Widget _buildTopologyView(
-      ComponentesProvider componentesProvider, bool isMediumScreen) {
+  Widget _buildProfessionalTopologyView(bool isMediumScreen) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.of(context).secondaryBackground,
+        color: const Color(0xFF0D1117), // Fondo oscuro profesional tipo GitHub
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppTheme.of(context).primaryColor.withOpacity(0.2),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -288,30 +659,28 @@ class _TopologiaPageState extends State<TopologiaPage>
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
-            // Fondo con patrón de cuadrícula
-            _buildGridBackground(),
+            // Vista según selección
+            if (_selectedView == 'network')
+              _buildInteractiveFlowChart()
+            else if (_selectedView == 'rack')
+              _buildRackView(isMediumScreen)
+            else if (_selectedView == 'floor')
+              _buildFloorPlanView(isMediumScreen),
 
-            // Contenido principal según la vista seleccionada
-            Transform.scale(
-              scale: _zoomLevel,
-              child: _buildViewContent(componentesProvider, isMediumScreen),
-            ),
-
-            // Leyenda flotante
-            if (isMediumScreen)
+            // Leyenda profesional
+            if (isMediumScreen && _selectedView == 'network')
               Positioned(
                 top: 16,
                 right: 16,
-                child: _buildLegend(),
+                child: _buildProfessionalLegend(),
               ),
 
-            // Controles móviles
-            if (!isMediumScreen)
+            // Panel de información
+            if (_selectedView == 'network')
               Positioned(
-                bottom: 16,
+                top: 16,
                 left: 16,
-                right: 16,
-                child: _buildMobileControls(),
+                child: _buildInfoPanel(),
               ),
           ],
         ),
@@ -319,801 +688,59 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  Widget _buildGridBackground() {
-    return CustomPaint(
-      painter: GridPainter(
-        color: AppTheme.of(context).primaryColor.withOpacity(0.1),
-      ),
-      child: Container(),
-    );
-  }
-
-  Widget _buildViewContent(
-      ComponentesProvider componentesProvider, bool isMediumScreen) {
-    switch (_selectedView) {
-      case 'rack':
-        return _buildRackView(componentesProvider, isMediumScreen);
-      case 'network':
-        return _buildNetworkView(componentesProvider, isMediumScreen);
-      case 'floor':
-        return _buildFloorView(componentesProvider, isMediumScreen);
-      default:
-        return _buildRackView(componentesProvider, isMediumScreen);
-    }
-  }
-
-  Widget _buildRackView(
-      ComponentesProvider componentesProvider, bool isMediumScreen) {
-    final racks = componentesProvider.componentes
-        .where((c) =>
-            componentesProvider
-                .getCategoriaById(c.categoriaId)
-                ?.nombre
-                ?.toLowerCase()
-                .contains('rack') ??
-            false)
-        .toList();
-
-    if (racks.isEmpty) {
-      return _buildEmptyRackView();
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: isMediumScreen
-          ? _buildDesktopRackLayout(racks, componentesProvider)
-          : _buildMobileRackLayout(racks, componentesProvider),
-    );
-  }
-
-  Widget _buildEmptyRackView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppTheme.of(context).primaryColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.dns,
-              size: 48,
-              color: AppTheme.of(context).primaryColor,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No hay racks configurados',
-            style: TextStyle(
-              color: AppTheme.of(context).primaryText,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Agregue racks desde el inventario para visualizar la topología',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppTheme.of(context).secondaryText,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesktopRackLayout(
-      List<dynamic> racks, ComponentesProvider componentesProvider) {
-    return Wrap(
-      spacing: 32,
-      runSpacing: 32,
-      children: racks
-          .map((rack) => _buildRackWidget(rack, componentesProvider, true))
-          .toList(),
-    );
-  }
-
-  Widget _buildMobileRackLayout(
-      List<dynamic> racks, ComponentesProvider componentesProvider) {
-    return Column(
-      children: racks
-          .map((rack) => Container(
-                margin: const EdgeInsets.only(bottom: 24),
-                child: _buildRackWidget(rack, componentesProvider, false),
-              ))
-          .toList(),
-    );
-  }
-
-  Widget _buildRackWidget(
-      dynamic rack, ComponentesProvider componentesProvider, bool isDesktop) {
-    // Obtener componentes que están en este rack
-    final rackComponents = componentesProvider.componentes
-        .where((c) =>
-            c.ubicacion?.toLowerCase().contains(rack.nombre.toLowerCase()) ??
-            false)
-        .toList();
-
-    return Container(
-      width: isDesktop ? 280 : double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.grey[800]!,
-            Colors.grey[900]!,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[600]!, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header del rack
-          Row(
-            children: [
-              Icon(
-                Icons.dns,
-                color: Colors.blue[300],
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  rack.nombre,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: rack.activo ? Colors.green : Colors.red,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  rack.activo ? 'ACTIVO' : 'INACTIVO',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Unidades del rack (simulación visual)
-          Container(
-            height: 200,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.grey[700]!),
-            ),
-            child: _buildRackUnits(rackComponents, componentesProvider),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Información del rack
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${rackComponents.length} componentes',
-                style: TextStyle(
-                  color: Colors.grey[300],
-                  fontSize: 12,
-                ),
-              ),
-              if (rack.ubicacion != null)
-                Text(
-                  rack.ubicacion!,
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 10,
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRackUnits(
-      List<dynamic> components, ComponentesProvider componentesProvider) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(4),
-      itemCount:
-          (components.length + 1).clamp(1, 10), // Máximo 10 unidades visuales
-      itemBuilder: (context, index) {
-        if (index < components.length) {
-          final component = components[index];
-          final categoria =
-              componentesProvider.getCategoriaById(component.categoriaId);
-          return Container(
-            height: 16,
-            margin: const EdgeInsets.only(bottom: 2),
-            decoration: BoxDecoration(
-              color: _getComponentColor(categoria?.nombre),
-              borderRadius: BorderRadius.circular(2),
-              border: Border.all(color: Colors.grey[600]!, width: 0.5),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 4),
-                Icon(
-                  _getComponentIcon(categoria?.nombre),
-                  size: 10,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    component.nombre,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          // Unidad vacía
-          return Container(
-            height: 16,
-            margin: const EdgeInsets.only(bottom: 2),
-            decoration: BoxDecoration(
-              color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(2),
-              border: Border.all(color: Colors.grey[700]!, width: 0.5),
-            ),
-          );
-        }
+  Widget _buildInteractiveFlowChart() {
+    return FlowChart(
+      dashboard: dashboard,
+      onElementPressed: (context, position, element) {
+        _showElementDetails(element);
       },
-    );
+      onElementLongPressed: (context, position, element) {
+        _showElementContextMenu(context, position, element);
+      },
+      onNewConnection: (source, target) {
+        _handleNewConnection(source, target);
+      },
+      onDashboardTapped: (context, position) {
+        // Limpiar selecciones
+      },
+    ).animate().fadeIn(duration: 800.ms).scale(begin: const Offset(0.95, 0.95));
   }
 
-  Widget _buildNetworkView(
-      ComponentesProvider componentesProvider, bool isMediumScreen) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: _buildNetworkDiagram(componentesProvider, isMediumScreen),
-      ),
-    );
-  }
-
-  Widget _buildNetworkDiagram(
-      ComponentesProvider componentesProvider, bool isMediumScreen) {
-    final switches = componentesProvider.componentes
-        .where((c) =>
-            componentesProvider
-                .getCategoriaById(c.categoriaId)
-                ?.nombre
-                ?.toLowerCase()
-                .contains('switch') ??
-            false)
-        .toList();
-
-    final routers = componentesProvider.componentes
-        .where((c) =>
-            componentesProvider
-                .getCategoriaById(c.categoriaId)
-                ?.nombre
-                ?.toLowerCase()
-                .contains('router') ??
-            false)
-        .toList();
-
-    return Column(
-      children: [
-        // Capa de routers/firewall
-        if (routers.isNotEmpty) ...[
-          Text(
-            'Capa de Enrutamiento',
-            style: TextStyle(
-              color: AppTheme.of(context).primaryText,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 24,
-            runSpacing: 16,
-            children: routers
-                .map((router) => _buildNetworkNode(
-                      router,
-                      Icons.router,
-                      Colors.red[400]!,
-                      componentesProvider,
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 32),
-
-          // Líneas de conexión
-          Container(
-            height: 2,
-            width: isMediumScreen ? 200 : 150,
-            color: AppTheme.of(context).primaryColor.withOpacity(0.5),
-          ),
-          const SizedBox(height: 32),
-        ],
-
-        // Capa de switches
-        if (switches.isNotEmpty) ...[
-          Text(
-            'Capa de Conmutación',
-            style: TextStyle(
-              color: AppTheme.of(context).primaryText,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 24,
-            runSpacing: 16,
-            children: switches
-                .map((switch_) => _buildNetworkNode(
-                      switch_,
-                      Icons.hub,
-                      Colors.blue[400]!,
-                      componentesProvider,
-                    ))
-                .toList(),
-          ),
-        ],
-
-        if (switches.isEmpty && routers.isEmpty) _buildEmptyNetworkView(),
-      ],
-    );
-  }
-
-  Widget _buildNetworkNode(dynamic component, IconData icon, Color color,
-      ComponentesProvider componentesProvider) {
-    return GestureDetector(
-      onTap: () => _showComponentDetails(component, componentesProvider),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.of(context).secondaryBackground,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.5), width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              component.nombre,
-              style: TextStyle(
-                color: AppTheme.of(context).primaryText,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (component.ubicacion != null)
-              Text(
-                component.ubicacion!,
-                style: TextStyle(
-                  color: AppTheme.of(context).secondaryText,
-                  fontSize: 10,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: component.activo ? Colors.green : Colors.red,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                component.activo ? 'ON' : 'OFF',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFloorView(
-      ComponentesProvider componentesProvider, bool isMediumScreen) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: _buildFloorPlan(componentesProvider, isMediumScreen),
-      ),
-    );
-  }
-
-  Widget _buildFloorPlan(
-      ComponentesProvider componentesProvider, bool isMediumScreen) {
-    return Container(
-      width: isMediumScreen ? 600 : double.infinity,
-      height: isMediumScreen ? 400 : 300,
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[400]!),
-      ),
-      child: Stack(
-        children: [
-          // Representación simple de planta
-          _buildFloorLayout(),
-
-          // Componentes distribuidos en la planta
-          ..._buildFloorComponents(componentesProvider),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloorLayout() {
-    return CustomPaint(
-      painter: FloorPlanPainter(),
-      child: Container(),
-    );
-  }
-
-  List<Widget> _buildFloorComponents(ComponentesProvider componentesProvider) {
-    final components = componentesProvider.componentes
-        .take(6)
-        .toList(); // Límite para visualización
-    final positions = [
-      const Offset(0.2, 0.3),
-      const Offset(0.8, 0.3),
-      const Offset(0.2, 0.7),
-      const Offset(0.8, 0.7),
-      const Offset(0.5, 0.2),
-      const Offset(0.5, 0.8),
-    ];
-
-    return components.asMap().entries.map((entry) {
-      final index = entry.key;
-      final component = entry.value;
-      final position = positions[index % positions.length];
-
-      return Positioned(
-        left: position.dx * 580 + 10, // Ajuste por padding
-        top: position.dy * 380 + 10,
-        child: _buildFloorComponent(component, componentesProvider),
-      );
-    }).toList();
-  }
-
-  Widget _buildFloorComponent(
-      dynamic component, ComponentesProvider componentesProvider) {
-    final categoria =
-        componentesProvider.getCategoriaById(component.categoriaId);
-
-    return GestureDetector(
-      onTap: () => _showComponentDetails(component, componentesProvider),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: _getComponentColor(categoria?.nombre),
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _getComponentIcon(categoria?.nombre),
-              color: Colors.white,
-              size: 16,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              component.nombre.length > 8
-                  ? '${component.nombre.substring(0, 8)}...'
-                  : component.nombre,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyNetworkView() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppTheme.of(context).primaryColor.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.hub,
-            size: 48,
-            color: AppTheme.of(context).primaryColor,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'No hay equipos de red configurados',
-          style: TextStyle(
-            color: AppTheme.of(context).primaryText,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Agregue switches y routers desde el inventario',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppTheme.of(context).secondaryText,
-            fontSize: 14,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLegend() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppTheme.of(context).primaryColor.withOpacity(0.2),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Leyenda',
-            style: TextStyle(
-              color: AppTheme.of(context).primaryText,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildLegendItem(Icons.router, 'Router/Firewall', Colors.red[400]!),
-          _buildLegendItem(Icons.hub, 'Switch', Colors.blue[400]!),
-          _buildLegendItem(Icons.dns, 'Rack', Colors.grey[600]!),
-          _buildLegendItem(Icons.cable, 'Cable', Colors.orange[400]!),
-          _buildLegendItem(
-              Icons.electrical_services, 'UPS', Colors.yellow[700]!),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLegendItem(IconData icon, String label, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppTheme.of(context).secondaryText,
-              fontSize: 10,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileControls() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.of(context).primaryColor.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Selector de vista móvil
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildMobileViewButton('rack', 'Rack', Icons.dns),
-              _buildMobileViewButton('network', 'Red', Icons.hub),
-              _buildMobileViewButton('floor', 'Planta', Icons.map),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Controles de zoom móvil
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                onPressed: () => setState(
-                    () => _zoomLevel = (_zoomLevel - 0.2).clamp(0.5, 2.0)),
-                icon: const Icon(Icons.zoom_out),
-                iconSize: 20,
-              ),
-              Text(
-                '${(_zoomLevel * 100).round()}%',
-                style: TextStyle(
-                  color: AppTheme.of(context).secondaryText,
-                  fontSize: 12,
-                ),
-              ),
-              IconButton(
-                onPressed: () => setState(
-                    () => _zoomLevel = (_zoomLevel + 0.2).clamp(0.5, 2.0)),
-                icon: const Icon(Icons.zoom_in),
-                iconSize: 20,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileViewButton(String value, String label, IconData icon) {
-    final isSelected = _selectedView == value;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedView = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppTheme.of(context).primaryColor
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppTheme.of(context).primaryColor.withOpacity(0.3),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color:
-                  isSelected ? Colors.white : AppTheme.of(context).primaryColor,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : AppTheme.of(context).primaryColor,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showComponentDetails(
-      dynamic component, ComponentesProvider componentesProvider) {
-    final categoria =
-        componentesProvider.getCategoriaById(component.categoriaId);
+  void _showElementDetails(FlowElement element) {
+    final data = element.data as Map<String, dynamic>;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(
-              _getComponentIcon(categoria?.nombre),
-              color: AppTheme.of(context).primaryColor,
-            ),
+            Icon(_getIconForType(data['type']),
+                color: _getColorForType(data['type'])),
             const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                component.nombre,
-                style: TextStyle(
-                  color: AppTheme.of(context).primaryText,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            Expanded(child: Text(data['name'])),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('Categoría', categoria?.nombre ?? 'N/A'),
-            _buildDetailRow('Estado', component.activo ? 'Activo' : 'Inactivo'),
-            _buildDetailRow('En uso', component.enUso ? 'Sí' : 'No'),
-            if (component.ubicacion != null)
-              _buildDetailRow('Ubicación', component.ubicacion!),
-            if (component.descripcion != null)
-              _buildDetailRow('Descripción', component.descripcion!),
-          ],
+        content: Container(
+          width: double.maxFinite,
+          constraints: const BoxConstraints(maxHeight: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Tipo: ${data['type']}'),
+              const SizedBox(height: 8),
+              Text('Estado: ${_getStatusText(data['status'])}'),
+              if (data['ports'] != null) ...[
+                const SizedBox(height: 8),
+                Text('Puertos: ${data['ports']}'),
+              ],
+              const SizedBox(height: 12),
+              const Text('Descripción:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(data['description']),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1125,28 +752,105 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+  void _showElementContextMenu(
+      BuildContext context, Offset position, FlowElement element) {
+    // Implementar menú contextual
+  }
+
+  void _handleNewConnection(FlowElement source, FlowElement target) {
+    // Mostrar diálogo para configurar nueva conexión
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Nueva Conexión'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Conectar desde: ${(source.data as Map)['name']}'),
+            Text('Hacia: ${(target.data as Map)['name']}'),
+            const SizedBox(height: 16),
+            const Text('Seleccione el tipo de conexión:'),
+            // Aquí podrías agregar controles para seleccionar tipo de cable
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Crear la conexión manualmente
+              final newConnection = ConnectionParams(
+                destElementId: target.id,
+                arrowParams: ArrowParams(
+                  color: Colors.green,
+                  thickness: 3,
+                ),
+              );
+
+              source.next = [...source.next ?? [], newConnection];
+              Navigator.of(context).pop();
+              setState(() {});
+            },
+            child: const Text('Conectar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfessionalLegend() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                color: AppTheme.of(context).secondaryText,
-                fontWeight: FontWeight.w600,
-              ),
+          const Text(
+            'Leyenda',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: AppTheme.of(context).primaryText,
-              ),
+          const SizedBox(height: 8),
+          _buildLegendItem(const Color(0xFF2196F3), 'MDF', Icons.router),
+          _buildLegendItem(const Color(0xFF4CAF50), 'IDF Activo', Icons.hub),
+          _buildLegendItem(
+              const Color(0xFFFF9800), 'IDF Advertencia', Icons.hub),
+          _buildLegendItem(
+              const Color(0xFF9C27B0), 'Switch Acceso', Icons.network_check),
+          _buildLegendItem(const Color(0xFFE91E63), 'Servidor', Icons.dns),
+          const SizedBox(height: 6),
+          _buildLegendItem(Colors.cyan, 'Fibra Óptica', Icons.cable),
+          _buildLegendItem(Colors.yellow, 'Cable UTP', Icons.cable),
+          _buildLegendItem(Colors.purple, 'Conexión Dedicada', Icons.cable),
+          _buildLegendItem(Colors.grey, 'Desconectado', Icons.cable),
+        ],
+      ),
+    ).animate().fadeIn(delay: 1000.ms).slideX(begin: 0.3);
+  }
+
+  Widget _buildLegendItem(Color color, String label, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 12),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 9,
             ),
           ),
         ],
@@ -1154,120 +858,651 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  Color _getComponentColor(String? categoryName) {
-    if (categoryName == null) return Colors.grey[600]!;
-
-    final name = categoryName.toLowerCase();
-    if (name.contains('switch')) return Colors.blue[600]!;
-    if (name.contains('router') || name.contains('firewall'))
-      return Colors.red[600]!;
-    if (name.contains('cable')) return Colors.orange[600]!;
-    if (name.contains('rack')) return Colors.grey[700]!;
-    if (name.contains('ups')) return Colors.yellow[700]!;
-    if (name.contains('patch') || name.contains('panel'))
-      return Colors.purple[600]!;
-    return Colors.teal[600]!;
+  Widget _buildInfoPanel() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Información',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            '• Arrastra los nodos para reposicionar',
+            style: TextStyle(color: Colors.white70, fontSize: 10),
+          ),
+          Text(
+            '• Haz clic en un nodo para ver detalles',
+            style: TextStyle(color: Colors.white70, fontSize: 10),
+          ),
+          Text(
+            '• Arrastra desde los puntos de conexión',
+            style: TextStyle(color: Colors.white70, fontSize: 10),
+          ),
+          Text(
+            '• Usa zoom con scroll del mouse',
+            style: TextStyle(color: Colors.white70, fontSize: 10),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 1200.ms).slideX(begin: -0.3);
   }
 
-  IconData _getComponentIcon(String? categoryName) {
-    if (categoryName == null) return Icons.device_unknown;
-
-    final name = categoryName.toLowerCase();
-    if (name.contains('switch')) return Icons.hub;
-    if (name.contains('router') || name.contains('firewall'))
-      return Icons.router;
-    if (name.contains('cable')) return Icons.cable;
-    if (name.contains('rack')) return Icons.dns;
-    if (name.contains('ups')) return Icons.electrical_services;
-    if (name.contains('patch') || name.contains('panel'))
-      return Icons.view_module;
-    return Icons.memory;
+  Widget _buildRackView(bool isMediumScreen) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: const Center(
+        child: Text(
+          'Vista de Racks - En desarrollo',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      ),
+    );
   }
-}
 
-// Painter personalizado para la cuadrícula de fondo
-class GridPainter extends CustomPainter {
-  final Color color;
+  Widget _buildFloorPlanView(bool isMediumScreen) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: const Center(
+        child: Text(
+          'Plano de Planta - En desarrollo',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      ),
+    );
+  }
 
-  GridPainter({required this.color});
+  IconData _getIconForType(String type) {
+    switch (type) {
+      case 'MDF':
+        return Icons.router;
+      case 'IDF':
+        return Icons.hub;
+      case 'AccessSwitch':
+        return Icons.network_check;
+      case 'Server':
+        return Icons.dns;
+      default:
+        return Icons.device_unknown;
+    }
+  }
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 0.5;
+  Color _getColorForType(String type) {
+    switch (type) {
+      case 'MDF':
+        return const Color(0xFF2196F3);
+      case 'IDF':
+        return const Color(0xFF4CAF50);
+      case 'AccessSwitch':
+        return const Color(0xFF9C27B0);
+      case 'Server':
+        return const Color(0xFFE91E63);
+      default:
+        return Colors.grey;
+    }
+  }
 
-    const spacing = 20.0;
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'active':
+        return '🟢 Activo';
+      case 'warning':
+        return '🟡 Advertencia';
+      case 'error':
+        return '🔴 Error';
+      case 'disconnected':
+        return '⚫ Desconectado';
+      default:
+        return '❓ Desconocido';
+    }
+  }
 
-    // Líneas verticales
-    for (double x = 0; x < size.width; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+  Future<void> _loadRealTopologyData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final componentesProvider =
+          Provider.of<ComponentesProvider>(context, listen: false);
+
+      // Verificar que hay un negocio seleccionado en el provider
+      if (componentesProvider.negocioSeleccionadoId == null) {
+        // Si no hay negocio seleccionado, mostrar mensaje
+        setState(() {
+          _isLoading = false;
+        });
+        _showNoBusinessSelectedDialog();
+        return;
+      }
+
+      // Construir la topología con datos reales del negocio seleccionado
+      await _buildRealNetworkTopology();
+    } catch (e) {
+      print('Error al cargar datos de topología: ${e.toString()}');
+      _showErrorDialog('Error al cargar la topología: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _buildRealNetworkTopology() async {
+    dashboard.removeAllElements();
+
+    final componentesProvider =
+        Provider.of<ComponentesProvider>(context, listen: false);
+
+    // Obtener componentes agrupados por tipo
+    final mdfComponents = componentesProvider.getComponentesPorTipo('mdf');
+    final idfComponents = componentesProvider.getComponentesPorTipo('idf');
+    final switchesAcceso = componentesProvider
+        .getComponentesPorTipo('switch')
+        .where((s) => !mdfComponents.contains(s) && !idfComponents.contains(s))
+        .toList();
+    final routers = componentesProvider.getComponentesPorTipo('router');
+    final servidores = componentesProvider.getComponentesPorTipo('servidor');
+
+    print('Componentes encontrados:');
+    print('- MDF: ${mdfComponents.length}');
+    print('- IDF: ${idfComponents.length}');
+    print('- Switches de acceso: ${switchesAcceso.length}');
+    print('- Routers: ${routers.length}');
+    print('- Servidores: ${servidores.length}');
+
+    double currentX = 100;
+    double currentY = 100;
+    const double espacioX = 200;
+    const double espacioY = 150;
+
+    Map<String, FlowElement> elementosMap = {};
+
+    // Crear elementos MDF
+    if (mdfComponents.isNotEmpty) {
+      final mdfElement = _createMDFElement(
+          mdfComponents, Offset(currentX + espacioX * 2, currentY));
+      dashboard.addElement(mdfElement);
+      elementosMap[mdfComponents.first.id] = mdfElement;
+      currentY += espacioY;
     }
 
-    // Líneas horizontales
-    for (double y = 0; y < size.height; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    // Crear elementos IDF
+    double idfX = currentX;
+    for (var idfComp in idfComponents) {
+      final idfElement =
+          _createIDFElement(idfComp, Offset(idfX, currentY + espacioY));
+      dashboard.addElement(idfElement);
+      elementosMap[idfComp.id] = idfElement;
+      idfX += espacioX;
+    }
+
+    // Crear switches de acceso
+    double switchX = currentX;
+    currentY += espacioY * 2;
+    for (var switchComp in switchesAcceso) {
+      final switchElement =
+          _createSwitchElement(switchComp, Offset(switchX, currentY));
+      dashboard.addElement(switchElement);
+      elementosMap[switchComp.id] = switchElement;
+      switchX += espacioX * 0.8;
+    }
+
+    // Crear servidores
+    if (servidores.isNotEmpty) {
+      currentY += espacioY;
+      double serverX = currentX + espacioX;
+      for (var servidor in servidores) {
+        final serverElement =
+            _createServerElement(servidor, Offset(serverX, currentY));
+        dashboard.addElement(serverElement);
+        elementosMap[servidor.id] = serverElement;
+        serverX += espacioX * 0.8;
+      }
+    }
+
+    // Crear routers/firewalls
+    if (routers.isNotEmpty) {
+      double routerX = currentX;
+      for (var router in routers) {
+        final routerElement = _createRouterElement(
+            router, Offset(routerX, currentY - espacioY * 3));
+        dashboard.addElement(routerElement);
+        elementosMap[router.id] = routerElement;
+        routerX += espacioX;
+      }
+    }
+
+    // Crear conexiones basadas en la base de datos
+    await _createRealConnections(elementosMap, componentesProvider);
+
+    // Si no hay elementos reales, mostrar mensaje
+    if (elementosMap.isEmpty) {
+      _showNoComponentsMessage();
+    }
+
+    setState(() {});
+  }
+
+  FlowElement _createMDFElement(
+      List<Componente> mdfComponents, Offset position) {
+    final mainComponent = mdfComponents.first;
+    final componentesProvider =
+        Provider.of<ComponentesProvider>(context, listen: false);
+    final categoria =
+        componentesProvider.getCategoriaById(mainComponent.categoriaId);
+
+    return FlowElement(
+      position: position,
+      size: const Size(180, 140),
+      text: 'MDF\n${mainComponent.nombre}',
+      textColor: Colors.white,
+      textSize: 14,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF2196F3),
+      borderColor: const Color(0xFF1976D2),
+      borderThickness: 3,
+      elevation: 8,
+      data: {
+        'type': 'MDF',
+        'componenteId': mainComponent.id,
+        'name': mainComponent.nombre,
+        'status': mainComponent.activo ? 'active' : 'disconnected',
+        'description': mainComponent.descripcion ?? 'Main Distribution Frame',
+        'ubicacion': mainComponent.ubicacion ?? 'Sin ubicación',
+        'categoria': categoria?.nombre ?? 'Sin categoría',
+        'componentes': mdfComponents.length,
+      },
+      handlers: [
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+  }
+
+  FlowElement _createIDFElement(Componente idfComponent, Offset position) {
+    final componentesProvider =
+        Provider.of<ComponentesProvider>(context, listen: false);
+    final categoria =
+        componentesProvider.getCategoriaById(idfComponent.categoriaId);
+
+    return FlowElement(
+      position: position,
+      size: const Size(160, 120),
+      text: 'IDF\n${idfComponent.nombre}',
+      textColor: Colors.white,
+      textSize: 12,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: idfComponent.enUso
+          ? const Color(0xFF4CAF50)
+          : const Color(0xFFFF9800),
+      borderColor: idfComponent.enUso
+          ? const Color(0xFF388E3C)
+          : const Color(0xFFF57C00),
+      borderThickness: 2,
+      elevation: 6,
+      data: {
+        'type': 'IDF',
+        'componenteId': idfComponent.id,
+        'name': idfComponent.nombre,
+        'status': idfComponent.activo
+            ? (idfComponent.enUso ? 'active' : 'warning')
+            : 'disconnected',
+        'description':
+            idfComponent.descripcion ?? 'Intermediate Distribution Frame',
+        'ubicacion': idfComponent.ubicacion ?? 'Sin ubicación',
+        'categoria': categoria?.nombre ?? 'Sin categoría',
+        'enUso': idfComponent.enUso,
+      },
+      handlers: [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+  }
+
+  FlowElement _createSwitchElement(
+      Componente switchComponent, Offset position) {
+    final componentesProvider =
+        Provider.of<ComponentesProvider>(context, listen: false);
+    final categoria =
+        componentesProvider.getCategoriaById(switchComponent.categoriaId);
+
+    return FlowElement(
+      position: position,
+      size: const Size(140, 100),
+      text: 'Switch\n${switchComponent.nombre}',
+      textColor: Colors.white,
+      textSize: 10,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: switchComponent.activo
+          ? const Color(0xFF9C27B0)
+          : const Color(0xFF757575),
+      borderColor: switchComponent.activo
+          ? const Color(0xFF7B1FA2)
+          : const Color(0xFF424242),
+      borderThickness: 2,
+      elevation: switchComponent.activo ? 4 : 2,
+      data: {
+        'type': 'AccessSwitch',
+        'componenteId': switchComponent.id,
+        'name': switchComponent.nombre,
+        'status': switchComponent.activo ? 'active' : 'disconnected',
+        'description': switchComponent.descripcion ?? 'Switch de Acceso',
+        'ubicacion': switchComponent.ubicacion ?? 'Sin ubicación',
+        'categoria': categoria?.nombre ?? 'Sin categoría',
+      },
+      handlers: [
+        Handler.topCenter,
+      ],
+    );
+  }
+
+  FlowElement _createServerElement(
+      Componente serverComponent, Offset position) {
+    final componentesProvider =
+        Provider.of<ComponentesProvider>(context, listen: false);
+    final categoria =
+        componentesProvider.getCategoriaById(serverComponent.categoriaId);
+
+    return FlowElement(
+      position: position,
+      size: const Size(160, 100),
+      text: 'Servidor\n${serverComponent.nombre}',
+      textColor: Colors.white,
+      textSize: 12,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFFE91E63),
+      borderColor: const Color(0xFFC2185B),
+      borderThickness: 3,
+      elevation: 6,
+      data: {
+        'type': 'Server',
+        'componenteId': serverComponent.id,
+        'name': serverComponent.nombre,
+        'status': serverComponent.activo ? 'active' : 'disconnected',
+        'description': serverComponent.descripcion ?? 'Servidor',
+        'ubicacion': serverComponent.ubicacion ?? 'Sin ubicación',
+        'categoria': categoria?.nombre ?? 'Sin categoría',
+      },
+      handlers: [
+        Handler.topCenter,
+      ],
+    );
+  }
+
+  FlowElement _createRouterElement(
+      Componente routerComponent, Offset position) {
+    final componentesProvider =
+        Provider.of<ComponentesProvider>(context, listen: false);
+    final categoria =
+        componentesProvider.getCategoriaById(routerComponent.categoriaId);
+
+    return FlowElement(
+      position: position,
+      size: const Size(160, 100),
+      text: 'Router\n${routerComponent.nombre}',
+      textColor: Colors.white,
+      textSize: 12,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFFFF5722),
+      borderColor: const Color(0xFFD84315),
+      borderThickness: 3,
+      elevation: 6,
+      data: {
+        'type': 'Router',
+        'componenteId': routerComponent.id,
+        'name': routerComponent.nombre,
+        'status': routerComponent.activo ? 'active' : 'disconnected',
+        'description': routerComponent.descripcion ?? 'Router/Firewall',
+        'ubicacion': routerComponent.ubicacion ?? 'Sin ubicación',
+        'categoria': categoria?.nombre ?? 'Sin categoría',
+      },
+      handlers: [
+        Handler.bottomCenter,
+        Handler.topCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+  }
+
+  Future<void> _createRealConnections(Map<String, FlowElement> elementosMap,
+      ComponentesProvider componentesProvider) async {
+    // Obtener conexiones reales de la base de datos
+    final conexiones = componentesProvider.conexiones;
+
+    print('Creando ${conexiones.length} conexiones...');
+
+    for (var conexion in conexiones) {
+      final origenElement = elementosMap[conexion.componenteOrigenId];
+      final destinoElement = elementosMap[conexion.componenteDestinoId];
+
+      if (origenElement != null && destinoElement != null) {
+        // Determinar el color y grosor de la conexión basado en los tipos de componentes
+        final colorConexion =
+            _getConnectionColor(conexion, componentesProvider);
+        final grosorConexion =
+            _getConnectionThickness(conexion, componentesProvider);
+
+        print('Conectando: ${origenElement.text} -> ${destinoElement.text}');
+
+        // Agregar la conexión al elemento origen
+        origenElement.next = [
+          ...origenElement.next ?? [],
+          ConnectionParams(
+            destElementId: destinoElement.id,
+            arrowParams: ArrowParams(
+              color: colorConexion,
+              thickness: grosorConexion,
+            ),
+          ),
+        ];
+      }
+    }
+
+    // Si no hay conexiones en la BD, crear conexiones automáticas basadas en la ubicación
+    if (conexiones.isEmpty) {
+      print('No hay conexiones en BD, creando automáticas...');
+      _createAutomaticConnections(elementosMap, componentesProvider);
     }
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
+  Color _getConnectionColor(
+      ConexionComponente conexion, ComponentesProvider componentesProvider) {
+    // Obtener los componentes origen y destino
+    final origenComp =
+        componentesProvider.getComponenteById(conexion.componenteOrigenId);
+    final destinoComp =
+        componentesProvider.getComponenteById(conexion.componenteDestinoId);
 
-// Painter para el plano de planta
-class FloorPlanPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.grey[400]!
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
+    if (origenComp == null || destinoComp == null) return Colors.grey;
 
-    // Dibujar habitaciones/áreas
-    final rect1 =
-        Rect.fromLTWH(20, 20, size.width * 0.4 - 20, size.height * 0.6);
-    final rect2 = Rect.fromLTWH(
-        size.width * 0.6, 20, size.width * 0.4 - 20, size.height * 0.6);
-    final rect3 = Rect.fromLTWH(
-        20, size.height * 0.7, size.width - 40, size.height * 0.3 - 20);
+    // Determinar el tipo de conexión basado en las ubicaciones
+    final origenUbicacion = origenComp.ubicacion?.toUpperCase() ?? '';
+    final destinoUbicacion = destinoComp.ubicacion?.toUpperCase() ?? '';
 
-    canvas.drawRect(rect1, paint);
-    canvas.drawRect(rect2, paint);
-    canvas.drawRect(rect3, paint);
+    // MDF a IDF = Fibra (cyan)
+    if (origenUbicacion.contains('MDF') && destinoUbicacion.contains('IDF')) {
+      return Colors.cyan;
+    }
 
-    // Etiquetas de áreas
-    final textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-    );
+    // IDF a Switch = UTP (yellow)
+    if (origenUbicacion.contains('IDF')) {
+      return Colors.yellow;
+    }
 
-    textPainter.text = const TextSpan(
-      text: 'MDF',
-      style: TextStyle(
-          color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
-    );
-    textPainter.layout();
-    textPainter.paint(canvas,
-        Offset(rect1.center.dx - textPainter.width / 2, rect1.center.dy));
+    // Servidor = Dedicado (purple)
+    final origenCategoria =
+        componentesProvider.getCategoriaById(origenComp.categoriaId);
+    final destinoCategoria =
+        componentesProvider.getCategoriaById(destinoComp.categoriaId);
 
-    textPainter.text = const TextSpan(
-      text: 'IDF',
-      style: TextStyle(
-          color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
-    );
-    textPainter.layout();
-    textPainter.paint(canvas,
-        Offset(rect2.center.dx - textPainter.width / 2, rect2.center.dy));
+    if ((origenCategoria?.nombre?.toLowerCase().contains('servidor') ??
+            false) ||
+        (destinoCategoria?.nombre?.toLowerCase().contains('servidor') ??
+            false)) {
+      return Colors.purple;
+    }
 
-    textPainter.text = const TextSpan(
-      text: 'Área de Trabajo',
-      style: TextStyle(
-          color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
-    );
-    textPainter.layout();
-    textPainter.paint(canvas,
-        Offset(rect3.center.dx - textPainter.width / 2, rect3.center.dy));
+    return Colors.green; // Por defecto
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  double _getConnectionThickness(
+      ConexionComponente conexion, ComponentesProvider componentesProvider) {
+    final origenComp =
+        componentesProvider.getComponenteById(conexion.componenteOrigenId);
+    final destinoComp =
+        componentesProvider.getComponenteById(conexion.componenteDestinoId);
+
+    if (origenComp == null || destinoComp == null) return 2.0;
+
+    final origenUbicacion = origenComp.ubicacion?.toUpperCase() ?? '';
+    final destinoUbicacion = destinoComp.ubicacion?.toUpperCase() ?? '';
+
+    // Conexiones principales más gruesas
+    if (origenUbicacion.contains('MDF') && destinoUbicacion.contains('IDF')) {
+      return 4.0;
+    }
+
+    return conexion.activo ? 3.0 : 2.0;
+  }
+
+  void _createAutomaticConnections(Map<String, FlowElement> elementosMap,
+      ComponentesProvider componentesProvider) {
+    // Crear conexiones automáticas cuando no hay datos en la BD
+    final mdfElements = elementosMap.values
+        .where((e) => (e.data as Map)['type'] == 'MDF')
+        .toList();
+    final idfElements = elementosMap.values
+        .where((e) => (e.data as Map)['type'] == 'IDF')
+        .toList();
+    final switchElements = elementosMap.values
+        .where((e) => (e.data as Map)['type'] == 'AccessSwitch')
+        .toList();
+
+    print('Creando conexiones automáticas...');
+    print(
+        'MDF: ${mdfElements.length}, IDF: ${idfElements.length}, Switches: ${switchElements.length}');
+
+    // Conectar MDF a IDFs
+    for (var mdf in mdfElements) {
+      for (var idf in idfElements) {
+        mdf.next = [
+          ...mdf.next ?? [],
+          ConnectionParams(
+            destElementId: idf.id,
+            arrowParams: ArrowParams(
+              color: Colors.cyan,
+              thickness: 4,
+            ),
+          ),
+        ];
+      }
+    }
+
+    // Conectar IDFs a Switches
+    for (int i = 0; i < idfElements.length && i < switchElements.length; i++) {
+      final idf = idfElements[i];
+      final switchesParaEsteIdf = switchElements.skip(i * 2).take(2);
+
+      for (var switch_ in switchesParaEsteIdf) {
+        idf.next = [
+          ...idf.next ?? [],
+          ConnectionParams(
+            destElementId: switch_.id,
+            arrowParams: ArrowParams(
+              color: Colors.yellow,
+              thickness: 3,
+            ),
+          ),
+        ];
+      }
+    }
+  }
+
+  void _showNoComponentsMessage() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sin componentes'),
+        content: const Text(
+          'No se encontraron componentes de red para este negocio.\n\n'
+          'Para ver una topología completa, agregue componentes en el módulo de Inventario con ubicaciones como "MDF", "IDF", etc.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Ir al módulo de inventario (esto depende de tu estructura de navegación)
+              // context.go('/infrastructure/inventory');
+            },
+            child: const Text('Ir a Inventario'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNoBusinessSelectedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Negocio no seleccionado'),
+        content: const Text(
+          'No se ha seleccionado ningún negocio. Por favor, regrese a la página de negocios y seleccione "Acceder a Infraestructura" en la tabla.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Regresar a la página de empresas/negocios
+              context.go('/empresa-negocios');
+            },
+            child: const Text('Ir a Negocios'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
 }
