@@ -4,6 +4,7 @@ import 'package:pluto_grid/pluto_grid.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/pages/infrastructure/widgets/componentes_cards_view.dart';
 import 'package:nethive_neo/pages/infrastructure/widgets/edit_componente_dialog.dart';
+import 'package:nethive_neo/pages/infrastructure/widgets/add_componente_dialog.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class InventarioPage extends StatefulWidget {
@@ -17,6 +18,10 @@ class _InventarioPageState extends State<InventarioPage>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+
+  // GlobalKey para manejar el overlay de manera segura
+  final GlobalKey<OverlayState> _overlayKey = GlobalKey<OverlayState>();
+  OverlayEntry? _loadingOverlay;
 
   @override
   void initState() {
@@ -37,8 +42,67 @@ class _InventarioPageState extends State<InventarioPage>
 
   @override
   void dispose() {
+    // Limpiar el overlay si existe antes de dispose
+    _removeLoadingOverlay();
     _animationController.dispose();
     super.dispose();
+  }
+
+  // Método para mostrar overlay de loading de manera segura
+  void _showLoadingOverlay(String message) {
+    _removeLoadingOverlay(); // Remover cualquier overlay existente
+
+    if (mounted) {
+      _loadingOverlay = OverlayEntry(
+        builder: (context) => Material(
+          color: Colors.black.withOpacity(0.7),
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      Overlay.of(context).insert(_loadingOverlay!);
+    }
+  }
+
+  // Método para remover overlay de manera segura
+  void _removeLoadingOverlay() {
+    if (_loadingOverlay != null) {
+      try {
+        _loadingOverlay!.remove();
+      } catch (e) {
+        // Ignorar errores si el overlay ya fue removido
+      }
+      _loadingOverlay = null;
+    }
   }
 
   @override
@@ -135,7 +199,7 @@ class _InventarioPageState extends State<InventarioPage>
               ],
             ),
           ),
-          // Botón para añadir componente
+          // Botón para añadir componente - ACTUALIZADO
           Container(
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
@@ -143,10 +207,24 @@ class _InventarioPageState extends State<InventarioPage>
             ),
             child: TextButton.icon(
               onPressed: () {
-                // TODO: Abrir dialog para añadir componente
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Función de añadir componente próximamente'),
+                // Verificar que tengamos un negocio seleccionado
+                if (componentesProvider.negocioSeleccionadoId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Debe seleccionar un negocio antes de añadir componentes'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
+                // Abrir el diálogo para añadir componente
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => AddComponenteDialog(
+                    provider: componentesProvider,
                   ),
                 );
               },
@@ -879,64 +957,667 @@ class _InventarioPageState extends State<InventarioPage>
   void _showComponentDetails(dynamic componente, ComponentesProvider provider) {
     if (componente == null) return;
 
+    // Detectar el tamaño de pantalla
+    final screenSize = MediaQuery.of(context).size;
+    final isDesktop = screenSize.width > 1024;
+    final isMobile = screenSize.width <= 768;
+
+    // Obtener la URL de la imagen del componente
+    final imagenUrl = provider.componentesRows
+        .where((row) => row.cells['id']?.value == componente.id)
+        .firstOrNull
+        ?.cells['imagen_url']
+        ?.value
+        ?.toString();
+
+    final categoria = provider.getCategoriaById(componente.categoriaId);
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.of(context).primaryBackground,
-        title: Row(
-          children: [
-            Icon(
-              Icons.devices,
-              color: AppTheme.of(context).primaryColor,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                componente.nombre,
-                style: TextStyle(
-                  color: AppTheme.of(context).primaryText,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.all(isDesktop ? 40 : 20),
+        child: Container(
+          width: isDesktop ? 900 : (isMobile ? screenSize.width * 0.95 : 700),
+          height: isDesktop ? 650 : (isMobile ? screenSize.height * 0.8 : 600),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+                spreadRadius: 5,
+              ),
+              BoxShadow(
+                color: AppTheme.of(context).primaryColor.withOpacity(0.2),
+                blurRadius: 40,
+                offset: const Offset(0, 10),
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.of(context).primaryBackground,
+                    AppTheme.of(context).secondaryBackground,
+                    AppTheme.of(context).tertiaryBackground,
+                  ],
+                  stops: const [0.0, 0.6, 1.0],
                 ),
               ),
+              child: isDesktop
+                  ? _buildDesktopDetailLayout(
+                      componente, provider, categoria, imagenUrl)
+                  : _buildMobileDetailLayout(
+                      componente, provider, categoria, imagenUrl),
             ),
-          ],
+          ),
         ),
-        content: Container(
-          width: double.maxFinite,
-          constraints: const BoxConstraints(maxHeight: 400),
-          child: SingleChildScrollView(
+      ),
+    );
+  }
+
+  Widget _buildDesktopDetailLayout(
+    dynamic componente,
+    ComponentesProvider provider,
+    dynamic categoria,
+    String? imagenUrl,
+  ) {
+    return Row(
+      children: [
+        // Panel izquierdo con imagen espectacular
+        Container(
+          width: 350,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppTheme.of(context).primaryColor,
+                AppTheme.of(context).secondaryColor,
+                AppTheme.of(context).tertiaryColor,
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.of(context).primaryColor.withOpacity(0.4),
+                blurRadius: 20,
+                offset: const Offset(5, 0),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(30),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildDetailRow('ID', componente.id.substring(0, 8) + '...'),
-                _buildDetailRow(
-                    'Categoría',
-                    provider.getCategoriaById(componente.categoriaId)?.nombre ??
-                        'Sin categoría'),
-                _buildDetailRow(
-                    'Estado', componente.activo ? 'Activo' : 'Inactivo'),
-                _buildDetailRow('En Uso', componente.enUso ? 'Sí' : 'No'),
-                if (componente.ubicacion != null &&
-                    componente.ubicacion!.isNotEmpty)
-                  _buildDetailRow('Ubicación', componente.ubicacion!),
-                if (componente.descripcion != null &&
-                    componente.descripcion!.isNotEmpty)
-                  _buildDetailRow('Descripción', componente.descripcion!),
-                _buildDetailRow(
-                    'Fecha de Registro',
-                    componente.fechaRegistro?.toString().split(' ')[0] ??
-                        'No disponible'),
+                // Imagen principal del componente - MÁS GRANDE
+                Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.3),
+                        Colors.white.withOpacity(0.1),
+                        Colors.transparent,
+                      ],
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.4),
+                      width: 3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.3),
+                        blurRadius: 30,
+                        spreadRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(17),
+                    child: imagenUrl != null && imagenUrl.isNotEmpty
+                        ? Image.network(
+                            imagenUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(17),
+                                ),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    value: loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(17),
+                                ),
+                                child: const Icon(
+                                  Icons.devices,
+                                  color: Colors.white,
+                                  size: 80,
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(17),
+                            ),
+                            child: const Icon(
+                              Icons.devices,
+                              color: Colors.white,
+                              size: 80,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Título del componente
+                Text(
+                  componente.nombre,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                const SizedBox(height: 12),
+
+                // Categoría con estilo
+                if (categoria != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.category,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          categoria.nombre,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.95),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 20),
+
+                // Estados con iconos
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildStatusIndicator(
+                      componente.activo ? 'Activo' : 'Inactivo',
+                      componente.activo ? Icons.check_circle : Icons.cancel,
+                      componente.activo ? Colors.green : Colors.red,
+                    ),
+                    _buildStatusIndicator(
+                      componente.enUso ? 'En Uso' : 'Libre',
+                      componente.enUso
+                          ? Icons.trending_up
+                          : Icons.trending_flat,
+                      componente.enUso ? Colors.orange : Colors.grey,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // ID con estilo
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'ID: ${componente.id.substring(0, 8)}...',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cerrar',
-              style: TextStyle(color: AppTheme.of(context).primaryColor),
+
+        // Panel derecho con detalles
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header del panel de detalles
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: AppTheme.of(context).primaryColor,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Detalles del Componente',
+                      style: TextStyle(
+                        color: AppTheme.of(context).primaryText,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.close,
+                        color: AppTheme.of(context).secondaryText,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor:
+                            AppTheme.of(context).secondaryBackground,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Información detallada
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        if (componente.ubicacion != null &&
+                            componente.ubicacion!.isNotEmpty)
+                          _buildEnhancedDetailCard(
+                            'Ubicación',
+                            componente.ubicacion!,
+                            Icons.location_on,
+                            Colors.blue,
+                          ),
+                        if (componente.descripcion != null &&
+                            componente.descripcion!.isNotEmpty)
+                          _buildEnhancedDetailCard(
+                            'Descripción',
+                            componente.descripcion!,
+                            Icons.description,
+                            Colors.purple,
+                          ),
+                        _buildEnhancedDetailCard(
+                          'Fecha de Registro',
+                          componente.fechaRegistro?.toString().split(' ')[0] ??
+                              'No disponible',
+                          Icons.calendar_today,
+                          Colors.green,
+                        ),
+                        _buildEnhancedDetailCard(
+                          'Estado Operativo',
+                          componente.activo
+                              ? 'Componente activo y operativo'
+                              : 'Componente inactivo',
+                          componente.activo
+                              ? Icons.power_settings_new
+                              : Icons.power_off,
+                          componente.activo ? Colors.green : Colors.red,
+                        ),
+                        _buildEnhancedDetailCard(
+                          'Estado de Uso',
+                          componente.enUso
+                              ? 'Componente en uso actual'
+                              : 'Componente disponible para uso',
+                          componente.enUso ? Icons.work : Icons.work_off,
+                          componente.enUso ? Colors.orange : Colors.grey,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Botones de acción
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _editComponent(componente, provider);
+                        },
+                        icon: const Icon(Icons.edit, size: 18),
+                        label: const Text('Editar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, size: 18),
+                        label: const Text('Cerrar'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.of(context).secondaryText,
+                          side: BorderSide(
+                            color: AppTheme.of(context)
+                                .secondaryText
+                                .withOpacity(0.5),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileDetailLayout(
+    dynamic componente,
+    ComponentesProvider provider,
+    dynamic categoria,
+    String? imagenUrl,
+  ) {
+    return Column(
+      children: [
+        // Header con imagen para móvil
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.of(context).primaryColor,
+                AppTheme.of(context).secondaryColor,
+                AppTheme.of(context).tertiaryColor,
+              ],
+            ),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Detalles',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Imagen del componente en móvil
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.3), width: 2),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: imagenUrl != null && imagenUrl.isNotEmpty
+                      ? Image.network(
+                          imagenUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.white.withOpacity(0.1),
+                              child: const Icon(
+                                Icons.devices,
+                                color: Colors.white,
+                                size: 50,
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: Colors.white.withOpacity(0.1),
+                          child: const Icon(
+                            Icons.devices,
+                            color: Colors.white,
+                            size: 50,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                componente.nombre,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (categoria != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  categoria.nombre,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // Contenido de detalles para móvil
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStatusIndicator(
+                        componente.activo ? 'Activo' : 'Inactivo',
+                        componente.activo ? Icons.check_circle : Icons.cancel,
+                        componente.activo ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatusIndicator(
+                        componente.enUso ? 'En Uso' : 'Libre',
+                        componente.enUso
+                            ? Icons.trending_up
+                            : Icons.trending_flat,
+                        componente.enUso ? Colors.orange : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                if (componente.ubicacion != null &&
+                    componente.ubicacion!.isNotEmpty)
+                  _buildEnhancedDetailCard(
+                    'Ubicación',
+                    componente.ubicacion!,
+                    Icons.location_on,
+                    Colors.blue,
+                  ),
+
+                if (componente.descripcion != null &&
+                    componente.descripcion!.isNotEmpty)
+                  _buildEnhancedDetailCard(
+                    'Descripción',
+                    componente.descripcion!,
+                    Icons.description,
+                    Colors.purple,
+                  ),
+
+                _buildEnhancedDetailCard(
+                  'Fecha de Registro',
+                  componente.fechaRegistro?.toString().split(' ')[0] ??
+                      'No disponible',
+                  Icons.calendar_today,
+                  Colors.green,
+                ),
+
+                _buildEnhancedDetailCard(
+                  'ID del Componente',
+                  componente.id.substring(0, 8) + '...',
+                  Icons.fingerprint,
+                  Colors.indigo,
+                ),
+
+                const SizedBox(height: 20),
+
+                // Botones de acción para móvil
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _editComponent(componente, provider);
+                        },
+                        icon: const Icon(Icons.edit, size: 18),
+                        label: const Text('Editar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, size: 18),
+                        label: const Text('Cerrar'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.of(context).secondaryText,
+                          side: BorderSide(
+                            color: AppTheme.of(context)
+                                .secondaryText
+                                .withOpacity(0.5),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusIndicator(String text, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -944,38 +1625,67 @@ class _InventarioPageState extends State<InventarioPage>
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildEnhancedDetailCard(
+      String title, String value, IconData icon, Color color) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppTheme.of(context).primaryColor.withOpacity(0.2),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.of(context).secondaryBackground,
+            AppTheme.of(context).tertiaryBackground,
+          ],
         ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: AppTheme.of(context).primaryColor,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
             ),
+            child: Icon(icon, color: color, size: 20),
           ),
+          const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: AppTheme.of(context).primaryText,
-                fontSize: 12,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: AppTheme.of(context).primaryText,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1034,27 +1744,29 @@ class _InventarioPageState extends State<InventarioPage>
           ),
           ElevatedButton(
             onPressed: () async {
+              // Cerrar el diálogo de confirmación
               Navigator.of(context).pop();
 
-              // Mostrar indicador de carga
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => Center(
-                  child: CircularProgressIndicator(
-                    color: AppTheme.of(context).primaryColor,
-                  ),
-                ),
-              );
+              // Capturar el ScaffoldMessenger antes de la operación asíncrona
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
 
               try {
+                // Mostrar loading de manera segura
+                _showLoadingOverlay('Eliminando componente...');
+
+                // Realizar la eliminación
                 final success =
                     await provider.eliminarComponente(componente.id);
 
-                Navigator.of(context).pop(); // Cerrar indicador de carga
+                // Remover loading de manera segura
+                _removeLoadingOverlay();
 
+                // Verificar que el widget sigue montado antes de mostrar mensajes
+                if (!mounted) return;
+
+                // Mostrar resultado usando el ScaffoldMessenger capturado
                 if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Row(
                         children: const [
@@ -1071,10 +1783,11 @@ class _InventarioPageState extends State<InventarioPage>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
+                      duration: const Duration(seconds: 3),
                     ),
                   );
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Row(
                         children: const [
@@ -1091,12 +1804,19 @@ class _InventarioPageState extends State<InventarioPage>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
+                      duration: const Duration(seconds: 4),
                     ),
                   );
                 }
               } catch (e) {
-                Navigator.of(context).pop(); // Cerrar indicador de carga
-                ScaffoldMessenger.of(context).showSnackBar(
+                // Asegurar que el overlay se remueva en caso de error
+                _removeLoadingOverlay();
+
+                // Verificar que el widget sigue montado antes de mostrar error
+                if (!mounted) return;
+
+                // Mostrar error usando el ScaffoldMessenger capturado
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Row(
                       children: [
@@ -1115,6 +1835,7 @@ class _InventarioPageState extends State<InventarioPage>
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
+                    duration: const Duration(seconds: 4),
                   ),
                 );
               }

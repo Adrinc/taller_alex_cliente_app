@@ -35,8 +35,26 @@ class EmpresasNegociosProvider extends ChangeNotifier {
   String? empresaSeleccionadaId;
   Empresa? empresaSeleccionada;
 
+  // Variable para controlar si el provider está activo
+  bool _isDisposed = false;
+
   EmpresasNegociosProvider() {
     getEmpresas();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    busquedaEmpresaController.dispose();
+    busquedaNegocioController.dispose();
+    super.dispose();
+  }
+
+  // Método seguro para notificar listeners
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
   }
 
   // Métodos para empresas
@@ -56,7 +74,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
           .toList();
 
       _buildEmpresasRows();
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       print('Error en getEmpresas: ${e.toString()}');
     }
@@ -105,7 +123,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
           .toList();
 
       _buildNegociosRows();
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       print('Error en getNegociosPorEmpresa: ${e.toString()}');
     }
@@ -164,7 +182,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
       logoToUpload = picker.files.single.bytes;
 
       // Notificar inmediatamente después de seleccionar
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -186,7 +204,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
       imagenToUpload = picker.files.single.bytes;
 
       // Notificar inmediatamente después de seleccionar
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -297,7 +315,10 @@ class EmpresasNegociosProvider extends ChangeNotifier {
       // Luego eliminar la empresa
       await supabaseLU.from('empresa').delete().eq('id', empresaId);
 
-      await getEmpresas();
+      // Solo actualizar si el provider sigue activo
+      if (!_isDisposed) {
+        await getEmpresas();
+      }
       return true;
     } catch (e) {
       print('Error en eliminarEmpresa: ${e.toString()}');
@@ -309,7 +330,8 @@ class EmpresasNegociosProvider extends ChangeNotifier {
     try {
       await supabaseLU.from('negocio').delete().eq('id', negocioId);
 
-      if (empresaSeleccionadaId != null) {
+      // Solo actualizar si el provider sigue activo y hay una empresa seleccionada
+      if (!_isDisposed && empresaSeleccionadaId != null) {
         await getNegociosPorEmpresa(empresaSeleccionadaId!);
       }
       return true;
@@ -324,7 +346,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
     empresaSeleccionadaId = empresaId;
     empresaSeleccionada = empresas.firstWhere((e) => e.id == empresaId);
     getNegociosPorEmpresa(empresaId);
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void resetFormData() {
@@ -332,7 +354,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
     imagenFileName = null;
     logoToUpload = null;
     imagenToUpload = null;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void buscarEmpresas(String busqueda) {

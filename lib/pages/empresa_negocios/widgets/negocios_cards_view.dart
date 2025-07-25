@@ -619,19 +619,88 @@ class NegociosCardsView extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
+              // Cerrar el diálogo antes de la operación asíncrona
               Navigator.pop(context);
-              final success = await provider.eliminarNegocio(negocio.id);
+
+              // Mostrar indicador de carga
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Sucursal eliminada correctamente'
-                          : 'Error al eliminar la sucursal',
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.of(context).primaryColor,
                     ),
-                    backgroundColor: success ? Colors.green : Colors.red,
                   ),
                 );
+              }
+
+              try {
+                final success = await provider.eliminarNegocio(negocio.id);
+
+                // Cerrar indicador de carga
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+
+                // Mostrar resultado solo si el contexto sigue válido
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(
+                            success ? Icons.check_circle : Icons.error,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            success
+                                ? 'Sucursal eliminada correctamente'
+                                : 'Error al eliminar la sucursal',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: success ? Colors.green : Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                // Cerrar indicador de carga en caso de error
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+
+                // Mostrar error solo si el contexto sigue válido
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.warning, color: Colors.white),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Error: $e',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                }
               }
             },
             child: const Text(

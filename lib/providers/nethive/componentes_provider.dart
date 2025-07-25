@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -62,8 +61,24 @@ class ComponentesProvider extends ChangeNotifier {
   DetalleRouterFirewall? detalleRouterFirewall;
   DetalleEquipoActivo? detalleEquipoActivo;
 
+  // Variable para controlar si el provider está activo
+  bool _isDisposed = false;
+
   ComponentesProvider() {
     getCategorias();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  // Método seguro para notificar listeners
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
   }
 
   // Métodos para categorías
@@ -82,7 +97,7 @@ class ComponentesProvider extends ChangeNotifier {
           .toList();
 
       _buildCategoriasRows();
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       print('Error en getCategorias: ${e.toString()}');
     }
@@ -122,7 +137,7 @@ class ComponentesProvider extends ChangeNotifier {
           .toList();
 
       _buildComponentesRows();
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       print('Error en getComponentesPorNegocio: ${e.toString()}');
     }
@@ -177,7 +192,7 @@ class ComponentesProvider extends ChangeNotifier {
       imagenToUpload = picker.files.single.bytes;
     }
 
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   Future<String?> uploadImagen() async {
@@ -328,56 +343,49 @@ class ComponentesProvider extends ChangeNotifier {
 
   Future<bool> eliminarComponente(String componenteId) async {
     try {
+      // Primero obtener la información del componente para obtener la URL de la imagen
+      final componenteData = await supabaseLU
+          .from('componente')
+          .select('imagen_url')
+          .eq('id', componenteId)
+          .maybeSingle();
+
+      // Guardar la URL de la imagen para eliminarla después
+      String? imagenUrl;
+      if (componenteData != null && componenteData['imagen_url'] != null) {
+        imagenUrl = componenteData['imagen_url'] as String;
+      }
+
       // Eliminar todos los detalles específicos primero
       await _eliminarDetallesComponente(componenteId);
 
-      // Luego eliminar el componente
+      // Eliminar el componente de la base de datos
       await supabaseLU.from('componente').delete().eq('id', componenteId);
 
-      if (negocioSeleccionadoId != null) {
+      // Actualizar la lista ANTES de eliminar la imagen
+      if (!_isDisposed && negocioSeleccionadoId != null) {
         await getComponentesPorNegocio(negocioSeleccionadoId!);
       }
+
+      // AHORA eliminar la imagen del storage (después de que la UI se haya actualizado)
+      if (imagenUrl != null) {
+        try {
+          await supabaseLU.storage
+              .from('nethive')
+              .remove(["componentes/$imagenUrl"]);
+          print('Imagen eliminada del storage: $imagenUrl');
+        } catch (storageError) {
+          print(
+              'Error al eliminar imagen del storage: ${storageError.toString()}');
+          // No retornamos false aquí porque el componente ya fue eliminado exitosamente
+        }
+      }
+
       return true;
     } catch (e) {
       print('Error en eliminarComponente: ${e.toString()}');
       return false;
     }
-  }
-
-  Future<void> _eliminarDetallesComponente(String componenteId) async {
-    // Eliminar de todas las tablas de detalles
-    await supabaseLU
-        .from('detalle_cable')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_switch')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_patch_panel')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_rack')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_organizador')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_ups')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_router_firewall')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_equipo_activo')
-        .delete()
-        .eq('componente_id', componenteId);
   }
 
   // Métodos para obtener detalles específicos
@@ -408,7 +416,7 @@ class ComponentesProvider extends ChangeNotifier {
       }
 
       showDetallesEspecificos = true;
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       print('Error en getDetallesComponente: ${e.toString()}');
     }
@@ -535,7 +543,7 @@ class ComponentesProvider extends ChangeNotifier {
     detalleRouterFirewall = null;
     detalleEquipoActivo = null;
 
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void buscarComponentes(String busqueda) {
@@ -687,7 +695,7 @@ class ComponentesProvider extends ChangeNotifier {
       // Cargar toda la información de topología para este negocio
       await cargarTopologiaCompleta(negocioId);
 
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       print('Error en setNegocioSeleccionado: ${e.toString()}');
     }
@@ -714,7 +722,7 @@ class ComponentesProvider extends ChangeNotifier {
   // Cargar toda la información de topología de forma optimizada
   Future<void> cargarTopologiaCompleta(String negocioId) async {
     isLoadingTopologia = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       // Cargar datos en paralelo para mejor performance
@@ -733,7 +741,7 @@ class ComponentesProvider extends ChangeNotifier {
       ];
     } finally {
       isLoadingTopologia = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -952,73 +960,6 @@ class ComponentesProvider extends ChangeNotifier {
     }
   }
 
-  // Obtener switches principales (core/distribución)
-  List<Componente> getSwitchesPrincipales() {
-    return componentes.where((c) {
-      final categoria = getCategoriaById(c.categoriaId);
-      final isSwitch =
-          categoria?.nombre?.toLowerCase().contains('switch') ?? false;
-      final isCore = c.ubicacion?.toLowerCase().contains('mdf') ?? false;
-      return isSwitch && isCore;
-    }).toList();
-  }
-
-  // Obtener routers/firewalls
-  List<Componente> getRoutersFirewalls() {
-    return componentes.where((c) {
-      final categoria = getCategoriaById(c.categoriaId);
-      final nombre = categoria?.nombre?.toLowerCase() ?? '';
-      return nombre.contains('router') || nombre.contains('firewall');
-    }).toList();
-  }
-
-  // Obtener servidores
-  List<Componente> getServidores() {
-    return componentes.where((c) {
-      final categoria = getCategoriaById(c.categoriaId);
-      final nombre = categoria?.nombre?.toLowerCase() ?? '';
-      return nombre.contains('servidor') || nombre.contains('server');
-    }).toList();
-  }
-
-  // Obtener cables por tipo
-  List<Componente> getCablesPorTipo(String tipoCable) {
-    return componentes.where((c) {
-      final categoria = getCategoriaById(c.categoriaId);
-      final nombre = categoria?.nombre?.toLowerCase() ?? '';
-      return nombre.contains('cable') &&
-          (c.descripcion?.toLowerCase().contains(tipoCable.toLowerCase()) ??
-              false);
-    }).toList();
-  }
-
-  // Obtener estadísticas de conectividad
-  Map<String, int> getEstadisticasConectividad() {
-    int componentesActivos = componentes.where((c) => c.activo).length;
-    int componentesEnUso = componentes.where((c) => c.enUso).length;
-    int conexionesActivas = conexiones.where((c) => c.activo).length;
-    int totalConexiones = conexiones.length;
-
-    return {
-      'componentesActivos': componentesActivos,
-      'componentesEnUso': componentesEnUso,
-      'conexionesActivas': conexionesActivas,
-      'totalConexiones': totalConexiones,
-      'porcentajeUso': componentesActivos > 0
-          ? ((componentesEnUso / componentesActivos) * 100).round()
-          : 0,
-    };
-  }
-
-  // Cargar toda la información de topología
-  Future<void> cargarTopologia(String negocioId) async {
-    await Future.wait([
-      getComponentesPorNegocio(negocioId),
-      getDistribucionesPorNegocio(negocioId),
-      getConexionesPorNegocio(negocioId),
-    ]);
-  }
-
   // Validar integridad de topología mejorado
   List<String> validarTopologia() {
     List<String> problemas = [];
@@ -1157,5 +1098,64 @@ class ComponentesProvider extends ChangeNotifier {
     }
 
     return sugerencias;
+  }
+
+  // Obtener estadísticas de conectividad
+  Map<String, double> getEstadisticasConectividad() {
+    final totalComponentes = componentes.length;
+    final componentesActivos = componentes.where((c) => c.activo).length;
+    final componentesEnUso = componentes.where((c) => c.enUso).length;
+    final conexionesActivas = conexiones.where((c) => c.activo).length;
+
+    return {
+      'totalComponentes': totalComponentes.toDouble(),
+      'componentesActivos': componentesActivos.toDouble(),
+      'componentesEnUso': componentesEnUso.toDouble(),
+      'conexionesActivas': conexionesActivas.toDouble(),
+      'porcentajeActivos': totalComponentes > 0
+          ? (componentesActivos / totalComponentes) * 100
+          : 0,
+      'porcentajeUso': componentesActivos > 0
+          ? (componentesEnUso / componentesActivos) * 100
+          : 0,
+      'densidadConexiones':
+          componentesActivos > 0 ? (conexionesActivas / componentesActivos) : 0,
+    };
+  }
+
+  Future<void> _eliminarDetallesComponente(String componenteId) async {
+    // Eliminar de todas las tablas de detalles
+    await supabaseLU
+        .from('detalle_cable')
+        .delete()
+        .eq('componente_id', componenteId);
+    await supabaseLU
+        .from('detalle_switch')
+        .delete()
+        .eq('componente_id', componenteId);
+    await supabaseLU
+        .from('detalle_patch_panel')
+        .delete()
+        .eq('componente_id', componenteId);
+    await supabaseLU
+        .from('detalle_rack')
+        .delete()
+        .eq('componente_id', componenteId);
+    await supabaseLU
+        .from('detalle_organizador')
+        .delete()
+        .eq('componente_id', componenteId);
+    await supabaseLU
+        .from('detalle_ups')
+        .delete()
+        .eq('componente_id', componenteId);
+    await supabaseLU
+        .from('detalle_router_firewall')
+        .delete()
+        .eq('componente_id', componenteId);
+    await supabaseLU
+        .from('detalle_equipo_activo')
+        .delete()
+        .eq('componente_id', componenteId);
   }
 }
