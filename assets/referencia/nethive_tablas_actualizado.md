@@ -59,6 +59,7 @@
 | ubicacion       | TEXT           | Ubicación física (rack, bandeja)   |
 | imagen_url      | TEXT           | URL de imagen                      |
 | fecha_registro  | TIMESTAMP      | Default: now()                     |
+| distribucion_id | UUID           | FK → distribucion.id               |
 
 ---
 
