@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nethive_neo/helpers/globals.dart';
-import 'package:provider/provider.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/models/nethive/componente_model.dart';
-import 'package:nethive_neo/models/nethive/categoria_componente_model.dart';
 
 class EditComponenteDialog extends StatefulWidget {
   final ComponentesProvider provider;

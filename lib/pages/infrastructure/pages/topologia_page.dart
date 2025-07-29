@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_flow_chart/flutter_flow_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
-import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
-import 'package:nethive_neo/models/nethive/componente_model.dart';
-import 'package:nethive_neo/models/nethive/conexion_componente_model.dart';
+import 'package:nethive_neo/models/nethive/vista_topologia_por_negocio_model.dart';
+import 'package:nethive_neo/models/nethive/vista_conexiones_por_cables_model.dart';
 
 class TopologiaPage extends StatefulWidget {
   const TopologiaPage({Key? key}) : super(key: key);
@@ -306,8 +304,7 @@ class _TopologiaPageState extends State<TopologiaPage>
     ];
 
     // MDF -> IDF2 (Fibra)
-    mdfElement.next = [
-      ...mdfElement.next ?? [],
+    mdfElement.next!.add(
       ConnectionParams(
         destElementId: idf2Element.id,
         arrowParams: ArrowParams(
@@ -315,7 +312,7 @@ class _TopologiaPageState extends State<TopologiaPage>
           thickness: 4,
         ),
       ),
-    ];
+    );
 
     // IDF1 -> Switch A1 (UTP)
     idf1Element.next = [
@@ -329,8 +326,7 @@ class _TopologiaPageState extends State<TopologiaPage>
     ];
 
     // IDF1 -> Switch A2 (UTP)
-    idf1Element.next = [
-      ...idf1Element.next ?? [],
+    idf1Element.next!.add(
       ConnectionParams(
         destElementId: switch2Element.id,
         arrowParams: ArrowParams(
@@ -338,7 +334,7 @@ class _TopologiaPageState extends State<TopologiaPage>
           thickness: 3,
         ),
       ),
-    ];
+    );
 
     // IDF2 -> Switch B1 (UTP)
     idf2Element.next = [
@@ -352,8 +348,7 @@ class _TopologiaPageState extends State<TopologiaPage>
     ];
 
     // IDF2 -> Switch B2 (UTP - Desconectado)
-    idf2Element.next = [
-      ...idf2Element.next ?? [],
+    idf2Element.next!.add(
       ConnectionParams(
         destElementId: switch4Element.id,
         arrowParams: ArrowParams(
@@ -361,11 +356,10 @@ class _TopologiaPageState extends State<TopologiaPage>
           thickness: 2,
         ),
       ),
-    ];
+    );
 
     // MDF -> Servidor (Dedicado)
-    mdfElement.next = [
-      ...mdfElement.next ?? [],
+    mdfElement.next!.add(
       ConnectionParams(
         destElementId: serverElement.id,
         arrowParams: ArrowParams(
@@ -373,7 +367,7 @@ class _TopologiaPageState extends State<TopologiaPage>
           thickness: 5,
         ),
       ),
-    ];
+    );
   }
 
   @override
@@ -934,6 +928,8 @@ class _TopologiaPageState extends State<TopologiaPage>
         return Icons.network_check;
       case 'Server':
         return Icons.dns;
+      case 'Router':
+        return Icons.router;
       default:
         return Icons.device_unknown;
     }
@@ -949,6 +945,8 @@ class _TopologiaPageState extends State<TopologiaPage>
         return const Color(0xFF9C27B0);
       case 'Server':
         return const Color(0xFFE91E63);
+      case 'Router':
+        return const Color(0xFFFF5722);
       default:
         return Colors.grey;
     }
@@ -988,8 +986,15 @@ class _TopologiaPageState extends State<TopologiaPage>
         return;
       }
 
+      // Cargar toda la topología del negocio seleccionado usando el método optimizado
+      await componentesProvider.cargarTopologiaCompletaOptimizada(
+          componentesProvider.negocioSeleccionadoId!);
+
+      // Mostrar estadísticas detalladas para debug
+      _mostrarEstadisticasComponentes();
+
       // Construir la topología con datos reales del negocio seleccionado
-      await _buildRealNetworkTopology();
+      await _buildRealNetworkTopologyOptimized();
     } catch (e) {
       print('Error al cargar datos de topología: ${e.toString()}');
       _showErrorDialog('Error al cargar la topología: ${e.toString()}');
@@ -1000,23 +1005,25 @@ class _TopologiaPageState extends State<TopologiaPage>
     }
   }
 
-  Future<void> _buildRealNetworkTopology() async {
+  Future<void> _buildRealNetworkTopologyOptimized() async {
     dashboard.removeAllElements();
 
     final componentesProvider =
         Provider.of<ComponentesProvider>(context, listen: false);
 
-    // Obtener componentes agrupados por tipo
-    final mdfComponents = componentesProvider.getComponentesPorTipo('mdf');
-    final idfComponents = componentesProvider.getComponentesPorTipo('idf');
+    // Usar los datos optimizados
+    final mdfComponents = componentesProvider.getComponentesMDFOptimizados();
+    final idfComponents = componentesProvider.getComponentesIDFOptimizados();
     final switchesAcceso = componentesProvider
-        .getComponentesPorTipo('switch')
-        .where((s) => !mdfComponents.contains(s) && !idfComponents.contains(s))
+        .getComponentesPorTipoOptimizado('switch')
+        .where((s) => !s.esMDF && !s.esIDF)
         .toList();
-    final routers = componentesProvider.getComponentesPorTipo('router');
-    final servidores = componentesProvider.getComponentesPorTipo('servidor');
+    final routers =
+        componentesProvider.getComponentesPorTipoOptimizado('router');
+    final servidores =
+        componentesProvider.getComponentesPorTipoOptimizado('servidor');
 
-    print('Componentes encontrados:');
+    print('Componentes optimizados encontrados:');
     print('- MDF: ${mdfComponents.length}');
     print('- IDF: ${idfComponents.length}');
     print('- Switches de acceso: ${switchesAcceso.length}');
@@ -1030,63 +1037,63 @@ class _TopologiaPageState extends State<TopologiaPage>
 
     Map<String, FlowElement> elementosMap = {};
 
-    // Crear elementos MDF
+    // Crear elementos MDF usando datos optimizados
     if (mdfComponents.isNotEmpty) {
-      final mdfElement = _createMDFElement(
+      final mdfElement = _createMDFElementOptimized(
           mdfComponents, Offset(currentX + espacioX * 2, currentY));
       dashboard.addElement(mdfElement);
-      elementosMap[mdfComponents.first.id] = mdfElement;
+      elementosMap[mdfComponents.first.componenteId] = mdfElement;
       currentY += espacioY;
     }
 
-    // Crear elementos IDF
+    // Crear elementos IDF usando datos optimizados
     double idfX = currentX;
     for (var idfComp in idfComponents) {
-      final idfElement =
-          _createIDFElement(idfComp, Offset(idfX, currentY + espacioY));
+      final idfElement = _createIDFElementOptimized(
+          idfComp, Offset(idfX, currentY + espacioY));
       dashboard.addElement(idfElement);
-      elementosMap[idfComp.id] = idfElement;
+      elementosMap[idfComp.componenteId] = idfElement;
       idfX += espacioX;
     }
 
-    // Crear switches de acceso
+    // Crear switches de acceso usando datos optimizados
     double switchX = currentX;
     currentY += espacioY * 2;
     for (var switchComp in switchesAcceso) {
       final switchElement =
-          _createSwitchElement(switchComp, Offset(switchX, currentY));
+          _createSwitchElementOptimized(switchComp, Offset(switchX, currentY));
       dashboard.addElement(switchElement);
-      elementosMap[switchComp.id] = switchElement;
+      elementosMap[switchComp.componenteId] = switchElement;
       switchX += espacioX * 0.8;
     }
 
-    // Crear servidores
+    // Crear servidores usando datos optimizados
     if (servidores.isNotEmpty) {
       currentY += espacioY;
       double serverX = currentX + espacioX;
       for (var servidor in servidores) {
         final serverElement =
-            _createServerElement(servidor, Offset(serverX, currentY));
+            _createServerElementOptimized(servidor, Offset(serverX, currentY));
         dashboard.addElement(serverElement);
-        elementosMap[servidor.id] = serverElement;
+        elementosMap[servidor.componenteId] = serverElement;
         serverX += espacioX * 0.8;
       }
     }
 
-    // Crear routers/firewalls
+    // Crear routers/firewalls usando datos optimizados
     if (routers.isNotEmpty) {
       double routerX = currentX;
       for (var router in routers) {
-        final routerElement = _createRouterElement(
+        final routerElement = _createRouterElementOptimized(
             router, Offset(routerX, currentY - espacioY * 3));
         dashboard.addElement(routerElement);
-        elementosMap[router.id] = routerElement;
+        elementosMap[router.componenteId] = routerElement;
         routerX += espacioX;
       }
     }
 
-    // Crear conexiones basadas en la base de datos
-    await _createRealConnections(elementosMap, componentesProvider);
+    // Crear conexiones basadas en la vista optimizada de cables
+    await _createOptimizedConnections(elementosMap, componentesProvider);
 
     // Si no hay elementos reales, mostrar mensaje
     if (elementosMap.isEmpty) {
@@ -1096,18 +1103,14 @@ class _TopologiaPageState extends State<TopologiaPage>
     setState(() {});
   }
 
-  FlowElement _createMDFElement(
-      List<Componente> mdfComponents, Offset position) {
+  FlowElement _createMDFElementOptimized(
+      List<VistaTopologiaPorNegocio> mdfComponents, Offset position) {
     final mainComponent = mdfComponents.first;
-    final componentesProvider =
-        Provider.of<ComponentesProvider>(context, listen: false);
-    final categoria =
-        componentesProvider.getCategoriaById(mainComponent.categoriaId);
 
     return FlowElement(
       position: position,
       size: const Size(180, 140),
-      text: 'MDF\n${mainComponent.nombre}',
+      text: 'MDF\n${mainComponent.componenteNombre}',
       textColor: Colors.white,
       textSize: 14,
       textIsBold: true,
@@ -1118,13 +1121,14 @@ class _TopologiaPageState extends State<TopologiaPage>
       elevation: 8,
       data: {
         'type': 'MDF',
-        'componenteId': mainComponent.id,
-        'name': mainComponent.nombre,
+        'componenteId': mainComponent.componenteId,
+        'name': mainComponent.componenteNombre,
         'status': mainComponent.activo ? 'active' : 'disconnected',
         'description': mainComponent.descripcion ?? 'Main Distribution Frame',
         'ubicacion': mainComponent.ubicacion ?? 'Sin ubicación',
-        'categoria': categoria?.nombre ?? 'Sin categoría',
+        'categoria': mainComponent.categoriaComponente,
         'componentes': mdfComponents.length,
+        'distribucion': mainComponent.distribucionNombre ?? 'MDF Principal',
       },
       handlers: [
         Handler.bottomCenter,
@@ -1134,16 +1138,12 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  FlowElement _createIDFElement(Componente idfComponent, Offset position) {
-    final componentesProvider =
-        Provider.of<ComponentesProvider>(context, listen: false);
-    final categoria =
-        componentesProvider.getCategoriaById(idfComponent.categoriaId);
-
+  FlowElement _createIDFElementOptimized(
+      VistaTopologiaPorNegocio idfComponent, Offset position) {
     return FlowElement(
       position: position,
       size: const Size(160, 120),
-      text: 'IDF\n${idfComponent.nombre}',
+      text: 'IDF\n${idfComponent.componenteNombre}',
       textColor: Colors.white,
       textSize: 12,
       textIsBold: true,
@@ -1158,16 +1158,17 @@ class _TopologiaPageState extends State<TopologiaPage>
       elevation: 6,
       data: {
         'type': 'IDF',
-        'componenteId': idfComponent.id,
-        'name': idfComponent.nombre,
+        'componenteId': idfComponent.componenteId,
+        'name': idfComponent.componenteNombre,
         'status': idfComponent.activo
             ? (idfComponent.enUso ? 'active' : 'warning')
             : 'disconnected',
         'description':
             idfComponent.descripcion ?? 'Intermediate Distribution Frame',
         'ubicacion': idfComponent.ubicacion ?? 'Sin ubicación',
-        'categoria': categoria?.nombre ?? 'Sin categoría',
+        'categoria': idfComponent.categoriaComponente,
         'enUso': idfComponent.enUso,
+        'distribucion': idfComponent.distribucionNombre ?? 'IDF',
       },
       handlers: [
         Handler.topCenter,
@@ -1178,17 +1179,12 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  FlowElement _createSwitchElement(
-      Componente switchComponent, Offset position) {
-    final componentesProvider =
-        Provider.of<ComponentesProvider>(context, listen: false);
-    final categoria =
-        componentesProvider.getCategoriaById(switchComponent.categoriaId);
-
+  FlowElement _createSwitchElementOptimized(
+      VistaTopologiaPorNegocio switchComponent, Offset position) {
     return FlowElement(
       position: position,
       size: const Size(140, 100),
-      text: 'Switch\n${switchComponent.nombre}',
+      text: 'Switch\n${switchComponent.componenteNombre}',
       textColor: Colors.white,
       textSize: 10,
       textIsBold: true,
@@ -1203,12 +1199,13 @@ class _TopologiaPageState extends State<TopologiaPage>
       elevation: switchComponent.activo ? 4 : 2,
       data: {
         'type': 'AccessSwitch',
-        'componenteId': switchComponent.id,
-        'name': switchComponent.nombre,
+        'componenteId': switchComponent.componenteId,
+        'name': switchComponent.componenteNombre,
         'status': switchComponent.activo ? 'active' : 'disconnected',
         'description': switchComponent.descripcion ?? 'Switch de Acceso',
         'ubicacion': switchComponent.ubicacion ?? 'Sin ubicación',
-        'categoria': categoria?.nombre ?? 'Sin categoría',
+        'categoria': switchComponent.categoriaComponente,
+        'enUso': switchComponent.enUso,
       },
       handlers: [
         Handler.topCenter,
@@ -1216,70 +1213,35 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  FlowElement _createServerElement(
-      Componente serverComponent, Offset position) {
-    final componentesProvider =
-        Provider.of<ComponentesProvider>(context, listen: false);
-    final categoria =
-        componentesProvider.getCategoriaById(serverComponent.categoriaId);
-
+  FlowElement _createServerElementOptimized(
+      VistaTopologiaPorNegocio serverComponent, Offset position) {
     return FlowElement(
       position: position,
-      size: const Size(160, 100),
-      text: 'Servidor\n${serverComponent.nombre}',
+      size: const Size(150, 100),
+      text: 'Servidor\n${serverComponent.componenteNombre}',
       textColor: Colors.white,
-      textSize: 12,
+      textSize: 11,
       textIsBold: true,
       kind: ElementKind.rectangle,
-      backgroundColor: const Color(0xFFE91E63),
-      borderColor: const Color(0xFFC2185B),
+      backgroundColor: serverComponent.activo
+          ? const Color(0xFFE91E63)
+          : const Color(0xFF757575),
+      borderColor: serverComponent.activo
+          ? const Color(0xFFC2185B)
+          : const Color(0xFF424242),
       borderThickness: 3,
-      elevation: 6,
+      elevation: serverComponent.activo ? 6 : 2,
       data: {
         'type': 'Server',
-        'componenteId': serverComponent.id,
-        'name': serverComponent.nombre,
+        'componenteId': serverComponent.componenteId,
+        'name': serverComponent.componenteNombre,
         'status': serverComponent.activo ? 'active' : 'disconnected',
-        'description': serverComponent.descripcion ?? 'Servidor',
+        'description': serverComponent.descripcion ?? 'Servidor de red',
         'ubicacion': serverComponent.ubicacion ?? 'Sin ubicación',
-        'categoria': categoria?.nombre ?? 'Sin categoría',
+        'categoria': serverComponent.categoriaComponente,
+        'enUso': serverComponent.enUso,
       },
       handlers: [
-        Handler.topCenter,
-      ],
-    );
-  }
-
-  FlowElement _createRouterElement(
-      Componente routerComponent, Offset position) {
-    final componentesProvider =
-        Provider.of<ComponentesProvider>(context, listen: false);
-    final categoria =
-        componentesProvider.getCategoriaById(routerComponent.categoriaId);
-
-    return FlowElement(
-      position: position,
-      size: const Size(160, 100),
-      text: 'Router\n${routerComponent.nombre}',
-      textColor: Colors.white,
-      textSize: 12,
-      textIsBold: true,
-      kind: ElementKind.rectangle,
-      backgroundColor: const Color(0xFFFF5722),
-      borderColor: const Color(0xFFD84315),
-      borderThickness: 3,
-      elevation: 6,
-      data: {
-        'type': 'Router',
-        'componenteId': routerComponent.id,
-        'name': routerComponent.nombre,
-        'status': routerComponent.activo ? 'active' : 'disconnected',
-        'description': routerComponent.descripcion ?? 'Router/Firewall',
-        'ubicacion': routerComponent.ubicacion ?? 'Sin ubicación',
-        'categoria': categoria?.nombre ?? 'Sin categoría',
-      },
-      handlers: [
-        Handler.bottomCenter,
         Handler.topCenter,
         Handler.leftCenter,
         Handler.rightCenter,
@@ -1287,168 +1249,122 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  Future<void> _createRealConnections(Map<String, FlowElement> elementosMap,
+  FlowElement _createRouterElementOptimized(
+      VistaTopologiaPorNegocio routerComponent, Offset position) {
+    return FlowElement(
+      position: position,
+      size: const Size(160, 100),
+      text: 'Router\n${routerComponent.componenteNombre}',
+      textColor: Colors.white,
+      textSize: 11,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: routerComponent.activo
+          ? const Color(0xFFFF5722)
+          : const Color(0xFF757575),
+      borderColor: routerComponent.activo
+          ? const Color(0xFFE64A19)
+          : const Color(0xFF424242),
+      borderThickness: 3,
+      elevation: routerComponent.activo ? 6 : 2,
+      data: {
+        'type': 'Router',
+        'componenteId': routerComponent.componenteId,
+        'name': routerComponent.componenteNombre,
+        'status': routerComponent.activo ? 'active' : 'disconnected',
+        'description': routerComponent.descripcion ?? 'Router/Firewall',
+        'ubicacion': routerComponent.ubicacion ?? 'Sin ubicación',
+        'categoria': routerComponent.categoriaComponente,
+        'enUso': routerComponent.enUso,
+      },
+      handlers: [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+  }
+
+  Future<void> _createOptimizedConnections(
+      Map<String, FlowElement> elementosMap,
       ComponentesProvider componentesProvider) async {
-    // Obtener conexiones reales de la base de datos
-    final conexiones = componentesProvider.conexiones;
+    try {
+      print('Creando conexiones optimizadas...');
+      print(
+          'Conexiones con cables encontradas: ${componentesProvider.conexionesConCables.length}');
 
-    print('Creando ${conexiones.length} conexiones...');
+      for (var conexionCable in componentesProvider.conexionesConCables) {
+        if (!conexionCable.activo) continue;
 
-    for (var conexion in conexiones) {
-      final origenElement = elementosMap[conexion.componenteOrigenId];
-      final destinoElement = elementosMap[conexion.componenteDestinoId];
+        final elementoOrigen = elementosMap[conexionCable.origenId];
+        final elementoDestino = elementosMap[conexionCable.destinoId];
 
-      if (origenElement != null && destinoElement != null) {
-        // Determinar el color y grosor de la conexión basado en los tipos de componentes
-        final colorConexion =
-            _getConnectionColor(conexion, componentesProvider);
-        final grosorConexion =
-            _getConnectionThickness(conexion, componentesProvider);
+        if (elementoOrigen != null && elementoDestino != null) {
+          // Usar la información real del cable para determinar color y grosor
+          final colorConexion = _getColorFromCableData(conexionCable);
+          final grosorConexion = _getThicknessFromCableData(conexionCable);
 
-        print('Conectando: ${origenElement.text} -> ${destinoElement.text}');
+          print(
+              'Creando conexión: ${conexionCable.componenteOrigen} -> ${conexionCable.componenteDestino}');
+          if (conexionCable.tipoCable != null) {
+            print(
+                '  Cable: ${conexionCable.tipoCable} (${conexionCable.color ?? 'sin color'})');
+          }
 
-        // Agregar la conexión al elemento origen
-        origenElement.next = [
-          ...origenElement.next ?? [],
-          ConnectionParams(
-            destElementId: destinoElement.id,
-            arrowParams: ArrowParams(
-              color: colorConexion,
-              thickness: grosorConexion,
+          // Crear la conexión en el FlowChart
+          elementoOrigen.next ??= [];
+
+          elementoOrigen.next!.add(
+            ConnectionParams(
+              destElementId: elementoDestino.id,
+              arrowParams: ArrowParams(
+                color: colorConexion,
+                thickness: grosorConexion,
+              ),
             ),
-          ),
-        ];
+          );
+        } else {
+          print(
+              'Elementos no encontrados para conexión: ${conexionCable.origenId} -> ${conexionCable.destinoId}');
+        }
       }
-    }
 
-    // Si no hay conexiones en la BD, crear conexiones automáticas basadas en la ubicación
-    if (conexiones.isEmpty) {
-      print('No hay conexiones en BD, creando automáticas...');
-      _createAutomaticConnections(elementosMap, componentesProvider);
+      setState(() {});
+    } catch (e) {
+      print('Error en _createOptimizedConnections: ${e.toString()}');
     }
   }
 
-  Color _getConnectionColor(
-      ConexionComponente conexion, ComponentesProvider componentesProvider) {
-    // Obtener los componentes origen y destino
-    final origenComp =
-        componentesProvider.getComponenteById(conexion.componenteOrigenId);
-    final destinoComp =
-        componentesProvider.getComponenteById(conexion.componenteDestinoId);
-
-    if (origenComp == null || destinoComp == null) return Colors.grey;
-
-    // Determinar el tipo de conexión basado en las ubicaciones
-    final origenUbicacion = origenComp.ubicacion?.toUpperCase() ?? '';
-    final destinoUbicacion = destinoComp.ubicacion?.toUpperCase() ?? '';
-
-    // MDF a IDF = Fibra (cyan)
-    if (origenUbicacion.contains('MDF') && destinoUbicacion.contains('IDF')) {
-      return Colors.cyan;
-    }
-
-    // IDF a Switch = UTP (yellow)
-    if (origenUbicacion.contains('IDF')) {
-      return Colors.yellow;
-    }
-
-    // Servidor = Dedicado (purple)
-    final origenCategoria =
-        componentesProvider.getCategoriaById(origenComp.categoriaId);
-    final destinoCategoria =
-        componentesProvider.getCategoriaById(destinoComp.categoriaId);
-
-    if ((origenCategoria?.nombre?.toLowerCase().contains('servidor') ??
-            false) ||
-        (destinoCategoria?.nombre?.toLowerCase().contains('servidor') ??
-            false)) {
-      return Colors.purple;
-    }
-
-    return Colors.green; // Por defecto
+  Color _getColorFromCableData(VistaConexionesPorCables conexionCable) {
+    // Usar el método del modelo para obtener el color
+    final colorHex = conexionCable.getColorForVisualization();
+    return _hexToColor(colorHex);
   }
 
-  double _getConnectionThickness(
-      ConexionComponente conexion, ComponentesProvider componentesProvider) {
-    final origenComp =
-        componentesProvider.getComponenteById(conexion.componenteOrigenId);
-    final destinoComp =
-        componentesProvider.getComponenteById(conexion.componenteDestinoId);
-
-    if (origenComp == null || destinoComp == null) return 2.0;
-
-    final origenUbicacion = origenComp.ubicacion?.toUpperCase() ?? '';
-    final destinoUbicacion = destinoComp.ubicacion?.toUpperCase() ?? '';
-
-    // Conexiones principales más gruesas
-    if (origenUbicacion.contains('MDF') && destinoUbicacion.contains('IDF')) {
-      return 4.0;
-    }
-
-    return conexion.activo ? 3.0 : 2.0;
+  double _getThicknessFromCableData(VistaConexionesPorCables conexionCable) {
+    // Usar el método del modelo para obtener el grosor
+    return conexionCable.getThicknessForVisualization();
   }
 
-  void _createAutomaticConnections(Map<String, FlowElement> elementosMap,
-      ComponentesProvider componentesProvider) {
-    // Crear conexiones automáticas cuando no hay datos en la BD
-    final mdfElements = elementosMap.values
-        .where((e) => (e.data as Map)['type'] == 'MDF')
-        .toList();
-    final idfElements = elementosMap.values
-        .where((e) => (e.data as Map)['type'] == 'IDF')
-        .toList();
-    final switchElements = elementosMap.values
-        .where((e) => (e.data as Map)['type'] == 'AccessSwitch')
-        .toList();
-
-    print('Creando conexiones automáticas...');
-    print(
-        'MDF: ${mdfElements.length}, IDF: ${idfElements.length}, Switches: ${switchElements.length}');
-
-    // Conectar MDF a IDFs
-    for (var mdf in mdfElements) {
-      for (var idf in idfElements) {
-        mdf.next = [
-          ...mdf.next ?? [],
-          ConnectionParams(
-            destElementId: idf.id,
-            arrowParams: ArrowParams(
-              color: Colors.cyan,
-              thickness: 4,
-            ),
-          ),
-        ];
-      }
-    }
-
-    // Conectar IDFs a Switches
-    for (int i = 0; i < idfElements.length && i < switchElements.length; i++) {
-      final idf = idfElements[i];
-      final switchesParaEsteIdf = switchElements.skip(i * 2).take(2);
-
-      for (var switch_ in switchesParaEsteIdf) {
-        idf.next = [
-          ...idf.next ?? [],
-          ConnectionParams(
-            destElementId: switch_.id,
-            arrowParams: ArrowParams(
-              color: Colors.yellow,
-              thickness: 3,
-            ),
-          ),
-        ];
-      }
-    }
+  Color _hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    return Color(int.parse('FF$hex', radix: 16));
   }
 
-  void _showNoComponentsMessage() {
+  void _showNoBusinessSelectedDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sin componentes'),
+        title: const Row(
+          children: [
+            Icon(Icons.business, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Negocio no seleccionado'),
+          ],
+        ),
         content: const Text(
-          'No se encontraron componentes de red para este negocio.\n\n'
-          'Para ver una topología completa, agregue componentes en el módulo de Inventario con ubicaciones como "MDF", "IDF", etc.',
+          'Para visualizar la topología de red, primero debe seleccionar un negocio desde la página de empresas.',
         ),
         actions: [
           TextButton(
@@ -1458,44 +1374,28 @@ class _TopologiaPageState extends State<TopologiaPage>
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // Ir al módulo de inventario (esto depende de tu estructura de navegación)
-              // context.go('/infrastructure/inventory');
+              // Navegar a la página de empresas
+              // router.pushNamed('/infrastructure/empresas');
             },
-            child: const Text('Ir a Inventario'),
+            child: const Text('Ir a Empresas'),
           ),
         ],
       ),
     );
   }
 
-  void _showNoBusinessSelectedDialog() {
+  void _showErrorDialog(String mensaje) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Negocio no seleccionado'),
-        content: const Text(
-          'No se ha seleccionado ningún negocio. Por favor, regrese a la página de negocios y seleccione "Acceder a Infraestructura" en la tabla.',
+        title: const Row(
+          children: [
+            Icon(Icons.error, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Error'),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Regresar a la página de empresas/negocios
-              context.go('/empresa-negocios');
-            },
-            child: const Text('Ir a Negocios'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
+        content: Text(mensaje),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -1504,5 +1404,96 @@ class _TopologiaPageState extends State<TopologiaPage>
         ],
       ),
     );
+  }
+
+  void _showNoComponentsMessage() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Sin componentes'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'No se encontraron componentes de infraestructura para este negocio.',
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Para visualizar la topología, necesita:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('• Registrar componentes (switches, routers, etc.)'),
+            const Text('• Configurar distribuciones (MDF/IDF)'),
+            const Text('• Crear conexiones entre componentes'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Navegar a la página de componentes
+              // router.pushNamed('/infrastructure/componentes');
+            },
+            child: const Text('Gestionar Componentes'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Método para mostrar estadísticas detalladas de componentes
+  void _mostrarEstadisticasComponentes() {
+    final provider = Provider.of<ComponentesProvider>(context, listen: false);
+    print('\n=== ESTADÍSTICAS DETALLADAS DE COMPONENTES ===');
+    print('Total de componentes cargados: ${provider.topologiaOptimizada.length}');
+
+    if (provider.topologiaOptimizada.isEmpty) {
+      print('❌ No hay componentes cargados');
+      return;
+    }
+
+    // Agrupar por categoría
+    final componentesPorCategoria = <String, List<VistaTopologiaPorNegocio>>{};
+    for (final componente in provider.topologiaOptimizada) {
+      final categoria = componente.categoriaComponente;
+      componentesPorCategoria.putIfAbsent(categoria, () => []).add(componente);
+    }
+
+    print('\n📊 Componentes por categoría:');
+    componentesPorCategoria.forEach((categoria, lista) {
+      print('  - $categoria: ${lista.length} componentes');
+      for (final comp in lista) {
+        print('    • ${comp.componenteNombre} (${comp.tipoComponentePrincipal}) - Activo: ${comp.activo}');
+      }
+    });
+
+    // Clasificación por tipo principal
+    final mdfComponents = provider.getComponentesMDFOptimizados();
+    final idfComponents = provider.getComponentesIDFOptimizados();
+    final switchComponents = provider.getComponentesPorTipoOptimizado('switch');
+    final routerComponents = provider.getComponentesPorTipoOptimizado('router');
+    final servidorComponents = provider.getComponentesPorTipoOptimizado('servidor');
+
+    print('\n🔧 Clasificación por tipo:');
+    print('  - MDF: ${mdfComponents.length}');
+    print('  - IDF: ${idfComponents.length}');
+    print('  - Switches: ${switchComponents.length}');
+    print('  - Routers: ${routerComponents.length}');
+    print('  - Servidores: ${servidorComponents.length}');
+
+    print('\n🔗 Conexiones disponibles: ${provider.conexionesConCables.length}');
+    print('===============================================\n');
   }
 }

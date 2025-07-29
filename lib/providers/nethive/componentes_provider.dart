@@ -18,6 +18,8 @@ import 'package:nethive_neo/models/nethive/detalle_organizador_model.dart';
 import 'package:nethive_neo/models/nethive/detalle_ups_model.dart';
 import 'package:nethive_neo/models/nethive/detalle_router_firewall_model.dart';
 import 'package:nethive_neo/models/nethive/detalle_equipo_activo_model.dart';
+import 'package:nethive_neo/models/nethive/vista_conexiones_por_cables_model.dart';
+import 'package:nethive_neo/models/nethive/vista_topologia_por_negocio_model.dart';
 
 class ComponentesProvider extends ChangeNotifier {
   // State managers
@@ -34,9 +36,11 @@ class ComponentesProvider extends ChangeNotifier {
   List<PlutoRow> componentesRows = [];
   List<PlutoRow> categoriasRows = [];
 
-  // Nuevas listas para topología
+  // Listas para topología optimizada
   List<Distribucion> distribuciones = [];
   List<ConexionComponente> conexiones = [];
+  List<VistaConexionesPorCables> conexionesConCables = [];
+  List<VistaTopologiaPorNegocio> topologiaOptimizada = [];
 
   // Variables para formularios
   String? imagenFileName;
@@ -71,6 +75,8 @@ class ComponentesProvider extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    busquedaComponenteController.dispose();
+    busquedaCategoriaController.dispose();
     super.dispose();
   }
 
@@ -81,7 +87,7 @@ class ComponentesProvider extends ChangeNotifier {
     }
   }
 
-  // Métodos para categorías
+  // MÉTODOS PARA CATEGORÍAS
   Future<void> getCategorias([String? busqueda]) async {
     try {
       var query = supabaseLU.from('categoria_componente').select();
@@ -116,7 +122,54 @@ class ComponentesProvider extends ChangeNotifier {
     }
   }
 
-  // Métodos para componentes
+  Future<bool> crearCategoria(String nombre) async {
+    try {
+      final res = await supabaseLU.from('categoria_componente').insert({
+        'nombre': nombre,
+      }).select();
+
+      if (res.isNotEmpty) {
+        await getCategorias();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error en crearCategoria: ${e.toString()}');
+      return false;
+    }
+  }
+
+  Future<bool> actualizarCategoria(int id, String nombre) async {
+    try {
+      final res = await supabaseLU
+          .from('categoria_componente')
+          .update({'nombre': nombre})
+          .eq('id', id)
+          .select();
+
+      if (res.isNotEmpty) {
+        await getCategorias();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error en actualizarCategoria: ${e.toString()}');
+      return false;
+    }
+  }
+
+  Future<bool> eliminarCategoria(int id) async {
+    try {
+      await supabaseLU.from('categoria_componente').delete().eq('id', id);
+      await getCategorias();
+      return true;
+    } catch (e) {
+      print('Error en eliminarCategoria: ${e.toString()}');
+      return false;
+    }
+  }
+
+  // MÉTODOS PARA COMPONENTES
   Future<void> getComponentesPorNegocio(String negocioId,
       [String? busqueda]) async {
     try {
@@ -173,92 +226,6 @@ class ComponentesProvider extends ChangeNotifier {
     }
   }
 
-  // Métodos para subir imágenes
-  Future<void> selectImagen() async {
-    imagenFileName = null;
-    imagenToUpload = null;
-
-    FilePickerResult? picker = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'png', 'jpeg'],
-    );
-
-    if (picker != null) {
-      var now = DateTime.now();
-      var formatter = DateFormat('yyyyMMddHHmmss');
-      var timestamp = formatter.format(now);
-
-      imagenFileName = 'componente-$timestamp-${picker.files.single.name}';
-      imagenToUpload = picker.files.single.bytes;
-    }
-
-    _safeNotifyListeners();
-  }
-
-  Future<String?> uploadImagen() async {
-    if (imagenToUpload != null && imagenFileName != null) {
-      await supabaseLU.storage.from('nethive/componentes').uploadBinary(
-            imagenFileName!,
-            imagenToUpload!,
-            fileOptions: const FileOptions(
-              cacheControl: '3600',
-              upsert: false,
-            ),
-          );
-      return imagenFileName;
-    }
-    return null;
-  }
-
-  // CRUD Categorías
-  Future<bool> crearCategoria(String nombre) async {
-    try {
-      final res = await supabaseLU.from('categoria_componente').insert({
-        'nombre': nombre,
-      }).select();
-
-      if (res.isNotEmpty) {
-        await getCategorias();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error en crearCategoria: ${e.toString()}');
-      return false;
-    }
-  }
-
-  Future<bool> actualizarCategoria(int id, String nombre) async {
-    try {
-      final res = await supabaseLU
-          .from('categoria_componente')
-          .update({'nombre': nombre})
-          .eq('id', id)
-          .select();
-
-      if (res.isNotEmpty) {
-        await getCategorias();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error en actualizarCategoria: ${e.toString()}');
-      return false;
-    }
-  }
-
-  Future<bool> eliminarCategoria(int id) async {
-    try {
-      await supabaseLU.from('categoria_componente').delete().eq('id', id);
-      await getCategorias();
-      return true;
-    } catch (e) {
-      print('Error en eliminarCategoria: ${e.toString()}');
-      return false;
-    }
-  }
-
-  // CRUD Componentes
   Future<bool> crearComponente({
     required String negocioId,
     required int categoriaId,
@@ -315,7 +282,6 @@ class ComponentesProvider extends ChangeNotifier {
         'ubicacion': ubicacion,
       };
 
-      // Solo actualizar imagen si se seleccionó una nueva
       if (actualizarImagen) {
         final imagenUrl = await uploadImagen();
         if (imagenUrl != null) {
@@ -343,41 +309,32 @@ class ComponentesProvider extends ChangeNotifier {
 
   Future<bool> eliminarComponente(String componenteId) async {
     try {
-      // Primero obtener la información del componente para obtener la URL de la imagen
       final componenteData = await supabaseLU
           .from('componente')
           .select('imagen_url')
           .eq('id', componenteId)
           .maybeSingle();
 
-      // Guardar la URL de la imagen para eliminarla después
       String? imagenUrl;
       if (componenteData != null && componenteData['imagen_url'] != null) {
         imagenUrl = componenteData['imagen_url'] as String;
       }
 
-      // Eliminar todos los detalles específicos primero
       await _eliminarDetallesComponente(componenteId);
-
-      // Eliminar el componente de la base de datos
       await supabaseLU.from('componente').delete().eq('id', componenteId);
 
-      // Actualizar la lista ANTES de eliminar la imagen
       if (!_isDisposed && negocioSeleccionadoId != null) {
         await getComponentesPorNegocio(negocioSeleccionadoId!);
       }
 
-      // AHORA eliminar la imagen del storage (después de que la UI se haya actualizado)
       if (imagenUrl != null) {
         try {
           await supabaseLU.storage
               .from('nethive')
               .remove(["componentes/$imagenUrl"]);
-          print('Imagen eliminada del storage: $imagenUrl');
         } catch (storageError) {
           print(
               'Error al eliminar imagen del storage: ${storageError.toString()}');
-          // No retornamos false aquí porque el componente ya fue eliminado exitosamente
         }
       }
 
@@ -388,152 +345,410 @@ class ComponentesProvider extends ChangeNotifier {
     }
   }
 
-  // Métodos para obtener detalles específicos
-  Future<void> getDetallesComponente(
-      String componenteId, int categoriaId) async {
+  Future<void> _eliminarDetallesComponente(String componenteId) async {
     try {
-      final categoriaNombre =
-          getCategoriaById(categoriaId)?.nombre?.toLowerCase() ?? '';
-
-      if (categoriaNombre.contains('cable')) {
-        await _getDetalleCable(componenteId);
-      } else if (categoriaNombre.contains('switch')) {
-        await _getDetalleSwitch(componenteId);
-      } else if (categoriaNombre.contains('patch') ||
-          categoriaNombre.contains('panel')) {
-        await _getDetallePatchPanel(componenteId);
-      } else if (categoriaNombre.contains('rack')) {
-        await _getDetalleRack(componenteId);
-      } else if (categoriaNombre.contains('organizador')) {
-        await _getDetalleOrganizador(componenteId);
-      } else if (categoriaNombre.contains('ups')) {
-        await _getDetalleUps(componenteId);
-      } else if (categoriaNombre.contains('router') ||
-          categoriaNombre.contains('firewall')) {
-        await _getDetalleRouterFirewall(componenteId);
-      } else {
-        await _getDetalleEquipoActivo(componenteId);
-      }
-
-      showDetallesEspecificos = true;
-      _safeNotifyListeners();
+      await Future.wait([
+        supabaseLU
+            .from('detalle_cable')
+            .delete()
+            .eq('componente_id', componenteId),
+        supabaseLU
+            .from('detalle_switch')
+            .delete()
+            .eq('componente_id', componenteId),
+        supabaseLU
+            .from('detalle_patch_panel')
+            .delete()
+            .eq('componente_id', componenteId),
+        supabaseLU
+            .from('detalle_rack')
+            .delete()
+            .eq('componente_id', componenteId),
+        supabaseLU
+            .from('detalle_organizador')
+            .delete()
+            .eq('componente_id', componenteId),
+        supabaseLU
+            .from('detalle_ups')
+            .delete()
+            .eq('componente_id', componenteId),
+        supabaseLU
+            .from('detalle_router_firewall')
+            .delete()
+            .eq('componente_id', componenteId),
+        supabaseLU
+            .from('detalle_equipo_activo')
+            .delete()
+            .eq('componente_id', componenteId),
+        supabaseLU.from('conexion_componente').delete().or(
+            'componente_origen_id.eq.$componenteId,componente_destino_id.eq.$componenteId'),
+      ]);
     } catch (e) {
-      print('Error en getDetallesComponente: ${e.toString()}');
+      print('Error al eliminar detalles del componente: ${e.toString()}');
     }
   }
 
-  Future<void> _getDetalleCable(String componenteId) async {
-    final res = await supabaseLU
-        .from('detalle_cable')
-        .select()
-        .eq('componente_id', componenteId)
-        .maybeSingle();
-
-    if (res != null) {
-      detalleCable = DetalleCable.fromMap(res);
-    }
-  }
-
-  Future<void> _getDetalleSwitch(String componenteId) async {
-    final res = await supabaseLU
-        .from('detalle_switch')
-        .select()
-        .eq('componente_id', componenteId)
-        .maybeSingle();
-
-    if (res != null) {
-      detalleSwitch = DetalleSwitch.fromMap(res);
-    }
-  }
-
-  Future<void> _getDetallePatchPanel(String componenteId) async {
-    final res = await supabaseLU
-        .from('detalle_patch_panel')
-        .select()
-        .eq('componente_id', componenteId)
-        .maybeSingle();
-
-    if (res != null) {
-      detallePatchPanel = DetallePatchPanel.fromMap(res);
-    }
-  }
-
-  Future<void> _getDetalleRack(String componenteId) async {
-    final res = await supabaseLU
-        .from('detalle_rack')
-        .select()
-        .eq('componente_id', componenteId)
-        .maybeSingle();
-
-    if (res != null) {
-      detalleRack = DetalleRack.fromMap(res);
-    }
-  }
-
-  Future<void> _getDetalleOrganizador(String componenteId) async {
-    final res = await supabaseLU
-        .from('detalle_organizador')
-        .select()
-        .eq('componente_id', componenteId)
-        .maybeSingle();
-
-    if (res != null) {
-      detalleOrganizador = DetalleOrganizador.fromMap(res);
-    }
-  }
-
-  Future<void> _getDetalleUps(String componenteId) async {
-    final res = await supabaseLU
-        .from('detalle_ups')
-        .select()
-        .eq('componente_id', componenteId)
-        .maybeSingle();
-
-    if (res != null) {
-      detalleUps = DetalleUps.fromMap(res);
-    }
-  }
-
-  Future<void> _getDetalleRouterFirewall(String componenteId) async {
-    final res = await supabaseLU
-        .from('detalle_router_firewall')
-        .select()
-        .eq('componente_id', componenteId)
-        .maybeSingle();
-
-    if (res != null) {
-      detalleRouterFirewall = DetalleRouterFirewall.fromMap(res);
-    }
-  }
-
-  Future<void> _getDetalleEquipoActivo(String componenteId) async {
-    final res = await supabaseLU
-        .from('detalle_equipo_activo')
-        .select()
-        .eq('componente_id', componenteId)
-        .maybeSingle();
-
-    if (res != null) {
-      detalleEquipoActivo = DetalleEquipoActivo.fromMap(res);
-    }
-  }
-
-  // Métodos de utilidad
-  CategoriaComponente? getCategoriaById(int id) {
-    try {
-      return categorias.firstWhere((c) => c.id == id);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  void resetFormData() {
+  // MÉTODOS PARA IMÁGENES
+  Future<void> selectImagen() async {
     imagenFileName = null;
     imagenToUpload = null;
-    categoriaSeleccionadaId = null;
+
+    FilePickerResult? picker = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'png', 'jpeg'],
+    );
+
+    if (picker != null) {
+      var now = DateTime.now();
+      var formatter = DateFormat('yyyyMMddHHmmss');
+      var timestamp = formatter.format(now);
+
+      imagenFileName = 'componente-$timestamp-${picker.files.single.name}';
+      imagenToUpload = picker.files.single.bytes;
+    }
+
+    _safeNotifyListeners();
+  }
+
+  Future<String?> uploadImagen() async {
+    if (imagenToUpload != null && imagenFileName != null) {
+      await supabaseLU.storage.from('nethive/componentes').uploadBinary(
+            imagenFileName!,
+            imagenToUpload!,
+            fileOptions: const FileOptions(
+              cacheControl: '3600',
+              upsert: false,
+            ),
+          );
+      return imagenFileName;
+    }
+    return null;
+  }
+
+  // MÉTODOS PARA DISTRIBUCIONES
+  Future<void> getDistribucionesPorNegocio(String negocioId) async {
+    try {
+      final res = await supabaseLU
+          .from('distribucion')
+          .select()
+          .eq('negocio_id', negocioId)
+          .order('tipo', ascending: false);
+
+      distribuciones = (res as List<dynamic>)
+          .map((distribucion) => Distribucion.fromMap(distribucion))
+          .toList();
+
+      print('Distribuciones cargadas: ${distribuciones.length}');
+    } catch (e) {
+      print('Error en getDistribucionesPorNegocio: ${e.toString()}');
+      distribuciones = [];
+    }
+  }
+
+  // MÉTODOS PARA CONEXIONES
+  Future<void> getConexionesPorNegocio(String negocioId) async {
+    try {
+      List<dynamic> res;
+
+      try {
+        res = await supabaseLU
+            .from('vista_conexiones_por_negocio')
+            .select()
+            .eq('negocio_id', negocioId);
+      } catch (e) {
+        final componentesDelNegocio = await supabaseLU
+            .from('componente')
+            .select('id')
+            .eq('negocio_id', negocioId);
+
+        if (componentesDelNegocio.isEmpty) {
+          conexiones = [];
+          return;
+        }
+
+        final componenteIds =
+            componentesDelNegocio.map((comp) => comp['id'] as String).toList();
+
+        res = await supabaseLU
+            .from('conexion_componente')
+            .select()
+            .or('componente_origen_id.in.(${componenteIds.join(',')}),componente_destino_id.in.(${componenteIds.join(',')})')
+            .eq('activo', true);
+      }
+
+      conexiones = (res as List<dynamic>)
+          .map((conexion) => ConexionComponente.fromMap(conexion))
+          .toList();
+
+      print('Conexiones cargadas: ${conexiones.length}');
+    } catch (e) {
+      print('Error en getConexionesPorNegocio: ${e.toString()}');
+      conexiones = [];
+    }
+  }
+
+  // MÉTODOS PARA TOPOLOGÍA OPTIMIZADA
+  Future<void> getConexionesConCablesPorNegocio(String negocioId) async {
+    try {
+      final res = await supabaseLU
+          .from('vista_conexiones_con_cables')
+          .select()
+          .eq('activo', true);
+
+      conexionesConCables = (res as List<dynamic>)
+          .map((conexion) => VistaConexionesPorCables.fromMap(conexion))
+          .toList();
+
+      print('Conexiones con cables cargadas: ${conexionesConCables.length}');
+    } catch (e) {
+      print('Error en getConexionesConCablesPorNegocio: ${e.toString()}');
+      await _getConexionesConCablesManual(negocioId);
+    }
+  }
+
+  Future<void> _getConexionesConCablesManual(String negocioId) async {
+    try {
+      final componentesDelNegocio = await supabaseLU
+          .from('componente')
+          .select('id')
+          .eq('negocio_id', negocioId);
+
+      if (componentesDelNegocio.isEmpty) {
+        conexionesConCables = [];
+        return;
+      }
+
+      final componenteIds =
+          componentesDelNegocio.map((comp) => comp['id'] as String).toList();
+
+      final conexionesRes = await supabaseLU
+          .from('conexion_componente')
+          .select(''''
+            *,
+            componente_origen:componente!componente_origen_id(id, nombre),
+            componente_destino:componente!componente_destino_id(id, nombre),
+            cable:componente!cable_id(id, nombre),
+            detalle_cable!cable_id(*)
+          ''')
+          .or('componente_origen_id.in.(${componenteIds.join(',')}),componente_destino_id.in.(${componenteIds.join(',')})')
+          .eq('activo', true);
+
+      conexionesConCables = (conexionesRes as List<dynamic>).map((conexion) {
+        final origenData =
+            conexion['componente_origen'] as Map<String, dynamic>?;
+        final destinoData =
+            conexion['componente_destino'] as Map<String, dynamic>?;
+        final cableData = conexion['cable'] as Map<String, dynamic>?;
+        final detalleCableData =
+            conexion['detalle_cable'] as Map<String, dynamic>?;
+
+        return VistaConexionesPorCables(
+          conexionId: conexion['id'],
+          descripcion: conexion['descripcion'],
+          activo: conexion['activo'] ?? false,
+          origenId: origenData?['id'] ?? '',
+          componenteOrigen: origenData?['nombre'] ?? '',
+          destinoId: destinoData?['id'] ?? '',
+          componenteDestino: destinoData?['nombre'] ?? '',
+          cableId: cableData?['id'],
+          cableUsado: cableData?['nombre'],
+          tipoCable: detalleCableData?['tipo_cable'],
+          color: detalleCableData?['color'],
+          tamano: detalleCableData?['tamaño']?.toDouble(),
+          tipoConector: detalleCableData?['tipo_conector'],
+        );
+      }).toList();
+
+      print('Conexiones con cables (manual): ${conexionesConCables.length}');
+    } catch (e) {
+      print('Error en _getConexionesConCablesManual: ${e.toString()}');
+      conexionesConCables = [];
+    }
+  }
+
+  Future<void> getTopologiaOptimizadaPorNegocio(String negocioId) async {
+    try {
+      final res = await supabaseLU
+          .from('vista_topologia_por_negocio')
+          .select()
+          .eq('negocio_id', negocioId)
+          .eq('activo', true)
+          .order('fecha_registro', ascending: false);
+
+      topologiaOptimizada = (res as List<dynamic>)
+          .map((item) => VistaTopologiaPorNegocio.fromMap(item))
+          .toList();
+
+      print(
+          'Topología optimizada cargada: ${topologiaOptimizada.length} componentes');
+    } catch (e) {
+      print('Error en getTopologiaOptimizadaPorNegocio: ${e.toString()}');
+      await _getTopologiaOptimizadaManual(negocioId);
+    }
+  }
+
+  Future<void> _getTopologiaOptimizadaManual(String negocioId) async {
+    try {
+      final res = await supabaseLU
+          .from('componente')
+          .select('''
+            *,
+            categoria_componente!inner(id, nombre),
+            distribucion(id, tipo, nombre),
+            negocio!inner(id, nombre)
+          ''')
+          .eq('negocio_id', negocioId)
+          .eq('activo', true)
+          .order('fecha_registro', ascending: false);
+
+      topologiaOptimizada = (res as List<dynamic>).map((item) {
+        // Manejar datos de negocio
+        final negocioData = item['negocio'];
+        final String negocioIdRes = negocioData is Map<String, dynamic>
+            ? negocioData['id']?.toString() ?? negocioId
+            : negocioId;
+        final String nombreNegocio = negocioData is Map<String, dynamic>
+            ? negocioData['nombre']?.toString() ?? 'Sin nombre'
+            : 'Sin nombre';
+
+        // Manejar datos de categoría
+        final categoriaData = item['categoria_componente'];
+        final String nombreCategoria = categoriaData is Map<String, dynamic>
+            ? categoriaData['nombre']?.toString() ?? 'Sin categoría'
+            : 'Sin categoría';
+
+        // Manejar datos de distribución (puede ser null)
+        final distribucionData = item['distribucion'];
+        String? distribucionId;
+        String? tipoDistribucion;
+        String? distribucionNombre;
+
+        if (distribucionData is Map<String, dynamic>) {
+          distribucionId = distribucionData['id']?.toString();
+          tipoDistribucion = distribucionData['tipo']?.toString();
+          distribucionNombre = distribucionData['nombre']?.toString();
+        }
+
+        return VistaTopologiaPorNegocio(
+          negocioId: negocioIdRes,
+          nombreNegocio: nombreNegocio,
+          distribucionId: distribucionId,
+          tipoDistribucion: tipoDistribucion,
+          distribucionNombre: distribucionNombre,
+          componenteId: item['id']?.toString() ?? '',
+          componenteNombre: item['nombre']?.toString() ?? '',
+          descripcion: item['descripcion']?.toString(),
+          categoriaComponente: nombreCategoria,
+          enUso: item['en_uso'] == true,
+          activo: item['activo'] == true,
+          ubicacion: item['ubicacion']?.toString(),
+          imagenUrl: item['imagen_url']?.toString(),
+          fechaRegistro:
+              DateTime.tryParse(item['fecha_registro']?.toString() ?? '') ??
+                  DateTime.now(),
+        );
+      }).toList();
+
+      print(
+          'Topología optimizada (manual): ${topologiaOptimizada.length} componentes');
+
+      // Debug: Mostrar las categorías encontradas
+      final categoriasEncontradas = topologiaOptimizada
+          .map((c) => c.categoriaComponente)
+          .toSet()
+          .toList();
+      print('Categorías encontradas: $categoriasEncontradas');
+    } catch (e) {
+      print('Error en _getTopologiaOptimizadaManual: ${e.toString()}');
+      topologiaOptimizada = [];
+    }
+  }
+
+  Future<void> cargarTopologiaCompletaOptimizada(String negocioId) async {
+    isLoadingTopologia = true;
+    _safeNotifyListeners();
+
+    try {
+      await Future.wait([
+        getTopologiaOptimizadaPorNegocio(negocioId),
+        getConexionesConCablesPorNegocio(negocioId),
+        getDistribucionesPorNegocio(negocioId),
+      ]);
+
+      _sincronizarConListasPrincipales();
+      problemasTopologia = validarTopologiaOptimizada();
+      print('Topología completa cargada exitosamente');
+    } catch (e) {
+      print('Error en cargarTopologiaCompletaOptimizada: ${e.toString()}');
+      problemasTopologia = [
+        'Error al cargar datos de topología optimizada: ${e.toString()}'
+      ];
+      await cargarTopologiaCompleta(negocioId);
+    } finally {
+      isLoadingTopologia = false;
+      _safeNotifyListeners();
+    }
+  }
+
+  void _sincronizarConListasPrincipales() {
+    if (topologiaOptimizada.isNotEmpty) {
+      componentes = topologiaOptimizada.map((topo) {
+        return Componente(
+          id: topo.componenteId,
+          negocioId: topo.negocioId,
+          categoriaId: _getCategoriaIdPorNombre(topo.categoriaComponente),
+          nombre: topo.componenteNombre,
+          descripcion: topo.descripcion,
+          ubicacion: topo.ubicacion,
+          imagenUrl: topo.imagenUrl,
+          enUso: topo.enUso,
+          activo: topo.activo,
+          fechaRegistro: topo.fechaRegistro,
+          distribucionId: topo.distribucionId,
+        );
+      }).toList();
+
+      _buildComponentesRows();
+    }
+
+    if (conexionesConCables.isNotEmpty) {
+      conexiones = conexionesConCables.map((conexionCable) {
+        return ConexionComponente(
+          id: conexionCable.conexionId,
+          componenteOrigenId: conexionCable.origenId,
+          componenteDestinoId: conexionCable.destinoId,
+          descripcion: conexionCable.descripcion,
+          activo: conexionCable.activo,
+        );
+      }).toList();
+    }
+  }
+
+  // MÉTODOS DE GESTIÓN DE TOPOLOGÍA
+  Future<void> setNegocioSeleccionado(
+      String negocioId, String negocioNombre, String empresaId) async {
+    try {
+      negocioSeleccionadoId = negocioId;
+      negocioSeleccionadoNombre = negocioNombre;
+      empresaSeleccionadaId = empresaId;
+
+      _limpiarDatosAnteriores();
+      await cargarTopologiaCompleta(negocioId);
+      _safeNotifyListeners();
+    } catch (e) {
+      print('Error en setNegocioSeleccionado: ${e.toString()}');
+    }
+  }
+
+  void _limpiarDatosAnteriores() {
+    componentes.clear();
+    distribuciones.clear();
+    conexiones.clear();
+    conexionesConCables.clear();
+    topologiaOptimizada.clear();
+    componentesRows.clear();
     showDetallesEspecificos = false;
 
-    // Limpiar detalles específicos
     detalleCable = null;
     detalleSwitch = null;
     detallePatchPanel = null;
@@ -542,7 +757,188 @@ class ComponentesProvider extends ChangeNotifier {
     detalleUps = null;
     detalleRouterFirewall = null;
     detalleEquipoActivo = null;
+  }
 
+  Future<void> cargarTopologiaCompleta(String negocioId) async {
+    isLoadingTopologia = true;
+    _safeNotifyListeners();
+
+    try {
+      await Future.wait([
+        getComponentesPorNegocio(negocioId),
+        getDistribucionesPorNegocio(negocioId),
+        getConexionesPorNegocio(negocioId),
+      ]);
+
+      problemasTopologia = validarTopologia();
+      print(
+          'Topología cargada - Componentes: ${componentes.length}, Distribuciones: ${distribuciones.length}, Conexiones: ${conexiones.length}');
+    } catch (e) {
+      print('Error en cargarTopologiaCompleta: ${e.toString()}');
+      problemasTopologia = [
+        'Error al cargar datos de topología: ${e.toString()}'
+      ];
+    } finally {
+      isLoadingTopologia = false;
+      _safeNotifyListeners();
+    }
+  }
+
+  // MÉTODOS DE UTILIDAD
+  CategoriaComponente? getCategoriaById(int categoriaId) {
+    try {
+      return categorias.firstWhere((c) => c.id == categoriaId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Componente? getComponenteById(String componenteId) {
+    try {
+      return componentes.firstWhere((c) => c.id == componenteId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  List<Componente> getComponentesPorTipo(String tipo) {
+    return componentes.where((c) {
+      if (!c.activo) return false;
+
+      final categoria = getCategoriaById(c.categoriaId);
+      final nombreCategoria = categoria?.nombre.toLowerCase() ?? '';
+
+      switch (tipo.toLowerCase()) {
+        case 'mdf':
+          return c.ubicacion?.toLowerCase().contains('mdf') == true ||
+              nombreCategoria.contains('mdf') ||
+              c.descripcion?.toLowerCase().contains('mdf') == true;
+        case 'idf':
+          return c.ubicacion?.toLowerCase().contains('idf') == true ||
+              nombreCategoria.contains('idf') ||
+              c.descripcion?.toLowerCase().contains('idf') == true;
+        case 'switch':
+          return nombreCategoria.contains('switch');
+        case 'router':
+          return nombreCategoria.contains('router') ||
+              nombreCategoria.contains('firewall');
+        case 'servidor':
+        case 'server':
+          return nombreCategoria.contains('servidor') ||
+              nombreCategoria.contains('server');
+        default:
+          return false;
+      }
+    }).toList();
+  }
+
+  List<String> validarTopologia() {
+    List<String> problemas = [];
+
+    if (componentes.isEmpty) {
+      problemas.add('No se encontraron componentes para este negocio');
+      return problemas;
+    }
+
+    final mdfComponents = getComponentesPorTipo('mdf');
+    final idfComponents = getComponentesPorTipo('idf');
+
+    if (mdfComponents.isEmpty) {
+      problemas
+          .add('No se encontraron componentes MDF (distribución principal)');
+    }
+
+    if (idfComponents.isEmpty) {
+      problemas.add(
+          'No se encontraron componentes IDF (distribuciones intermedias)');
+    }
+
+    final sinUbicacion = componentes
+        .where((c) =>
+            c.activo && (c.ubicacion == null || c.ubicacion!.trim().isEmpty))
+        .length;
+    if (sinUbicacion > 0) {
+      problemas.add('$sinUbicacion componentes activos sin ubicación definida');
+    }
+
+    final componentesActivos = componentes.where((c) => c.activo).length;
+    final conexionesActivas = conexiones.where((c) => c.activo).length;
+
+    if (componentesActivos > 1 && conexionesActivas == 0) {
+      problemas.add('No se encontraron conexiones entre componentes');
+    }
+
+    return problemas;
+  }
+
+  List<String> validarTopologiaOptimizada() {
+    List<String> problemas = [];
+
+    if (topologiaOptimizada.isEmpty) {
+      problemas.add('No se encontraron componentes para este negocio');
+      return problemas;
+    }
+
+    final mdfComponents = topologiaOptimizada.where((c) => c.esMDF).toList();
+    final idfComponents = topologiaOptimizada.where((c) => c.esIDF).toList();
+
+    if (mdfComponents.isEmpty) {
+      problemas.add('No se encontraron componentes configurados como MDF');
+    }
+
+    if (idfComponents.isEmpty) {
+      problemas.add('No se encontraron componentes configurados como IDF');
+    }
+
+    final sinUbicacion = topologiaOptimizada
+        .where((c) => c.ubicacion == null || c.ubicacion!.trim().isEmpty)
+        .length;
+
+    if (sinUbicacion > 0) {
+      problemas.add('$sinUbicacion componentes sin ubicación definida');
+    }
+
+    if (conexionesConCables.isEmpty && topologiaOptimizada.length > 1) {
+      problemas.add('No se encontraron conexiones entre componentes');
+    }
+
+    return problemas;
+  }
+
+  // MÉTODOS PARA VISTAS OPTIMIZADAS
+  List<VistaTopologiaPorNegocio> getComponentesMDFOptimizados() {
+    return topologiaOptimizada.where((c) => c.esMDF).toList()
+      ..sort((a, b) => a.prioridadTopologia.compareTo(b.prioridadTopologia));
+  }
+
+  List<VistaTopologiaPorNegocio> getComponentesIDFOptimizados() {
+    return topologiaOptimizada.where((c) => c.esIDF).toList()
+      ..sort((a, b) => a.prioridadTopologia.compareTo(b.prioridadTopologia));
+  }
+
+  List<VistaTopologiaPorNegocio> getComponentesPorTipoOptimizado(String tipo) {
+    return topologiaOptimizada
+        .where((c) => c.tipoComponentePrincipal == tipo)
+        .toList()
+      ..sort((a, b) => a.prioridadTopologia.compareTo(b.prioridadTopologia));
+  }
+
+  int _getCategoriaIdPorNombre(String nombreCategoria) {
+    try {
+      final categoria = categorias.firstWhere(
+        (c) => c.nombre.toLowerCase() == nombreCategoria.toLowerCase(),
+      );
+      return categoria.id;
+    } catch (e) {
+      return 1;
+    }
+  }
+
+  // MÉTODOS DE UTILIDAD PARA FORMULARIOS
+  void resetFormData() {
+    imagenFileName = null;
+    imagenToUpload = null;
+    categoriaSeleccionadaId = null;
     _safeNotifyListeners();
   }
 
@@ -610,552 +1006,5 @@ class ComponentesProvider extends ChangeNotifier {
       width: width,
       fit: BoxFit.cover,
     );
-  }
-
-  // Métodos para distribuciones (MDF/IDF)
-  Future<void> getDistribucionesPorNegocio(String negocioId) async {
-    try {
-      final res = await supabaseLU
-          .from('distribucion')
-          .select()
-          .eq('negocio_id', negocioId)
-          .order('tipo', ascending: false); // MDF primero, luego IDF
-
-      distribuciones = (res as List<dynamic>)
-          .map((distribucion) => Distribucion.fromMap(distribucion))
-          .toList();
-
-      print('Distribuciones cargadas: ${distribuciones.length}');
-      for (var dist in distribuciones) {
-        print('- ${dist.tipo}: ${dist.nombre}');
-      }
-    } catch (e) {
-      print('Error en getDistribucionesPorNegocio: ${e.toString()}');
-      distribuciones = [];
-    }
-  }
-
-  // Métodos para conexiones
-  Future<void> getConexionesPorNegocio(String negocioId) async {
-    try {
-      // Usar la vista optimizada si existe, sino usar query manual
-      List<dynamic> res;
-
-      try {
-        // Intentar usar la vista optimizada
-        res = await supabaseLU
-            .from('vista_conexiones_por_negocio')
-            .select()
-            .eq('negocio_id', negocioId);
-      } catch (e) {
-        print('Vista no disponible, usando query manual...');
-        // Fallback: obtener conexiones manualmente
-        final componentesDelNegocio = await supabaseLU
-            .from('componente')
-            .select('id')
-            .eq('negocio_id', negocioId);
-
-        if (componentesDelNegocio.isEmpty) {
-          conexiones = [];
-          return;
-        }
-
-        final componenteIds =
-            componentesDelNegocio.map((comp) => comp['id'] as String).toList();
-
-        res = await supabaseLU
-            .from('conexion_componente')
-            .select()
-            .or('componente_origen_id.in.(${componenteIds.join(',')}),componente_destino_id.in.(${componenteIds.join(',')})')
-            .eq('activo', true);
-      }
-
-      conexiones = (res as List<dynamic>)
-          .map((conexion) => ConexionComponente.fromMap(conexion))
-          .toList();
-
-      print('Conexiones cargadas: ${conexiones.length}');
-    } catch (e) {
-      print('Error en getConexionesPorNegocio: ${e.toString()}');
-      conexiones = [];
-    }
-  }
-
-  // Método principal para establecer el contexto del negocio desde la navegación
-  Future<void> setNegocioSeleccionado(
-      String negocioId, String negocioNombre, String empresaId) async {
-    try {
-      negocioSeleccionadoId = negocioId;
-      negocioSeleccionadoNombre = negocioNombre;
-      empresaSeleccionadaId = empresaId;
-
-      // Limpiar datos anteriores
-      _limpiarDatosAnteriores();
-
-      // Cargar toda la información de topología para este negocio
-      await cargarTopologiaCompleta(negocioId);
-
-      _safeNotifyListeners();
-    } catch (e) {
-      print('Error en setNegocioSeleccionado: ${e.toString()}');
-    }
-  }
-
-  void _limpiarDatosAnteriores() {
-    componentes.clear();
-    distribuciones.clear();
-    conexiones.clear();
-    componentesRows.clear();
-    showDetallesEspecificos = false;
-
-    // Limpiar detalles específicos
-    detalleCable = null;
-    detalleSwitch = null;
-    detallePatchPanel = null;
-    detalleRack = null;
-    detalleOrganizador = null;
-    detalleUps = null;
-    detalleRouterFirewall = null;
-    detalleEquipoActivo = null;
-  }
-
-  // Cargar toda la información de topología de forma optimizada
-  Future<void> cargarTopologiaCompleta(String negocioId) async {
-    isLoadingTopologia = true;
-    _safeNotifyListeners();
-
-    try {
-      // Cargar datos en paralelo para mejor performance
-      await Future.wait([
-        getComponentesPorNegocio(negocioId),
-        getDistribucionesPorNegocio(negocioId),
-        getConexionesPorNegocio(negocioId),
-      ]);
-
-      // Validar integridad de la topología
-      problemasTopologia = validarTopologia();
-    } catch (e) {
-      print('Error en cargarTopologiaCompleta: ${e.toString()}');
-      problemasTopologia = [
-        'Error al cargar datos de topología: ${e.toString()}'
-      ];
-    } finally {
-      isLoadingTopologia = false;
-      _safeNotifyListeners();
-    }
-  }
-
-  // Validar y obtener estadísticas de componentes por categoría
-  Map<String, List<Componente>> getComponentesAgrupadosPorCategoria() {
-    Map<String, List<Componente>> grupos = {};
-
-    for (var componente in componentes.where((c) => c.activo)) {
-      final categoria = getCategoriaById(componente.categoriaId);
-      final nombreCategoria = categoria?.nombre ?? 'Sin categoría';
-
-      if (!grupos.containsKey(nombreCategoria)) {
-        grupos[nombreCategoria] = [];
-      }
-      grupos[nombreCategoria]!.add(componente);
-    }
-
-    return grupos;
-  }
-
-  // Obtener componentes por tipo específico with better logic
-  List<Componente> getComponentesPorTipo(String tipo) {
-    return componentes.where((c) {
-      if (!c.activo) return false;
-
-      final categoria = getCategoriaById(c.categoriaId);
-      final nombreCategoria = categoria?.nombre?.toLowerCase() ?? '';
-      final ubicacion = c.ubicacion?.toLowerCase() ?? '';
-
-      switch (tipo.toLowerCase()) {
-        case 'mdf':
-          return ubicacion.contains('mdf') ||
-              nombreCategoria.contains('mdf') ||
-              (nombreCategoria.contains('switch') && ubicacion.contains('mdf'));
-
-        case 'idf':
-          return ubicacion.contains('idf') ||
-              nombreCategoria.contains('idf') ||
-              (nombreCategoria.contains('switch') && ubicacion.contains('idf'));
-
-        case 'switch':
-          return nombreCategoria.contains('switch');
-
-        case 'router':
-          return nombreCategoria.contains('router') ||
-              nombreCategoria.contains('firewall');
-
-        case 'servidor':
-          return nombreCategoria.contains('servidor') ||
-              nombreCategoria.contains('server');
-
-        case 'cable':
-          return nombreCategoria.contains('cable');
-
-        case 'patch':
-          return nombreCategoria.contains('patch') ||
-              nombreCategoria.contains('panel');
-
-        case 'rack':
-          return nombreCategoria.contains('rack');
-
-        default:
-          return false;
-      }
-    }).toList();
-  }
-
-  // Obtener componentes por ubicación específica
-  List<Componente> getComponentesPorUbicacionEspecifica(String ubicacion) {
-    return componentes.where((c) {
-      if (!c.activo) return false;
-      return c.ubicacion?.toLowerCase().contains(ubicacion.toLowerCase()) ??
-          false;
-    }).toList();
-  }
-
-  // Crear conexión automática inteligente
-  Future<bool> crearConexionAutomatica(String origenId, String destinoId,
-      {String? descripcion}) async {
-    try {
-      final origen = getComponenteById(origenId);
-      final destino = getComponenteById(destinoId);
-
-      if (origen == null || destino == null) return false;
-
-      // Generar descripción automática si no se proporciona
-      if (descripcion == null) {
-        final origenCategoria = getCategoriaById(origen.categoriaId);
-        final destinoCategoria = getCategoriaById(destino.categoriaId);
-        descripcion =
-            'Conexión automática: ${origenCategoria?.nombre ?? 'Componente'} → ${destinoCategoria?.nombre ?? 'Componente'}';
-      }
-
-      return await crearConexion(
-        componenteOrigenId: origenId,
-        componenteDestinoId: destinoId,
-        descripcion: descripcion,
-        activo: true,
-      );
-    } catch (e) {
-      print('Error en crearConexionAutomatica: ${e.toString()}');
-      return false;
-    }
-  }
-
-  // Crear una nueva conexión entre componentes
-  Future<bool> crearConexion({
-    required String componenteOrigenId,
-    required String componenteDestinoId,
-    String? descripcion,
-    bool activo = true,
-  }) async {
-    try {
-      final res = await supabaseLU.from('conexion_componente').insert({
-        'componente_origen_id': componenteOrigenId,
-        'componente_destino_id': componenteDestinoId,
-        'descripcion': descripcion,
-        'activo': activo,
-      }).select();
-
-      if (res.isNotEmpty && negocioSeleccionadoId != null) {
-        await getConexionesPorNegocio(negocioSeleccionadoId!);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error en crearConexion: ${e.toString()}');
-      return false;
-    }
-  }
-
-  // Eliminar una conexión
-  Future<bool> eliminarConexion(String conexionId) async {
-    try {
-      await supabaseLU
-          .from('conexion_componente')
-          .delete()
-          .eq('id', conexionId);
-
-      if (negocioSeleccionadoId != null) {
-        await getConexionesPorNegocio(negocioSeleccionadoId!);
-      }
-      return true;
-    } catch (e) {
-      print('Error en eliminarConexion: ${e.toString()}');
-      return false;
-    }
-  }
-
-  // Crear una nueva distribución (MDF/IDF)
-  Future<bool> crearDistribucion({
-    required String negocioId,
-    required String tipo, // 'MDF' o 'IDF'
-    required String nombre,
-    String? descripcion,
-  }) async {
-    try {
-      final res = await supabaseLU.from('distribucion').insert({
-        'negocio_id': negocioId,
-        'tipo': tipo,
-        'nombre': nombre,
-        'descripcion': descripcion,
-      }).select();
-
-      if (res.isNotEmpty) {
-        await getDistribucionesPorNegocio(negocioId);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error en crearDistribucion: ${e.toString()}');
-      return false;
-    }
-  }
-
-  // Obtener componentes por distribución
-  List<Componente> getComponentesPorDistribucion(String distribucionNombre) {
-    return componentes
-        .where((c) =>
-            c.ubicacion
-                ?.toLowerCase()
-                .contains(distribucionNombre.toLowerCase()) ??
-            false)
-        .toList();
-  }
-
-  // Obtener MDF del negocio
-  Distribucion? getMDF() {
-    try {
-      return distribuciones.firstWhere((d) => d.tipo == 'MDF');
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Obtener todos los IDF del negocio
-  List<Distribucion> getIDFs() {
-    return distribuciones.where((d) => d.tipo == 'IDF').toList();
-  }
-
-  // Obtener conexiones de un componente específico
-  List<ConexionComponente> getConexionesDeComponente(String componenteId) {
-    return conexiones
-        .where((c) =>
-            c.componenteOrigenId == componenteId ||
-            c.componenteDestinoId == componenteId)
-        .toList();
-  }
-
-  // Obtener componente por ID
-  Componente? getComponenteById(String componenteId) {
-    try {
-      return componentes.firstWhere((c) => c.id == componenteId);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Validar integridad de topología mejorado
-  List<String> validarTopologia() {
-    List<String> problemas = [];
-
-    if (componentes.isEmpty) {
-      problemas.add('No se encontraron componentes para este negocio');
-      return problemas;
-    }
-
-    // Verificar distribuciones
-    final mdfCount = distribuciones.where((d) => d.tipo == 'MDF').length;
-    final idfCount = distribuciones.where((d) => d.tipo == 'IDF').length;
-
-    if (mdfCount == 0) {
-      problemas.add('No se encontró ningún MDF configurado');
-    } else if (mdfCount > 1) {
-      problemas.add(
-          'Se encontraron múltiples MDF ($mdfCount). Se recomienda solo uno por negocio');
-    }
-
-    if (idfCount == 0) {
-      problemas.add('No se encontraron IDFs configurados');
-    }
-
-    // Verificar componentes principales
-    final switchesMDF = getComponentesPorTipo('mdf')
-        .where((c) =>
-            getCategoriaById(c.categoriaId)
-                ?.nombre
-                ?.toLowerCase()
-                .contains('switch') ??
-            false)
-        .toList();
-
-    if (switchesMDF.isEmpty) {
-      problemas.add('No se encontró switch principal en MDF');
-    }
-
-    // Verificar componentes sin ubicación
-    final sinUbicacion = componentes
-        .where((c) =>
-            c.activo && (c.ubicacion == null || c.ubicacion!.trim().isEmpty))
-        .length;
-    if (sinUbicacion > 0) {
-      problemas.add('$sinUbicacion componentes activos sin ubicación definida');
-    }
-
-    // Verificar conexiones
-    final componentesActivos = componentes.where((c) => c.activo).length;
-    final conexionesActivas = conexiones.where((c) => c.activo).length;
-
-    if (componentesActivos > 1 && conexionesActivas == 0) {
-      problemas.add('No se encontraron conexiones entre componentes');
-    }
-
-    // Verificar componentes críticos aislados
-    final componentesCriticos = [
-      ...switchesMDF,
-      ...getComponentesPorTipo('router')
-    ];
-    for (var componente in componentesCriticos) {
-      final conexionesComponente = getConexionesDeComponente(componente.id);
-      if (conexionesComponente.isEmpty) {
-        final categoria = getCategoriaById(componente.categoriaId);
-        problemas.add(
-            'Componente crítico sin conexiones: ${componente.nombre} (${categoria?.nombre})');
-      }
-    }
-
-    return problemas;
-  }
-
-  // Obtener resumen de topología para dashboard
-  Map<String, dynamic> getResumenTopologia() {
-    final stats = getEstadisticasConectividad();
-    final componentesPorCategoria = getComponentesAgrupadosPorCategoria();
-
-    return {
-      'estadisticas': stats,
-      'categorias': componentesPorCategoria.map((key, value) => MapEntry(key, {
-            'total': value.length,
-            'activos': value.where((c) => c.activo).length,
-            'enUso': value.where((c) => c.enUso).length,
-          })),
-      'distribuciones': {
-        'mdf': distribuciones.where((d) => d.tipo == 'MDF').length,
-        'idf': distribuciones.where((d) => d.tipo == 'IDF').length,
-      },
-      'problemas': problemasTopologia.length,
-      'salud': problemasTopologia.isEmpty
-          ? 'Excelente'
-          : problemasTopologia.length <= 2
-              ? 'Buena'
-              : problemasTopologia.length <= 5
-                  ? 'Regular'
-                  : 'Crítica',
-    };
-  }
-
-  // Obtener sugerencias de mejora
-  List<String> getSugerenciasMejora() {
-    List<String> sugerencias = [];
-
-    final stats = getEstadisticasConectividad();
-    final componentesPorTipo = getComponentesAgrupadosPorCategoria();
-
-    // Sugerencias basadas en uso
-    if (stats['porcentajeUso']! < 70) {
-      sugerencias.add(
-          'Considere optimizar el uso de componentes (${stats['porcentajeUso']}% en uso)');
-    }
-
-    // Sugerencias de redundancia
-    final switchesPrincipales = getComponentesPorTipo('mdf');
-    if (switchesPrincipales.length == 1) {
-      sugerencias
-          .add('Considere agregar redundancia en el switch principal del MDF');
-    }
-
-    // Sugerencias de documentación
-    final sinDescripcion = componentes
-        .where((c) =>
-            c.activo &&
-            (c.descripcion == null || c.descripcion!.trim().isEmpty))
-        .length;
-    if (sinDescripcion > 0) {
-      sugerencias.add('Documente $sinDescripcion componentes sin descripción');
-    }
-
-    // Sugerencias de organización
-    final componentesSinCategoria =
-        componentesPorTipo['Sin categoría']?.length ?? 0;
-    if (componentesSinCategoria > 0) {
-      sugerencias
-          .add('Categorice $componentesSinCategoria componentes sin categoría');
-    }
-
-    return sugerencias;
-  }
-
-  // Obtener estadísticas de conectividad
-  Map<String, double> getEstadisticasConectividad() {
-    final totalComponentes = componentes.length;
-    final componentesActivos = componentes.where((c) => c.activo).length;
-    final componentesEnUso = componentes.where((c) => c.enUso).length;
-    final conexionesActivas = conexiones.where((c) => c.activo).length;
-
-    return {
-      'totalComponentes': totalComponentes.toDouble(),
-      'componentesActivos': componentesActivos.toDouble(),
-      'componentesEnUso': componentesEnUso.toDouble(),
-      'conexionesActivas': conexionesActivas.toDouble(),
-      'porcentajeActivos': totalComponentes > 0
-          ? (componentesActivos / totalComponentes) * 100
-          : 0,
-      'porcentajeUso': componentesActivos > 0
-          ? (componentesEnUso / componentesActivos) * 100
-          : 0,
-      'densidadConexiones':
-          componentesActivos > 0 ? (conexionesActivas / componentesActivos) : 0,
-    };
-  }
-
-  Future<void> _eliminarDetallesComponente(String componenteId) async {
-    // Eliminar de todas las tablas de detalles
-    await supabaseLU
-        .from('detalle_cable')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_switch')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_patch_panel')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_rack')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_organizador')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_ups')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_router_firewall')
-        .delete()
-        .eq('componente_id', componenteId);
-    await supabaseLU
-        .from('detalle_equipo_activo')
-        .delete()
-        .eq('componente_id', componenteId);
   }
 }

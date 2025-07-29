@@ -23,6 +23,7 @@ class Componente {
     this.ubicacion,
     this.imagenUrl,
     required this.fechaRegistro,
+    String? distribucionId,
   });
 
   factory Componente.fromMap(Map<String, dynamic> map) {
