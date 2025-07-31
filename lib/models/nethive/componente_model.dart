@@ -11,6 +11,8 @@ class Componente {
   final String? ubicacion;
   final String? imagenUrl;
   final DateTime fechaRegistro;
+  final String? distribucionId; // ← Nuevo (si lo usas)
+  final String? rolLogicoId; // ← NUEVO
 
   Componente({
     required this.id,
@@ -23,7 +25,8 @@ class Componente {
     this.ubicacion,
     this.imagenUrl,
     required this.fechaRegistro,
-    String? distribucionId,
+    this.distribucionId,
+    this.rolLogicoId,
   });
 
   factory Componente.fromMap(Map<String, dynamic> map) {
@@ -38,6 +41,8 @@ class Componente {
       ubicacion: map['ubicacion'],
       imagenUrl: map['imagen_url'],
       fechaRegistro: DateTime.parse(map['fecha_registro']),
+      distribucionId: map['distribucion_id'],
+      rolLogicoId: map['rol_logico_id'],
     );
   }
 
@@ -53,10 +58,13 @@ class Componente {
       'ubicacion': ubicacion,
       'imagen_url': imagenUrl,
       'fecha_registro': fechaRegistro.toIso8601String(),
+      'distribucion_id': distribucionId,
+      'rol_logico_id': rolLogicoId,
     };
   }
 
   factory Componente.fromJson(String source) =>
       Componente.fromMap(json.decode(source));
+
   String toJson() => json.encode(toMap());
 }

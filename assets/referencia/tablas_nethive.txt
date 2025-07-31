@@ -161,6 +161,25 @@ tipo (text),
 nombre (text),
 descripcion (text),
 
+-- conexion_alimentacion --
+
+id (uuid) (PK),
+origen_id (uuid) (FK de nethive.componente.id),
+destino_id (uuid) (FK de nethive.componente.id),
+cable_id (uuid) (FK de nethive.componente.id, opcional),
+descripcion (text),
+activo (bool)
+
+-- rol_logico_componente --
+
+id (serial) (PK),
+nombre (text),
+descripcion (text)
+
+
+-- tipo_distribucion --
+id (serial) (PK),
+nombre (text)
 
 ******* VISTAS: *******
 
@@ -174,7 +193,7 @@ tamaño (numeric),
 tipo_conector (text),
 conexion_id (uuid),
 
--- vista_conexiones_por_cables --
+-- vista_conexiones_con_cables --
 
 conexion_id (uuid),
 descripcion (text),
@@ -274,4 +293,22 @@ activo (bool),
 ubicacion (text),
 imagen_url (text),
 fecha_registro (timestamp),
+
+-- vista_alimentacion_componentes --
+
+id (uuid),
+origen_id (uuid),
+nombre_origen (text),
+categoria_origen (int4),
+
+destino_id (uuid),
+nombre_destino (text),
+categoria_destino (int4),
+
+cable_id (uuid),
+nombre_cable (text),
+categoria_cable (int4),
+
+descripcion (text),
+activo (bool)
 

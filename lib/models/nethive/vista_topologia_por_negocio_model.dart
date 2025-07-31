@@ -10,6 +10,8 @@ class VistaTopologiaPorNegocio {
   final String componenteNombre;
   final String? descripcion;
   final String categoriaComponente;
+  final int? rolLogicoId;
+  final String? rolLogico;
   final bool enUso;
   final bool activo;
   final String? ubicacion;
@@ -26,6 +28,8 @@ class VistaTopologiaPorNegocio {
     required this.componenteNombre,
     this.descripcion,
     required this.categoriaComponente,
+    this.rolLogicoId,
+    this.rolLogico,
     required this.enUso,
     required this.activo,
     this.ubicacion,
@@ -35,29 +39,30 @@ class VistaTopologiaPorNegocio {
 
   factory VistaTopologiaPorNegocio.fromMap(Map<String, dynamic> map) {
     return VistaTopologiaPorNegocio(
-      negocioId: map['negocio_id']?.toString() ?? '',
-      nombreNegocio: map['nombre_negocio']?.toString() ?? '',
-      distribucionId: map['distribucion_id']?.toString(),
-      tipoDistribucion: map['tipo_distribucion']?.toString(),
-      distribucionNombre: map['distribucion_nombre']?.toString(),
-      componenteId: map['componente_id']?.toString() ?? '',
-      componenteNombre: map['componente_nombre']?.toString() ?? '',
-      descripcion: map['descripcion']?.toString(),
-      categoriaComponente: map['categoria_componente']?.toString() ?? '',
+      negocioId: map['negocio_id'] ?? '',
+      nombreNegocio: map['negocio_nombre'] ?? '',
+      distribucionId: map['distribucion_id'],
+      tipoDistribucion: map['tipo_distribucion'],
+      distribucionNombre: map['distribucion_nombre'],
+      componenteId: map['componente_id'] ?? '',
+      componenteNombre: map['componente_nombre'] ?? '',
+      descripcion: map['descripcion'],
+      categoriaComponente: map['categoria_componente'] ?? '',
+      rolLogicoId: map['rol_logico_id'],
+      rolLogico: map['rol_logico'],
       enUso: map['en_uso'] == true,
       activo: map['activo'] == true,
-      ubicacion: map['ubicacion']?.toString(),
-      imagenUrl: map['imagen_url']?.toString(),
+      ubicacion: map['ubicacion'],
+      imagenUrl: map['imagen_url'],
       fechaRegistro:
-          DateTime.tryParse(map['fecha_registro']?.toString() ?? '') ??
-              DateTime.now(),
+          DateTime.tryParse(map['fecha_registro'] ?? '') ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'negocio_id': negocioId,
-      'nombre_negocio': nombreNegocio,
+      'negocio_nombre': nombreNegocio,
       'distribucion_id': distribucionId,
       'tipo_distribucion': tipoDistribucion,
       'distribucion_nombre': distribucionNombre,
@@ -65,6 +70,8 @@ class VistaTopologiaPorNegocio {
       'componente_nombre': componenteNombre,
       'descripcion': descripcion,
       'categoria_componente': categoriaComponente,
+      'rol_logico_id': rolLogicoId,
+      'rol_logico': rolLogico,
       'en_uso': enUso,
       'activo': activo,
       'ubicacion': ubicacion,
@@ -78,20 +85,36 @@ class VistaTopologiaPorNegocio {
 
   String toJson() => json.encode(toMap());
 
-  // Método para obtener el tipo de componente principal basado en IDs
+  bool get esMDF => tipoDistribucion?.toUpperCase() == 'MDF';
+  bool get esIDF => tipoDistribucion?.toUpperCase() == 'IDF';
+
   String get tipoComponentePrincipal {
     final categoria = categoriaComponente.toLowerCase();
+    final nombre = componenteNombre.toLowerCase();
+    final desc = descripcion?.toLowerCase() ?? '';
 
-    // Clasificación basada en los nombres de categorías exactos
+    if (nombre.contains('switch') || desc.contains('switch')) return 'switch';
+    if (nombre.contains('router') ||
+        desc.contains('router') ||
+        nombre.contains('firewall') ||
+        desc.contains('firewall') ||
+        nombre.contains('fortigate') ||
+        (nombre.contains('cisco') &&
+            (nombre.contains('asa') || nombre.contains('pix')))) {
+      return 'router';
+    }
+    if (nombre.contains('servidor') ||
+        nombre.contains('server') ||
+        desc.contains('servidor') ||
+        desc.contains('server')) {
+      return 'servidor';
+    }
     if (categoria == 'cable') return 'cable';
-    if (categoria == 'switch') return 'switch';
     if (categoria == 'patch panel') return 'patch_panel';
     if (categoria == 'rack') return 'rack';
     if (categoria == 'ups') return 'ups';
-    if (categoria == 'mdf') return 'mdf';
-    if (categoria == 'idf') return 'idf';
+    if (categoria.contains('organizador')) return 'organizador';
 
-    // Clasificación por contenido para compatibilidad
     if (categoria.contains('switch')) return 'switch';
     if (categoria.contains('router') || categoria.contains('firewall'))
       return 'router';
@@ -102,32 +125,13 @@ class VistaTopologiaPorNegocio {
       return 'patch_panel';
     if (categoria.contains('rack')) return 'rack';
     if (categoria.contains('ups')) return 'ups';
-    if (categoria.contains('organizador')) return 'organizador';
 
     return 'otro';
   }
 
-  // Método mejorado para determinar si es MDF
-  bool get esMDF {
-    final categoria = categoriaComponente.toLowerCase();
-    return categoria == 'mdf' ||
-        tipoDistribucion?.toUpperCase() == 'MDF' ||
-        ubicacion?.toLowerCase().contains('mdf') == true;
-  }
-
-  // Método mejorado para determinar si es IDF
-  bool get esIDF {
-    final categoria = categoriaComponente.toLowerCase();
-    return categoria == 'idf' ||
-        tipoDistribucion?.toUpperCase() == 'IDF' ||
-        ubicacion?.toLowerCase().contains('idf') == true;
-  }
-
-  // Método para obtener el nivel de prioridad del componente (para ordenamiento en topología)
   int get prioridadTopologia {
-    if (esMDF) return 1; // Máxima prioridad para MDF
-    if (esIDF) return 2; // Segunda prioridad para IDF
-
+    if (esMDF) return 1;
+    if (esIDF) return 2;
     switch (tipoComponentePrincipal) {
       case 'router':
         return 3;
@@ -150,32 +154,26 @@ class VistaTopologiaPorNegocio {
     }
   }
 
-  // Método para determinar el color del componente en el diagrama
   String getColorForDiagram() {
-    if (esMDF) return '#2196F3'; // Azul para MDF
-    if (esIDF) {
-      return enUso
-          ? '#4CAF50'
-          : '#FF9800'; // Verde si está en uso, naranja si no
-    }
-
+    if (esMDF) return '#2196F3';
+    if (esIDF) return enUso ? '#4CAF50' : '#FF9800';
     switch (tipoComponentePrincipal) {
       case 'router':
-        return '#FF5722'; // Naranja rojizo
+        return '#FF5722';
       case 'switch':
-        return '#9C27B0'; // Morado
+        return '#9C27B0';
       case 'servidor':
-        return '#E91E63'; // Rosa
+        return '#E91E63';
       case 'patch_panel':
-        return '#607D8B'; // Azul gris
+        return '#607D8B';
       case 'rack':
-        return '#795548'; // Marrón
+        return '#795548';
       case 'ups':
-        return '#FFC107'; // Ámbar
+        return '#FFC107';
       case 'cable':
-        return '#4CAF50'; // Verde
+        return '#4CAF50';
       case 'organizador':
-        return '#9E9E9E'; // Gris
+        return '#9E9E9E';
       default:
         return activo ? '#2196F3' : '#757575';
     }
