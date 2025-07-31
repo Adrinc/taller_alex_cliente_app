@@ -162,7 +162,7 @@ class ComponentesProvider extends ChangeNotifier {
         'p_negocio_id': negocioId,
       }).select();
 
-      print('Respuesta RPC recibida: $response');
+      /*   print('Respuesta RPC recibida: $response'); */
 
       if (response != null) {
         topologiaCompleta = TopologiaCompleta.fromJson(response);
