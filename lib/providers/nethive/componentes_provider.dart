@@ -24,6 +24,7 @@ import 'package:nethive_neo/models/nethive/detalle_router_firewall_model.dart';
 import 'package:nethive_neo/models/nethive/detalle_equipo_activo_model.dart';
 import 'package:nethive_neo/models/nethive/vista_conexiones_por_cables_model.dart';
 import 'package:nethive_neo/models/nethive/vista_topologia_por_negocio_model.dart';
+import 'package:nethive_neo/models/nethive/rack_con_componentes_model.dart';
 
 class ComponentesProvider extends ChangeNotifier {
   // State managers
@@ -65,6 +66,7 @@ class ComponentesProvider extends ChangeNotifier {
 
   // Variables para gestión de topología
   bool isLoadingTopologia = false;
+  bool isLoadingRacks = false;
   List<String> problemasTopologia = [];
 
   // Detalles específicos por tipo de componente
@@ -76,6 +78,9 @@ class ComponentesProvider extends ChangeNotifier {
   DetalleUps? detalleUps;
   DetalleRouterFirewall? detalleRouterFirewall;
   DetalleEquipoActivo? detalleEquipoActivo;
+
+  // Nueva lista para racks con componentes
+  List<RackConComponentes> racksConComponentes = [];
 
   // Variable para controlar si el provider está activo
   bool _isDisposed = false;
@@ -866,7 +871,13 @@ class ComponentesProvider extends ChangeNotifier {
       empresaSeleccionadaId = empresaId;
 
       _limpiarDatosAnteriores();
-      await getTopologiaPorNegocio(negocioId);
+
+      // Cargar datos en paralelo
+      await Future.wait([
+        getTopologiaPorNegocio(negocioId),
+        getRacksConComponentes(negocioId),
+      ]);
+
       _safeNotifyListeners();
     } catch (e) {
       print('Error en setNegocioSeleccionado: ${e.toString()}');
@@ -895,6 +906,9 @@ class ComponentesProvider extends ChangeNotifier {
     detalleUps = null;
     detalleRouterFirewall = null;
     detalleEquipoActivo = null;
+
+    racksConComponentes.clear();
+    isLoadingRacks = false;
   }
 
   // MÉTODOS DE UTILIDAD PARA TOPOLOGÍA
@@ -960,5 +974,89 @@ class ComponentesProvider extends ChangeNotifier {
     return conexionesEnergia
         .where((c) => c.origenId == componenteId || c.destinoId == componenteId)
         .toList();
+  }
+
+  // MÉTODOS PARA CARGAR RACKS CON COMPONENTES
+  Future<void> getRacksConComponentes(String negocioId) async {
+    try {
+      isLoadingRacks = true;
+      _safeNotifyListeners();
+
+      print(
+          'Llamando a función RPC fn_racks_con_componentes con negocio_id: $negocioId');
+
+      final response =
+          await supabaseLU.rpc('fn_racks_con_componentes', params: {
+        'p_negocio_id': negocioId,
+      });
+
+      print('Respuesta RPC racks: $response');
+
+      if (response != null && response is List) {
+        racksConComponentes =
+            (response).map((rack) => RackConComponentes.fromMap(rack)).toList();
+
+        print('Racks cargados: ${racksConComponentes.length}');
+        for (var rack in racksConComponentes) {
+          print(
+              '- ${rack.nombreRack}: ${rack.cantidadComponentes} componentes');
+        }
+      } else {
+        racksConComponentes = [];
+        print('No se encontraron racks o respuesta vacía');
+      }
+    } catch (e) {
+      print('Error en getRacksConComponentes: ${e.toString()}');
+      racksConComponentes = [];
+    } finally {
+      isLoadingRacks = false;
+      _safeNotifyListeners();
+    }
+  }
+
+  // MÉTODOS DE UTILIDAD PARA RACKS
+  RackConComponentes? getRackById(String rackId) {
+    try {
+      return racksConComponentes.firstWhere((rack) => rack.rackId == rackId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  int get totalRacks => racksConComponentes.length;
+
+  int get totalComponentesEnRacks => racksConComponentes.fold(
+      0, (sum, rack) => sum + rack.cantidadComponentes);
+
+  int get racksConComponentesActivos =>
+      racksConComponentes.where((rack) => rack.componentesActivos > 0).length;
+
+  double get porcentajeOcupacionPromedio {
+    if (racksConComponentes.isEmpty) return 0.0;
+
+    final totalOcupacion = racksConComponentes.fold(
+        0.0, (sum, rack) => sum + rack.porcentajeOcupacion);
+
+    return totalOcupacion / racksConComponentes.length;
+  }
+
+  List<RackConComponentes> get racksOrdenadosPorOcupacion {
+    final racks = [...racksConComponentes];
+    racks
+        .sort((a, b) => b.porcentajeOcupacion.compareTo(a.porcentajeOcupacion));
+    return racks;
+  }
+
+  List<RackConComponentes> get racksConProblemas {
+    return racksConComponentes.where((rack) {
+      // Rack con problemas si tiene componentes inactivos o sin posición U
+      final componentesInactivos =
+          rack.componentes.where((c) => !c.activo).length;
+
+      final componentesSinPosicion =
+          rack.componentes.where((c) => c.posicionU == null).length;
+
+      return componentesInactivos > 0 || componentesSinPosicion > 0;
+    }).toList();
   }
 }

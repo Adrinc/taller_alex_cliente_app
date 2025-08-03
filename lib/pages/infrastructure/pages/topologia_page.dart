@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/models/nethive/topologia_completa_model.dart';
+import 'package:nethive_neo/pages/infrastructure/pages/widgets/topologia_page_widgets/rack_view_widget.dart';
+import 'package:nethive_neo/pages/infrastructure/pages/widgets/topologia_page_widgets/floor_plan_view_widget.dart';
 
 class TopologiaPage extends StatefulWidget {
   const TopologiaPage({Key? key}) : super(key: key);
@@ -1195,69 +1197,17 @@ class _TopologiaPageState extends State<TopologiaPage>
   }
 
   Widget _buildRackView(bool isMediumScreen, ComponentesProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.dns,
-              size: 80,
-              color: Colors.white.withOpacity(0.7),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Vista de Racks',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Próximamente: Visualización detallada de racks\ncon ${provider.componentesTopologia.where((c) => c.esRack).length} racks detectados',
-              textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
-            ),
-          ],
-        ),
-      ),
+    return RackViewWidget(
+      isMediumScreen: isMediumScreen,
+      provider: provider,
     );
   }
 
   Widget _buildFloorPlanView(
       bool isMediumScreen, ComponentesProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.map,
-              size: 80,
-              color: Colors.white.withOpacity(0.7),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Plano de Planta',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Próximamente: Plano de distribución física\ncon ubicaciones de ${provider.componentesTopologia.length} componentes',
-              textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
-            ),
-          ],
-        ),
-      ),
+    return FloorPlanViewWidget(
+      isMediumScreen: isMediumScreen,
+      provider: provider,
     );
   }
 

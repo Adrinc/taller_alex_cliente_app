@@ -181,6 +181,15 @@ descripcion (text)
 id (serial) (PK),
 nombre (text)
 
+
+-- componente_en_rack --
+
+id UUID (PK)
+rack_id (UUID) (FK de nethive.componente.id),
+componente_id (UUID) (FK de nethive.componente.id),
+posicion_u (INT4), 
+fecha_registro (TIMESTAMP)
+
 ******* VISTAS: *******
 
 -- vista_cables_en_uso --
