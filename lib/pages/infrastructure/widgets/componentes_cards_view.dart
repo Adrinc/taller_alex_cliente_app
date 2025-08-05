@@ -289,11 +289,13 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: _getCategoryColor(categoria.colorCategoria)
-                                    .withOpacity(0.15),
+                                color:
+                                    _getCategoryColor(categoria.colorCategoria)
+                                        .withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: _getCategoryColor(categoria.colorCategoria)
+                                  color: _getCategoryColor(
+                                          categoria.colorCategoria)
                                       .withOpacity(0.4),
                                 ),
                               ),
@@ -302,14 +304,16 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
                                 children: [
                                   Icon(
                                     _getCategoryIcon(categoria.nombre),
-                                    color: _getCategoryColor(categoria.colorCategoria),
+                                    color: _getCategoryColor(
+                                        categoria.colorCategoria),
                                     size: 10,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     categoria.nombre,
                                     style: TextStyle(
-                                      color: _getCategoryColor(categoria.colorCategoria),
+                                      color: _getCategoryColor(
+                                          categoria.colorCategoria),
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -387,25 +391,67 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
 
                 const SizedBox(height: 12),
 
-                // Información adicional
-                if (componente.descripcion != null &&
-                    componente.descripcion!.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.of(context).tertiaryBackground,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      componente.descripcion!,
-                      style: TextStyle(
-                        color: AppTheme.of(context).secondaryText,
-                        fontSize: 12,
+                // Información adicional - RFID y descripción
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // RFID prominente en la card
+                    if (componente.rfid != null && componente.rfid!.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.indigo.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.nfc,
+                              color: Colors.indigo,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'RFID: ${componente.rfid}',
+                              style: const TextStyle(
+                                color: Colors.indigo,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+
+                    // Descripción
+                    if (componente.descripcion != null &&
+                        componente.descripcion!.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.of(context).tertiaryBackground,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          componente.descripcion!,
+                          style: TextStyle(
+                            color: AppTheme.of(context).secondaryText,
+                            fontSize: 12,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                ),
 
                 const SizedBox(height: 8),
 
@@ -660,9 +706,9 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
                     if (componente.descripcion != null &&
                         componente.descripcion!.isNotEmpty)
                       _buildDetailRow('Descripción', componente.descripcion!),
-                    if (componente.rfid != null &&
-                        componente.rfid!.isNotEmpty)
-                      _buildDetailRow('RFID', componente.rfid!),
+                    if (componente.rfid != null && componente.rfid!.isNotEmpty)
+                      _buildDetailRowWithIcon(
+                          'RFID', componente.rfid!, Icons.nfc, Colors.indigo),
                     _buildDetailRow(
                         'Fecha de Registro',
                         componente.fechaRegistro?.toString().split(' ')[0] ??
@@ -709,6 +755,58 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
                 color: AppTheme.of(context).primaryText,
                 fontSize: 12,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRowWithIcon(
+      String label, String value, IconData icon, Color iconColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.of(context).secondaryBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.of(context).primaryColor.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: AppTheme.of(context).primaryColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: iconColor,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      color: AppTheme.of(context).primaryText,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -773,37 +871,49 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
   IconData _getCategoryIcon(String categoryName) {
     // Normalizar el nombre de la categoría para mejor matching
     final normalizedName = categoryName.toLowerCase().trim();
-    
+
     // Mapa de categorías a íconos basado en las categorías de tu imagen
     if (normalizedName.contains('cable')) {
       return Icons.cable;
     } else if (normalizedName.contains('switch')) {
       return Icons.hub;
-    } else if (normalizedName.contains('patch') || normalizedName.contains('panel')) {
+    } else if (normalizedName.contains('patch') ||
+        normalizedName.contains('panel')) {
       return Icons.view_module;
     } else if (normalizedName.contains('rack')) {
       return Icons.storage;
-    } else if (normalizedName.contains('ups') || normalizedName.contains('power')) {
+    } else if (normalizedName.contains('ups') ||
+        normalizedName.contains('power')) {
       return Icons.battery_charging_full;
-    } else if (normalizedName.contains('router') || normalizedName.contains('firewall')) {
+    } else if (normalizedName.contains('router') ||
+        normalizedName.contains('firewall')) {
       return Icons.router;
-    } else if (normalizedName.contains('server') || normalizedName.contains('servidor')) {
+    } else if (normalizedName.contains('server') ||
+        normalizedName.contains('servidor')) {
       return Icons.dns;
-    } else if (normalizedName.contains('access') || normalizedName.contains('wifi')) {
+    } else if (normalizedName.contains('access') ||
+        normalizedName.contains('wifi')) {
       return Icons.wifi;
-    } else if (normalizedName.contains('pc') || normalizedName.contains('computer')) {
+    } else if (normalizedName.contains('pc') ||
+        normalizedName.contains('computer')) {
       return Icons.computer;
-    } else if (normalizedName.contains('phone') || normalizedName.contains('teléfono')) {
+    } else if (normalizedName.contains('phone') ||
+        normalizedName.contains('teléfono')) {
       return Icons.phone;
-    } else if (normalizedName.contains('printer') || normalizedName.contains('impresora')) {
+    } else if (normalizedName.contains('printer') ||
+        normalizedName.contains('impresora')) {
       return Icons.print;
-    } else if (normalizedName.contains('security') || normalizedName.contains('seguridad')) {
+    } else if (normalizedName.contains('security') ||
+        normalizedName.contains('seguridad')) {
       return Icons.security;
-    } else if (normalizedName.contains('monitor') || normalizedName.contains('pantalla')) {
+    } else if (normalizedName.contains('monitor') ||
+        normalizedName.contains('pantalla')) {
       return Icons.monitor;
-    } else if (normalizedName.contains('keyboard') || normalizedName.contains('teclado')) {
+    } else if (normalizedName.contains('keyboard') ||
+        normalizedName.contains('teclado')) {
       return Icons.keyboard;
-    } else if (normalizedName.contains('mouse') || normalizedName.contains('ratón')) {
+    } else if (normalizedName.contains('mouse') ||
+        normalizedName.contains('ratón')) {
       return Icons.mouse;
     } else {
       // Icono por defecto para categorías no reconocidas

@@ -366,6 +366,9 @@ class ComponentesProvider extends ChangeNotifier {
         'categoria_nombre': PlutoCell(
             value: getCategoriaById(componente.categoriaId)?.nombre ??
                 'Sin categoría'),
+        'color_categoria': PlutoCell(
+            value:
+                getCategoriaById(componente.categoriaId)?.colorCategoria ?? ''),
         'nombre': PlutoCell(value: componente.nombre),
         'descripcion': PlutoCell(value: componente.descripcion ?? ''),
         'rfid': PlutoCell(value: componente.rfid ?? ''), // ← NUEVO campo RFID
