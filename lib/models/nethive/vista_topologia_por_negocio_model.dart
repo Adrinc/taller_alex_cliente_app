@@ -18,6 +18,7 @@ class VistaTopologiaPorNegocio {
   final String? imagenUrl;
   final DateTime fechaRegistro;
   final String? rfid; // ← NUEVO campo RFID
+  final String? colorCategoria; // ← NUEVO campo para color hexadecimal
 
   VistaTopologiaPorNegocio({
     required this.negocioId,
@@ -37,6 +38,7 @@ class VistaTopologiaPorNegocio {
     this.imagenUrl,
     required this.fechaRegistro,
     this.rfid, // ← NUEVO parámetro
+    this.colorCategoria, // ← NUEVO parámetro
   });
 
   factory VistaTopologiaPorNegocio.fromMap(Map<String, dynamic> map) {
@@ -59,6 +61,7 @@ class VistaTopologiaPorNegocio {
       fechaRegistro:
           DateTime.tryParse(map['fecha_registro'] ?? '') ?? DateTime.now(),
       rfid: map['rfid'], // ← NUEVO mapeo
+      colorCategoria: map['color_categoria'], // ← NUEVO mapeo
     );
   }
 
@@ -81,6 +84,7 @@ class VistaTopologiaPorNegocio {
       'imagen_url': imagenUrl,
       'fecha_registro': fechaRegistro.toIso8601String(),
       'rfid': rfid, // ← NUEVO en el mapa
+      'color_categoria': colorCategoria, // ← NUEVO en el mapa
     };
   }
 

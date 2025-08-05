@@ -582,6 +582,67 @@ class _InventarioPageState extends State<InventarioPage>
                         },
                       ),
                       PlutoColumn(
+                        title: 'RFID',
+                        field: 'rfid',
+                        titleTextAlign: PlutoColumnTextAlign.center,
+                        textAlign: PlutoColumnTextAlign.center,
+                        width: 150,
+                        type: PlutoColumnType.text(),
+                        enableEditingMode: false,
+                        backgroundColor: AppTheme.of(context).primaryColor,
+                        enableContextMenu: false,
+                        enableDropToResize: false,
+                        renderer: (rendererContext) {
+                          final rfid = rendererContext.cell.value?.toString();
+                          return Container(
+                            padding: const EdgeInsets.all(8),
+                            child: Center(
+                              child: rfid != null && rfid.isNotEmpty
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.indigo.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.indigo.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.nfc,
+                                            color: Colors.indigo,
+                                            size: 12,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            rfid,
+                                            style: const TextStyle(
+                                              color: Colors.indigo,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              fontFamily: 'monospace',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : Text(
+                                      'Sin RFID',
+                                      style: TextStyle(
+                                        color:
+                                            AppTheme.of(context).secondaryText,
+                                        fontSize: 11,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                            ),
+                          );
+                        },
+                      ),
+                      PlutoColumn(
                         title: 'Categoría',
                         field: 'categoria_nombre',
                         titleTextAlign: PlutoColumnTextAlign.center,
@@ -592,32 +653,69 @@ class _InventarioPageState extends State<InventarioPage>
                         enableContextMenu: false,
                         enableDropToResize: false,
                         renderer: (rendererContext) {
+                          final categoriaNombre =
+                              rendererContext.cell.value.toString();
+                          final colorCategoria = rendererContext
+                              .row.cells['color_categoria']?.value
+                              ?.toString();
+
+                          print(
+                              'Categoria: $categoriaNombre, Color: $colorCategoria');
+                          // Convertir color hexadecimal a Color
+                          Color categoriaColor =
+                              AppTheme.of(context).primaryColor;
+                          if (colorCategoria != null &&
+                              colorCategoria.isNotEmpty) {
+                            try {
+                              final hexColor =
+                                  colorCategoria.replaceAll('#', '');
+                              categoriaColor =
+                                  Color(int.parse('FF$hexColor', radix: 16));
+                            } catch (e) {
+                              // Si hay error al parsear el color, usar color por defecto
+                              categoriaColor =
+                                  AppTheme.of(context).primaryColor;
+                            }
+                          }
+
+                          // Obtener icono según la categoría
+                          IconData categoriaIcon =
+                              _getCategoryIcon(categoriaNombre);
+
                           return Container(
                             padding: const EdgeInsets.all(8),
                             child: Center(
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
+                                    horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.of(context)
-                                      .primaryColor
-                                      .withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: categoriaColor.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: AppTheme.of(context)
-                                        .primaryColor
-                                        .withOpacity(0.3),
+                                    color: categoriaColor.withOpacity(0.4),
+                                    width: 1.5,
                                   ),
                                 ),
-                                child: Text(
-                                  rendererContext.cell.value.toString(),
-                                  style: TextStyle(
-                                    color: AppTheme.of(context).primaryColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      categoriaIcon,
+                                      color: categoriaColor,
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      categoriaNombre,
+                                      style: TextStyle(
+                                        color: categoriaColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -1845,5 +1943,58 @@ class _InventarioPageState extends State<InventarioPage>
         ],
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String categoryName) {
+    // Normalizar el nombre de la categoría para mejor matching
+    final normalizedName = categoryName.toLowerCase().trim();
+
+    // Mapa de categorías a íconos basado en las categorías de tu imagen
+    if (normalizedName.contains('cable')) {
+      return Icons.cable;
+    } else if (normalizedName.contains('switch')) {
+      return Icons.hub;
+    } else if (normalizedName.contains('patch') ||
+        normalizedName.contains('panel')) {
+      return Icons.view_module;
+    } else if (normalizedName.contains('rack')) {
+      return Icons.storage;
+    } else if (normalizedName.contains('ups') ||
+        normalizedName.contains('power')) {
+      return Icons.battery_charging_full;
+    } else if (normalizedName.contains('router') ||
+        normalizedName.contains('firewall')) {
+      return Icons.router;
+    } else if (normalizedName.contains('server') ||
+        normalizedName.contains('servidor')) {
+      return Icons.dns;
+    } else if (normalizedName.contains('access') ||
+        normalizedName.contains('wifi')) {
+      return Icons.wifi;
+    } else if (normalizedName.contains('pc') ||
+        normalizedName.contains('computer')) {
+      return Icons.computer;
+    } else if (normalizedName.contains('phone') ||
+        normalizedName.contains('teléfono')) {
+      return Icons.phone;
+    } else if (normalizedName.contains('printer') ||
+        normalizedName.contains('impresora')) {
+      return Icons.print;
+    } else if (normalizedName.contains('security') ||
+        normalizedName.contains('seguridad')) {
+      return Icons.security;
+    } else if (normalizedName.contains('monitor') ||
+        normalizedName.contains('pantalla')) {
+      return Icons.monitor;
+    } else if (normalizedName.contains('keyboard') ||
+        normalizedName.contains('teclado')) {
+      return Icons.keyboard;
+    } else if (normalizedName.contains('mouse') ||
+        normalizedName.contains('ratón')) {
+      return Icons.mouse;
+    } else {
+      // Icono por defecto para categorías no reconocidas
+      return Icons.devices_other;
+    }
   }
 }

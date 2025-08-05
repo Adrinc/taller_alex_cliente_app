@@ -209,6 +209,7 @@ class ComponentesProvider extends ChangeNotifier {
         descripcion: ct.descripcion,
         ubicacion: ct.ubicacion,
         imagenUrl: ct.imagenUrl,
+        rfid: ct.rfid, // ← NUEVO campo RFID
         enUso: ct.enUso,
         activo: ct.activo,
         fechaRegistro: ct.fechaRegistro,
@@ -304,6 +305,7 @@ class ComponentesProvider extends ChangeNotifier {
       categorias = (res as List<dynamic>)
           .map((categoria) => CategoriaComponente.fromMap(categoria))
           .toList();
+      print('Categorías cargadas: ${categorias[0].colorCategoria}');
 
       _buildCategoriasRows();
       _safeNotifyListeners();
@@ -319,6 +321,7 @@ class ComponentesProvider extends ChangeNotifier {
       categoriasRows.add(PlutoRow(cells: {
         'id': PlutoCell(value: categoria.id),
         'nombre': PlutoCell(value: categoria.nombre),
+        'color_categoria': PlutoCell(value: categoria.colorCategoria ?? ''),
         'editar': PlutoCell(value: categoria.id),
         'eliminar': PlutoCell(value: categoria.id),
       }));
@@ -365,6 +368,7 @@ class ComponentesProvider extends ChangeNotifier {
                 'Sin categoría'),
         'nombre': PlutoCell(value: componente.nombre),
         'descripcion': PlutoCell(value: componente.descripcion ?? ''),
+        'rfid': PlutoCell(value: componente.rfid ?? ''), // ← NUEVO campo RFID
         'en_uso': PlutoCell(value: componente.enUso ? 'Sí' : 'No'),
         'activo': PlutoCell(value: componente.activo ? 'Sí' : 'No'),
         'ubicacion': PlutoCell(value: componente.ubicacion ?? ''),
