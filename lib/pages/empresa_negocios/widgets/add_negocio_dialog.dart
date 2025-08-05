@@ -8,10 +8,10 @@ class AddNegocioDialog extends StatefulWidget {
   final String empresaId;
 
   const AddNegocioDialog({
-    Key? key,
+    super.key,
     required this.provider,
     required this.empresaId,
-  }) : super(key: key);
+  });
 
   @override
   State<AddNegocioDialog> createState() => _AddNegocioDialogState();
@@ -698,10 +698,10 @@ class _AddNegocioDialogState extends State<AddNegocioDialog>
                                                       Colors.white),
                                             ),
                                           )
-                                        : Row(
+                                        : const Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
-                                            children: const [
+                                            children: [
                                               Icon(
                                                 Icons.add_location,
                                                 color: Colors.white,
@@ -1219,14 +1219,14 @@ class _AddNegocioDialogState extends State<AddNegocioDialog>
                             color: Colors.blue.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Row(
+                          child: const Row(
                             children: [
                               Icon(
                                 Icons.info_outline,
                                 color: Colors.blue,
                                 size: 16,
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Puedes obtener las coordenadas desde Google Maps',
@@ -1448,9 +1448,9 @@ class _AddNegocioDialogState extends State<AddNegocioDialog>
                                           Colors.white),
                                     ),
                                   )
-                                : Row(
+                                : const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
+                                    children: [
                                       Icon(
                                         Icons.add_location,
                                         color: Colors.white,
@@ -1663,165 +1663,6 @@ class _AddNegocioDialogState extends State<AddNegocioDialog>
     );
   }
 
-  Widget _buildCompactFileButton({
-    required String label,
-    required IconData icon,
-    required String? fileName,
-    required dynamic file,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppTheme.of(context).tertiaryColor.withOpacity(0.3),
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.of(context).tertiaryColor.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: AppTheme.of(context).tertiaryColor,
-                    size: 16,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: AppTheme.of(context).primaryText,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                if (fileName != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    fileName
-                        .split('-')
-                        .last, // Solo mostrar el nombre del archivo
-                    style: TextStyle(
-                      color: AppTheme.of(context).secondaryText,
-                      fontSize: 10,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEnhancedCompactFileButton({
-    required String label,
-    required String subtitle,
-    required IconData icon,
-    required String? fileName,
-    required dynamic file,
-    required VoidCallback onPressed,
-    required LinearGradient gradient,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: gradient,
-        boxShadow: [
-          BoxShadow(
-            color: gradient.colors.last.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    icon,
-                    color: gradient.colors.first,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: AppTheme.of(context).primaryText,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: AppTheme.of(context).secondaryText,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                if (fileName != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    fileName
-                        .split('-')
-                        .last, // Solo mostrar el nombre del archivo
-                    style: TextStyle(
-                      color: AppTheme.of(context).secondaryText,
-                      fontSize: 10,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildEnhancedFileButton({
     required String label,
     required String subtitle,
@@ -1978,8 +1819,8 @@ class _AddNegocioDialogState extends State<AddNegocioDialog>
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.check_circle, color: Colors.white),
                   SizedBox(width: 12),
                   Text(
@@ -1998,8 +1839,8 @@ class _AddNegocioDialogState extends State<AddNegocioDialog>
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.error, color: Colors.white),
                   SizedBox(width: 12),
                   Text(

@@ -10,10 +10,10 @@ class InfrastructureSidemenu extends StatefulWidget {
   final VoidCallback onToggle;
 
   const InfrastructureSidemenu({
-    Key? key,
+    super.key,
     required this.isExpanded,
     required this.onToggle,
-  }) : super(key: key);
+  });
 
   @override
   State<InfrastructureSidemenu> createState() => _InfrastructureSidemenuState();

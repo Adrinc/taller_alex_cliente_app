@@ -219,6 +219,7 @@ class DarkModeTheme extends AppTheme {
       const Color(0xFF10B981).withOpacity(.1); // Fondo de formularios
 
   // Nuevos gradientes modernos
+  @override
   LinearGradient get primaryGradient => LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -228,6 +229,7 @@ class DarkModeTheme extends AppTheme {
         ],
       );
 
+  @override
   LinearGradient get modernGradient => LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -237,6 +239,7 @@ class DarkModeTheme extends AppTheme {
         ],
       );
 
+  @override
   LinearGradient get darkBackgroundGradient => LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,

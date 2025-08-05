@@ -6,9 +6,9 @@ class AddComponenteDialog extends StatefulWidget {
   final ComponentesProvider provider;
 
   const AddComponenteDialog({
-    Key? key,
+    super.key,
     required this.provider,
-  }) : super(key: key);
+  });
 
   @override
   State<AddComponenteDialog> createState() => _AddComponenteDialogState();
@@ -20,6 +20,7 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
   late TextEditingController _nombreController;
   late TextEditingController _descripcionController;
   late TextEditingController _ubicacionController;
+  late TextEditingController _rfidController; // ← NUEVO controlador para RFID
 
   bool _enUso = false;
   bool _activo = true;
@@ -38,6 +39,7 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
     _nombreController = TextEditingController();
     _descripcionController = TextEditingController();
     _ubicacionController = TextEditingController();
+    _rfidController = TextEditingController(); // ← NUEVO controlador
 
     // Configurar animaciones
     _slideController = AnimationController(
@@ -75,6 +77,7 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
     _nombreController.dispose();
     _descripcionController.dispose();
     _ubicacionController.dispose();
+    _rfidController.dispose(); // ← NUEVO dispose
     _slideController.dispose();
     _fadeController.dispose();
     super.dispose();
@@ -216,7 +219,7 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
                   const SizedBox(height: 24),
 
                   // Botón para seleccionar imagen
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () async {
@@ -419,6 +422,20 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
                             maxLines: 3,
                             validator: (value) {
                               // La descripción es opcional
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Cuarta fila - RFID (nuevo campo)
+                          _buildCompactFormField(
+                            controller: _rfidController,
+                            label: 'RFID',
+                            hint: 'Ej: 123456789',
+                            icon: Icons.radio,
+                            validator: (value) {
+                              // El RFID es opcional
                               return null;
                             },
                           ),
@@ -705,6 +722,16 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
                     hint: 'Descripción detallada del componente',
                     icon: Icons.description_rounded,
                     maxLines: 3,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Campo RFID en móvil
+                  _buildCompactFormField(
+                    controller: _rfidController,
+                    label: 'RFID',
+                    hint: 'Ej: 123456789',
+                    icon: Icons.radio,
                   ),
 
                   const SizedBox(height: 20),
@@ -1172,6 +1199,9 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
         ubicacion: _ubicacionController.text.trim().isNotEmpty
             ? _ubicacionController.text.trim()
             : null,
+        rfid: _rfidController.text.trim().isNotEmpty
+            ? _rfidController.text.trim()
+            : null, // ← NUEVO parámetro RFID
       );
 
       if (success) {
@@ -1179,8 +1209,8 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.check_circle, color: Colors.white),
                   SizedBox(width: 12),
                   Text(
@@ -1201,8 +1231,8 @@ class _AddComponenteDialogState extends State<AddComponenteDialog>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.error, color: Colors.white),
                   SizedBox(width: 12),
                   Text(

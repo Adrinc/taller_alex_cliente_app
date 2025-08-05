@@ -9,10 +9,10 @@ class EditComponenteDialog extends StatefulWidget {
   final Componente componente;
 
   const EditComponenteDialog({
-    Key? key,
+    super.key,
     required this.provider,
     required this.componente,
-  }) : super(key: key);
+  });
 
   @override
   State<EditComponenteDialog> createState() => _EditComponenteDialogState();
@@ -24,6 +24,7 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
   late TextEditingController _nombreController;
   late TextEditingController _descripcionController;
   late TextEditingController _ubicacionController;
+  late TextEditingController _rfidController; // ← NUEVO controlador para RFID
 
   bool _isLoading = false;
   late AnimationController _scaleController;
@@ -55,6 +56,7 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
         TextEditingController(text: widget.componente.descripcion ?? '');
     _ubicacionController =
         TextEditingController(text: widget.componente.ubicacion ?? '');
+    _rfidController = TextEditingController(text: widget.componente.rfid ?? ''); // ← NUEVO controlador
 
     _categoriaSeleccionada = widget.componente.categoriaId;
     _activo = widget.componente.activo;
@@ -129,6 +131,7 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
     _nombreController.dispose();
     _descripcionController.dispose();
     _ubicacionController.dispose();
+    _rfidController.dispose(); // ← NUEVO dispose
     super.dispose();
   }
 
@@ -318,7 +321,7 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
                   const SizedBox(height: 20),
 
                   // Título compacto
-                  Text(
+                  const Text(
                     'Editar Componente',
                     style: TextStyle(
                       color: Colors.white,
@@ -454,6 +457,26 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
                             maxLines: 3,
                             validator: (value) {
                               // La descripción es opcional
+                              return null;
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Cuarta fila - RFID (Nuevo campo)
+                          _buildCompactFormField(
+                            controller: _rfidController,
+                            label: 'RFID',
+                            hint: 'Ej: 123456789ABCDEF',
+                            icon: Icons.nfc_rounded,
+                            validator: (value) {
+                              // El RFID es opcional, pero si se proporciona, debe tener un formato válido
+                              if (value != null && value.trim().isNotEmpty) {
+                                final rfidPattern = RegExp(r'^[0-9A-Fa-f]{1,16}$');
+                                if (!rfidPattern.hasMatch(value.trim())) {
+                                  return 'RFID inválido. Debe ser de 1 a 16 caracteres hexadecimales.';
+                                }
+                              }
                               return null;
                             },
                           ),
@@ -605,10 +628,10 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
                                                       Colors.white),
                                             ),
                                           )
-                                        : Row(
+                                        : const Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
-                                            children: const [
+                                            children: [
                                               Icon(
                                                 Icons.save_rounded,
                                                 color: Colors.white,
@@ -645,7 +668,7 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
   }
 
   Widget _buildMobileLayout(bool isMobile) {
-    final categoria = widget.provider.getCategoriaById(_categoriaSeleccionada);
+    widget.provider.getCategoriaById(_categoriaSeleccionada);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -733,7 +756,7 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
                 const SizedBox(height: 16),
 
                 // Título
-                Text(
+                const Text(
                   'Editar Componente',
                   style: TextStyle(
                     color: Colors.white,
@@ -810,6 +833,26 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
                     hint: 'Descripción detallada del componente',
                     icon: Icons.description_rounded,
                     maxLines: 3,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Campo RFID (nuevo)
+                  _buildCompactFormField(
+                    controller: _rfidController,
+                    label: 'RFID',
+                    hint: 'Ej: 123456789ABCDEF',
+                    icon: Icons.nfc_rounded,
+                    validator: (value) {
+                      // El RFID es opcional, pero si se proporciona, debe tener un formato válido
+                      if (value != null && value.trim().isNotEmpty) {
+                        final rfidPattern = RegExp(r'^[0-9A-Fa-f]{1,16}$');
+                        if (!rfidPattern.hasMatch(value.trim())) {
+                          return 'RFID inválido. Debe ser de 1 a 16 caracteres hexadecimales.';
+                        }
+                      }
+                      return null;
+                    },
                   ),
 
                   const SizedBox(height: 20),
@@ -941,9 +984,9 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
                                           Colors.white),
                                     ),
                                   )
-                                : Row(
+                                : const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
+                                    children: [
                                       Icon(
                                         Icons.save_rounded,
                                         color: Colors.white,
@@ -1133,13 +1176,11 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
         items: widget.provider.categorias.map((categoria) {
           return DropdownMenuItem<int>(
             value: categoria.id,
-            child: Container(
-              child: Text(
-                categoria.nombre,
-                style: TextStyle(
-                  color: AppTheme.of(context).primaryText,
-                  fontSize: 14,
-                ),
+            child: Text(
+              categoria.nombre,
+              style: TextStyle(
+                color: AppTheme.of(context).primaryText,
+                fontSize: 14,
               ),
             ),
           );
@@ -1415,6 +1456,9 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
         ubicacion: _ubicacionController.text.trim().isEmpty
             ? null
             : _ubicacionController.text.trim(),
+        rfid: _rfidController.text.trim().isEmpty
+            ? null
+            : _rfidController.text.trim(), // ← NUEVO parámetro RFID
         actualizarImagen: _actualizarImagen,
       );
 
@@ -1423,8 +1467,8 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.check_circle, color: Colors.white),
                   SizedBox(width: 12),
                   Text(
@@ -1443,8 +1487,8 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.error, color: Colors.white),
                   SizedBox(width: 12),
                   Text(

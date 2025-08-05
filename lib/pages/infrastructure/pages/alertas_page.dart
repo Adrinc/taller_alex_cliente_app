@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class AlertasPage extends StatelessWidget {
-  const AlertasPage({Key? key}) : super(key: key);
+  const AlertasPage({super.key});
 
   @override
   Widget build(BuildContext context) {

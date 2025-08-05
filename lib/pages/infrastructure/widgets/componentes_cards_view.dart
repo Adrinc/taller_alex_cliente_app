@@ -646,6 +646,9 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
                     if (componente.descripcion != null &&
                         componente.descripcion!.isNotEmpty)
                       _buildDetailRow('Descripción', componente.descripcion!),
+                    if (componente.rfid != null &&
+                        componente.rfid!.isNotEmpty)
+                      _buildDetailRow('RFID', componente.rfid!),
                     _buildDetailRow(
                         'Fecha de Registro',
                         componente.fechaRegistro?.toString().split(' ')[0] ??

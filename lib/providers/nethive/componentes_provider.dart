@@ -10,7 +10,6 @@ import 'package:nethive_neo/models/nethive/categoria_componente_model.dart';
 import 'package:nethive_neo/models/nethive/componente_model.dart';
 import 'package:nethive_neo/models/nethive/distribucion_model.dart';
 import 'package:nethive_neo/models/nethive/conexion_componente_model.dart';
-import 'package:nethive_neo/models/nethive/conexion_alimentacion_model.dart';
 import 'package:nethive_neo/models/nethive/topologia_completa_model.dart';
 import 'package:nethive_neo/models/nethive/rol_logico_componente_model.dart';
 import 'package:nethive_neo/models/nethive/tipo_distribucion_model.dart';
@@ -337,7 +336,7 @@ class ComponentesProvider extends ChangeNotifier {
 
       if (busqueda != null && busqueda.isNotEmpty) {
         query = query.or(
-            'nombre.ilike.%$busqueda%,descripcion.ilike.%$busqueda%,ubicacion.ilike.%$busqueda%');
+            'nombre.ilike.%$busqueda%,descripcion.ilike.%$busqueda%,ubicacion.ilike.%$busqueda%,rfid.ilike.%$busqueda%');
       }
 
       final res = await query.order('fecha_registro', ascending: false);
@@ -434,7 +433,7 @@ class ComponentesProvider extends ChangeNotifier {
             .eq('activo', true);
       }
 
-      conexiones = (res as List<dynamic>)
+      conexiones = (res)
           .map((conexion) => ConexionComponente.fromMap(conexion))
           .toList();
 
@@ -661,6 +660,7 @@ class ComponentesProvider extends ChangeNotifier {
     required bool enUso,
     required bool activo,
     String? ubicacion,
+    String? rfid, // ← NUEVO parámetro
   }) async {
     try {
       final imagenUrl = await uploadImagen();
@@ -674,6 +674,7 @@ class ComponentesProvider extends ChangeNotifier {
         'activo': activo,
         'ubicacion': ubicacion,
         'imagen_url': imagenUrl,
+        'rfid': rfid, // ← NUEVO campo en la inserción
       }).select();
 
       if (res.isNotEmpty) {
@@ -697,6 +698,7 @@ class ComponentesProvider extends ChangeNotifier {
     required bool enUso,
     required bool activo,
     String? ubicacion,
+    String? rfid, // ← NUEVO parámetro
     bool actualizarImagen = false,
   }) async {
     try {
@@ -707,6 +709,7 @@ class ComponentesProvider extends ChangeNotifier {
         'en_uso': enUso,
         'activo': activo,
         'ubicacion': ubicacion,
+        'rfid': rfid, // ← NUEVO campo en la actualización
       };
 
       if (actualizarImagen) {

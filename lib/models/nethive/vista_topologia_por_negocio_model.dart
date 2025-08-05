@@ -17,6 +17,7 @@ class VistaTopologiaPorNegocio {
   final String? ubicacion;
   final String? imagenUrl;
   final DateTime fechaRegistro;
+  final String? rfid; // ← NUEVO campo RFID
 
   VistaTopologiaPorNegocio({
     required this.negocioId,
@@ -35,6 +36,7 @@ class VistaTopologiaPorNegocio {
     this.ubicacion,
     this.imagenUrl,
     required this.fechaRegistro,
+    this.rfid, // ← NUEVO parámetro
   });
 
   factory VistaTopologiaPorNegocio.fromMap(Map<String, dynamic> map) {
@@ -56,6 +58,7 @@ class VistaTopologiaPorNegocio {
       imagenUrl: map['imagen_url'],
       fechaRegistro:
           DateTime.tryParse(map['fecha_registro'] ?? '') ?? DateTime.now(),
+      rfid: map['rfid'], // ← NUEVO mapeo
     );
   }
 
@@ -77,6 +80,7 @@ class VistaTopologiaPorNegocio {
       'ubicacion': ubicacion,
       'imagen_url': imagenUrl,
       'fecha_registro': fechaRegistro.toIso8601String(),
+      'rfid': rfid, // ← NUEVO en el mapa
     };
   }
 
@@ -116,13 +120,16 @@ class VistaTopologiaPorNegocio {
     if (categoria.contains('organizador')) return 'organizador';
 
     if (categoria.contains('switch')) return 'switch';
-    if (categoria.contains('router') || categoria.contains('firewall'))
+    if (categoria.contains('router') || categoria.contains('firewall')) {
       return 'router';
-    if (categoria.contains('servidor') || categoria.contains('server'))
+    }
+    if (categoria.contains('servidor') || categoria.contains('server')) {
       return 'servidor';
+    }
     if (categoria.contains('cable')) return 'cable';
-    if (categoria.contains('patch') || categoria.contains('panel'))
+    if (categoria.contains('patch') || categoria.contains('panel')) {
       return 'patch_panel';
+    }
     if (categoria.contains('rack')) return 'rack';
     if (categoria.contains('ups')) return 'ups';
 

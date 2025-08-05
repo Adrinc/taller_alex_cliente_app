@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
@@ -17,7 +19,7 @@ class EmpresaNegociosPage extends StatefulWidget {
 
 class _EmpresaNegociosPageState extends State<EmpresaNegociosPage>
     with TickerProviderStateMixin {
-  bool showMapView = false;
+  bool showMapView = true;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;

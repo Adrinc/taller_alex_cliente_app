@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AnimatedHoverButton extends StatefulWidget {
   const AnimatedHoverButton({
-    Key? key,
+    super.key,
     required this.primaryColor,
     required this.secondaryColor,
     required this.onTap,
@@ -11,7 +11,7 @@ class AnimatedHoverButton extends StatefulWidget {
     this.radius = 50,
     this.size = 50,
     this.enable = true,
-  }) : super(key: key);
+  });
 
   final Color primaryColor;
   final Color secondaryColor;

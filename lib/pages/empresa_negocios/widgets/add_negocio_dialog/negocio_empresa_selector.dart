@@ -7,10 +7,10 @@ class NegocioEmpresaSelector extends StatelessWidget {
   final bool isDesktop;
 
   const NegocioEmpresaSelector({
-    Key? key,
+    super.key,
     required this.provider,
     required this.isDesktop,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -161,14 +161,13 @@ class NegocioEmpresaSelector extends StatelessWidget {
                             fontSize: 14,
                           ),
                         ),
-                        if (empresa.rfc != null)
-                          Text(
-                            empresa.rfc!,
-                            style: TextStyle(
-                              color: AppTheme.of(context).secondaryText,
-                              fontSize: 12,
-                            ),
+                        Text(
+                          empresa.rfc,
+                          style: TextStyle(
+                            color: AppTheme.of(context).secondaryText,
+                            fontSize: 12,
                           ),
+                        ),
                       ],
                     ),
                   ),

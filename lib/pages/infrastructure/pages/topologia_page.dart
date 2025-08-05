@@ -9,7 +9,7 @@ import 'package:nethive_neo/pages/infrastructure/pages/widgets/topologia_page_wi
 import 'package:nethive_neo/pages/infrastructure/pages/widgets/topologia_page_widgets/floor_plan_view_widget.dart';
 
 class TopologiaPage extends StatefulWidget {
-  const TopologiaPage({Key? key}) : super(key: key);
+  const TopologiaPage({super.key});
 
   @override
   State<TopologiaPage> createState() => _TopologiaPageState();
@@ -165,15 +165,15 @@ class _TopologiaPageState extends State<TopologiaPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.business,
               size: 80,
               color: Colors.white,
             ),
             const SizedBox(height: 20),
-            Text(
+            const Text(
               'Selecciona un Negocio',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -836,7 +836,7 @@ class _TopologiaPageState extends State<TopologiaPage>
           ),
         );
 
-        sourceElement.next = [...sourceElement.next ?? [], connectionParams];
+        sourceElement.next = [...sourceElement.next, connectionParams];
       }
     }
 
@@ -856,7 +856,7 @@ class _TopologiaPageState extends State<TopologiaPage>
           ),
         );
 
-        sourceElement.next = [...sourceElement.next ?? [], connectionParams];
+        sourceElement.next = [...sourceElement.next, connectionParams];
       }
     }
   }

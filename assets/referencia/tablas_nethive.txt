@@ -9,7 +9,7 @@ observaciones (text),
 
 id (int4) (PK),
 nombre (text),
-
+color_categoria (text)
 
 -- componente --
 
@@ -302,6 +302,7 @@ activo (bool),
 ubicacion (text),
 imagen_url (text),
 fecha_registro (timestamp),
+
 
 -- vista_alimentacion_componentes --
 

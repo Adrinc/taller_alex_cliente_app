@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class ConfiguracionPage extends StatelessWidget {
-  const ConfiguracionPage({Key? key}) : super(key: key);
+  const ConfiguracionPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +69,7 @@ class ConfiguracionPage extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [Colors.purple, Colors.blue],
                       ),

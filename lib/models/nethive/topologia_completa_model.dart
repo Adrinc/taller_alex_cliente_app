@@ -1,7 +1,3 @@
-import 'package:nethive_neo/models/nethive/componente_model.dart';
-import 'package:nethive_neo/models/nethive/conexion_componente_model.dart';
-import 'package:nethive_neo/models/nethive/conexion_alimentacion_model.dart';
-
 class TopologiaCompleta {
   final List<ComponenteTopologia> componentes;
   final List<ConexionDatos> conexionesDatos;
@@ -42,6 +38,7 @@ class ComponenteTopologia {
   final String? distribucionId;
   final String? tipoDistribucion;
   final String? nombreDistribucion;
+  final String? rfid; // ← NUEVO campo RFID
 
   ComponenteTopologia({
     required this.id,
@@ -57,6 +54,7 @@ class ComponenteTopologia {
     this.distribucionId,
     this.tipoDistribucion,
     this.nombreDistribucion,
+    this.rfid, // ← NUEVO parámetro
   });
 
   factory ComponenteTopologia.fromMap(Map<String, dynamic> map) {
@@ -76,6 +74,7 @@ class ComponenteTopologia {
       distribucionId: map['distribucion_id'],
       tipoDistribucion: map['tipo_distribucion'],
       nombreDistribucion: map['nombre_distribucion'],
+      rfid: map['rfid'], // ← NUEVO mapeo
     );
   }
 

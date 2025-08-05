@@ -11,8 +11,9 @@ class Componente {
   final String? ubicacion;
   final String? imagenUrl;
   final DateTime fechaRegistro;
-  final String? distribucionId; // ← Nuevo (si lo usas)
-  final String? rolLogicoId; // ← NUEVO
+  final String? distribucionId;
+  final String? rolLogicoId;
+  final String? rfid; // ← NUEVO campo RFID
 
   Componente({
     required this.id,
@@ -27,6 +28,7 @@ class Componente {
     required this.fechaRegistro,
     this.distribucionId,
     this.rolLogicoId,
+    this.rfid, // ← NUEVO parámetro
   });
 
   factory Componente.fromMap(Map<String, dynamic> map) {
@@ -43,6 +45,7 @@ class Componente {
       fechaRegistro: DateTime.parse(map['fecha_registro']),
       distribucionId: map['distribucion_id'],
       rolLogicoId: map['rol_logico_id'],
+      rfid: map['rfid'], // ← NUEVO mapeo
     );
   }
 
@@ -60,6 +63,7 @@ class Componente {
       'fecha_registro': fechaRegistro.toIso8601String(),
       'distribucion_id': distribucionId,
       'rol_logico_id': rolLogicoId,
+      'rfid': rfid, // ← NUEVO en el mapa
     };
   }
 

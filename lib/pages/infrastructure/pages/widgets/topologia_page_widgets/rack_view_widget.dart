@@ -9,10 +9,10 @@ class RackViewWidget extends StatelessWidget {
   final ComponentesProvider provider;
 
   const RackViewWidget({
-    Key? key,
+    super.key,
     required this.isMediumScreen,
     required this.provider,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,7 @@ class RackViewWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(
+            const CircularProgressIndicator(
               color: Colors.white,
               strokeWidth: 3,
             ).animate().scale(duration: 600.ms),
@@ -116,9 +116,9 @@ class RackViewWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white.withOpacity(0.2)),
               ),
-              child: Column(
+              child: const Column(
                 children: [
-                  const Text(
+                  Text(
                     'Para ver racks aquí:',
                     style: TextStyle(
                       color: Colors.white,
@@ -126,18 +126,18 @@ class RackViewWidget extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
+                  SizedBox(height: 12),
+                  Text(
                     '1. Cree componentes de tipo "Rack"',
                     style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  SizedBox(height: 4),
+                  Text(
                     '2. Asigne otros componentes a los racks',
                     style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  SizedBox(height: 4),
+                  Text(
                     '3. Configure posiciones U si es necesario',
                     style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
@@ -728,7 +728,7 @@ class RackViewWidget extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.more_horiz,
                   color: Colors.blue,
                   size: 14,

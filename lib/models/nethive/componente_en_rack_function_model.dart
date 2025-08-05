@@ -7,6 +7,7 @@ class ComponenteEnRack {
   final String? imagenUrl;
   final bool enUso;
   final bool activo;
+  final String? rfid; // ← NUEVO campo RFID
 
   ComponenteEnRack({
     required this.componenteId,
@@ -17,6 +18,7 @@ class ComponenteEnRack {
     this.imagenUrl,
     required this.enUso,
     required this.activo,
+    this.rfid, // ← NUEVO parámetro
   });
 
   factory ComponenteEnRack.fromMap(Map<String, dynamic> map) {
@@ -29,6 +31,7 @@ class ComponenteEnRack {
       imagenUrl: map['imagen_url'],
       enUso: map['en_uso'] ?? false,
       activo: map['activo'] ?? false,
+      rfid: map['rfid'], // ← NUEVO mapeo
     );
   }
 
@@ -41,5 +44,6 @@ class ComponenteEnRack {
         'imagen_url': imagenUrl,
         'en_uso': enUso,
         'activo': activo,
+        'rfid': rfid, // ← NUEVO en el mapa
       };
 }

@@ -1,8 +1,10 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
-import 'package:nethive_neo/pages/widgets/animated_hover_button.dart';
+
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
@@ -11,9 +13,9 @@ class NegociosTable extends StatelessWidget {
   final EmpresasNegociosProvider provider;
 
   const NegociosTable({
-    Key? key,
+    super.key,
     required this.provider,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +50,7 @@ class NegociosTable extends StatelessWidget {
             color: AppTheme.of(context).primaryText,
             fontSize: 14,
           ),
-          columnTextStyle: TextStyle(
+          columnTextStyle: const TextStyle(
             color: Colors.white,
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -77,7 +79,7 @@ class NegociosTable extends StatelessWidget {
           enableDropToResize: false,
           renderer: (rendererContext) {
             return Text(
-              rendererContext.cell.value.toString().substring(0, 8) + '...',
+              '${rendererContext.cell.value.toString().substring(0, 8)}...',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppTheme.of(context).primaryText,
@@ -352,7 +354,7 @@ class NegociosTable extends StatelessWidget {
                           horizontal: 16,
                           vertical: 12,
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
@@ -360,7 +362,7 @@ class NegociosTable extends StatelessWidget {
                               color: Colors.white,
                               size: 18,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Text(
                               'Acceder a\nInfraestructura',
                               textAlign: TextAlign.center,

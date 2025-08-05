@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
-import 'package:nethive_neo/theme/theme.dart';
 import 'empresa_form_fields.dart';
 import 'empresa_file_section.dart';
 import 'empresa_action_buttons.dart';
@@ -10,10 +9,10 @@ class EmpresaDialogForm extends StatefulWidget {
   final bool isDesktop;
 
   const EmpresaDialogForm({
-    Key? key,
+    super.key,
     required this.provider,
     required this.isDesktop,
-  }) : super(key: key);
+  });
 
   @override
   State<EmpresaDialogForm> createState() => _EmpresaDialogFormState();
@@ -154,8 +153,8 @@ class _EmpresaDialogFormState extends State<EmpresaDialogForm> {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.check_circle, color: Colors.white),
                   SizedBox(width: 12),
                   Text(
@@ -174,8 +173,8 @@ class _EmpresaDialogFormState extends State<EmpresaDialogForm> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: const [
+              content: const Row(
+                children: [
                   Icon(Icons.error, color: Colors.white),
                   SizedBox(width: 12),
                   Text(

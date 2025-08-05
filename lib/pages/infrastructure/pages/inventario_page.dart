@@ -8,7 +8,7 @@ import 'package:nethive_neo/pages/infrastructure/widgets/add_componente_dialog.d
 import 'package:nethive_neo/theme/theme.dart';
 
 class InventarioPage extends StatefulWidget {
-  const InventarioPage({Key? key}) : super(key: key);
+  const InventarioPage({super.key});
 
   @override
   State<InventarioPage> createState() => _InventarioPageState();
@@ -20,7 +20,6 @@ class _InventarioPageState extends State<InventarioPage>
   late Animation<double> _fadeAnimation;
 
   // GlobalKey para manejar el overlay de manera segura
-  final GlobalKey<OverlayState> _overlayKey = GlobalKey<OverlayState>();
   OverlayEntry? _loadingOverlay;
 
   @override
@@ -463,7 +462,7 @@ class _InventarioPageState extends State<InventarioPage>
                           color: AppTheme.of(context).primaryText,
                           fontSize: 13,
                         ),
-                        columnTextStyle: TextStyle(
+                        columnTextStyle: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -496,10 +495,7 @@ class _InventarioPageState extends State<InventarioPage>
                         enableDropToResize: false,
                         renderer: (rendererContext) {
                           return Text(
-                            rendererContext.cell.value
-                                    .toString()
-                                    .substring(0, 8) +
-                                '...',
+                            '${rendererContext.cell.value.toString().substring(0, 8)}...',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppTheme.of(context).primaryText,
@@ -1714,7 +1710,7 @@ class _InventarioPageState extends State<InventarioPage>
         backgroundColor: AppTheme.of(context).primaryBackground,
         title: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.warning,
               color: Colors.red,
             ),
@@ -1768,8 +1764,8 @@ class _InventarioPageState extends State<InventarioPage>
                 if (success) {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(
-                      content: Row(
-                        children: const [
+                      content: const Row(
+                        children: [
                           Icon(Icons.check_circle, color: Colors.white),
                           SizedBox(width: 12),
                           Text(
@@ -1789,8 +1785,8 @@ class _InventarioPageState extends State<InventarioPage>
                 } else {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(
-                      content: Row(
-                        children: const [
+                      content: const Row(
+                        children: [
                           Icon(Icons.error, color: Colors.white),
                           SizedBox(width: 12),
                           Text(

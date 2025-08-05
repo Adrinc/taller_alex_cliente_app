@@ -5,9 +5,9 @@ import 'package:nethive_neo/pages/login_page/widgets/login_form.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({
-    Key? key,
+    super.key,
     this.token,
-  }) : super(key: key);
+  });
 
   final Token? token;
 
@@ -428,10 +428,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       animation: _fadeController,
       builder: (context, child) {
         return Positioned(
-          top: circle['top'] as double?,
-          bottom: circle['bottom'] as double?,
-          left: circle['left'] as double?,
-          right: circle['right'] as double?,
+          top: circle['top'],
+          bottom: circle['bottom'],
+          left: circle['left'],
+          right: circle['right'],
           child: Transform.scale(
             scale: 0.5 + (_fadeAnimation.value * 0.5),
             child: Container(

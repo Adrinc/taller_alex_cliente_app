@@ -202,8 +202,9 @@ class UsersProvider extends ChangeNotifier {
           },
         ),
       );
-      if (response.statusCode > 204)
+      if (response.statusCode > 204) {
         return {'Error': 'The user already exists'};
+      }
 
       final String? userId = jsonDecode(response.body)['user']['id'];
 
