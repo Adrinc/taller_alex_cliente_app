@@ -68,9 +68,45 @@ class _NegociosMapViewState extends State<NegociosMapView>
       curve: Curves.easeOutCubic,
     ));
 
-    // Centrar el mapa después de que se construya
+    // Centrar el mapa después de que se construya con múltiples intentos
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeMap();
+    });
+  }
+
+  // Nuevo método para inicializar el mapa con refresh forzado
+  void _initializeMap() async {
+    // Esperar un poco más para asegurar que el widget esté completamente construido
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (mounted) {
       _centerMapOnNegocios();
+
+      // Forzar un refresh del mapa después de centrar
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (mounted) {
+        _forceMapRefresh();
+      }
+    }
+  }
+
+  // Método para forzar el refresh del mapa
+  void _forceMapRefresh() {
+    // Hacer un pequeño movimiento para forzar el renderizado de los tiles
+    final currentCenter = _mapController.camera.center;
+    final currentZoom = _mapController.camera.zoom;
+
+    // Mover ligeramente y regresar a la posición original
+    _mapController.move(
+      LatLng(currentCenter.latitude + 0.0001, currentCenter.longitude + 0.0001),
+      currentZoom,
+    );
+
+    // Regresar a la posición original después de un breve delay
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        _mapController.move(currentCenter, currentZoom);
+      }
     });
   }
 
@@ -115,7 +151,8 @@ class _NegociosMapViewState extends State<NegociosMapView>
         CameraFit.bounds(
           bounds: bounds,
           padding: const EdgeInsets.all(50),
-          maxZoom: 15,
+          maxZoom: 8, // Reducido de 15 a 8 para aparecer más alejado
+          minZoom: 2, // Zoom mínimo para evitar que se aleje demasiado
         ),
       );
     }

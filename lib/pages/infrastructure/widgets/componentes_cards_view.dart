@@ -696,8 +696,6 @@ class _ComponentesCardsViewState extends State<ComponentesCardsView>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildDetailRow(
-                        'ID', componente.id.substring(0, 8) + '...'),
-                    _buildDetailRow(
                         'Estado', componente.activo ? 'Activo' : 'Inactivo'),
                     _buildDetailRow('En Uso', componente.enUso ? 'Sí' : 'No'),
                     if (componente.ubicacion != null &&

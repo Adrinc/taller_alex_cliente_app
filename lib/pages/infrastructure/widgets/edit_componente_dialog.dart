@@ -376,15 +376,6 @@ class _EditComponenteDialogState extends State<EditComponenteDialog>
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'ID: ${widget.componente.id.substring(0, 8)}...',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 10,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
                       ],
                     ),
                   ),

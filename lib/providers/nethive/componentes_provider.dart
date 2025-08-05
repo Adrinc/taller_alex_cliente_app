@@ -360,6 +360,7 @@ class ComponentesProvider extends ChangeNotifier {
 
     for (Componente componente in componentes) {
       componentesRows.add(PlutoRow(cells: {
+        'numero_fila': PlutoCell(value: ''), // Campo para numeración automática
         'id': PlutoCell(value: componente.id),
         'negocio_id': PlutoCell(value: componente.negocioId),
         'categoria_id': PlutoCell(value: componente.categoriaId),

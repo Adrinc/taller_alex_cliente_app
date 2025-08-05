@@ -74,6 +74,17 @@ class EmpresasNegociosProvider extends ChangeNotifier {
           .toList();
 
       _buildEmpresasRows();
+
+      // Seleccionar automáticamente la primera empresa si:
+      // 1. Hay al menos una empresa disponible
+      // 2. No hay ninguna empresa seleccionada actualmente
+      // 3. No se está realizando una búsqueda (para evitar cambios no deseados durante filtrado)
+      if (empresas.isNotEmpty &&
+          empresaSeleccionada == null &&
+          (busqueda == null || busqueda.isEmpty)) {
+        setEmpresaSeleccionada(empresas.first.id);
+      }
+
       _safeNotifyListeners();
     } catch (e) {
       print('Error en getEmpresas: ${e.toString()}');

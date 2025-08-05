@@ -483,9 +483,9 @@ class _InventarioPageState extends State<InventarioPage>
                     ),
                     columns: [
                       PlutoColumn(
-                        title: 'ID',
-                        field: 'id',
-                        width: 200,
+                        title: 'Nu.',
+                        field: 'numero_fila',
+                        width: 60,
                         titleTextAlign: PlutoColumnTextAlign.center,
                         textAlign: PlutoColumnTextAlign.center,
                         type: PlutoColumnType.text(),
@@ -494,13 +494,78 @@ class _InventarioPageState extends State<InventarioPage>
                         enableContextMenu: false,
                         enableDropToResize: false,
                         renderer: (rendererContext) {
-                          return Text(
-                            '${rendererContext.cell.value.toString().substring(0, 8)}...',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppTheme.of(context).primaryText,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
+                          return Container(
+                            padding: const EdgeInsets.all(8),
+                            child: Center(
+                              child: Text(
+                                (rendererContext.rowIdx + 1).toString(),
+                                style: TextStyle(
+                                  color: AppTheme.of(context).primaryText,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      PlutoColumn(
+                        title: 'RFID',
+                        field: 'rfid',
+                        titleTextAlign: PlutoColumnTextAlign.center,
+                        textAlign: PlutoColumnTextAlign.center,
+                        width: 150,
+                        type: PlutoColumnType.text(),
+                        enableEditingMode: false,
+                        backgroundColor: AppTheme.of(context).primaryColor,
+                        enableContextMenu: false,
+                        enableDropToResize: false,
+                        renderer: (rendererContext) {
+                          final rfid = rendererContext.cell.value?.toString();
+                          return Container(
+                            padding: const EdgeInsets.all(8),
+                            child: Center(
+                              child: rfid != null && rfid.isNotEmpty
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.indigo.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.indigo.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.nfc,
+                                            color: Colors.indigo,
+                                            size: 12,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            rfid,
+                                            style: const TextStyle(
+                                              color: Colors.indigo,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              fontFamily: 'monospace',
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : Text(
+                                      'Sin RFID',
+                                      style: TextStyle(
+                                        color:
+                                            AppTheme.of(context).secondaryText,
+                                        fontSize: 11,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
                             ),
                           );
                         },
@@ -577,67 +642,6 @@ class _InventarioPageState extends State<InventarioPage>
                                   ),
                                 ),
                               ],
-                            ),
-                          );
-                        },
-                      ),
-                      PlutoColumn(
-                        title: 'RFID',
-                        field: 'rfid',
-                        titleTextAlign: PlutoColumnTextAlign.center,
-                        textAlign: PlutoColumnTextAlign.center,
-                        width: 150,
-                        type: PlutoColumnType.text(),
-                        enableEditingMode: false,
-                        backgroundColor: AppTheme.of(context).primaryColor,
-                        enableContextMenu: false,
-                        enableDropToResize: false,
-                        renderer: (rendererContext) {
-                          final rfid = rendererContext.cell.value?.toString();
-                          return Container(
-                            padding: const EdgeInsets.all(8),
-                            child: Center(
-                              child: rfid != null && rfid.isNotEmpty
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.indigo.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.indigo.withOpacity(0.3),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
-                                            Icons.nfc,
-                                            color: Colors.indigo,
-                                            size: 12,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            rfid,
-                                            style: const TextStyle(
-                                              color: Colors.indigo,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              fontFamily: 'monospace',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : Text(
-                                      'Sin RFID',
-                                      style: TextStyle(
-                                        color:
-                                            AppTheme.of(context).secondaryText,
-                                        fontSize: 11,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
                             ),
                           );
                         },
@@ -1418,6 +1422,14 @@ class _InventarioPageState extends State<InventarioPage>
                           componente.enUso ? Icons.work : Icons.work_off,
                           componente.enUso ? Colors.orange : Colors.grey,
                         ),
+                        if (componente.rfid != null &&
+                            componente.rfid!.isNotEmpty)
+                          _buildEnhancedDetailCard(
+                            'RFID',
+                            componente.rfid!,
+                            Icons.nfc,
+                            Colors.indigo,
+                          ),
                       ],
                     ),
                   ),
