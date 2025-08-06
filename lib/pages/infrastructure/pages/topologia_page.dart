@@ -5,8 +5,38 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/models/nethive/topologia_completa_model.dart';
+import 'package:nethive_neo/models/nethive/vista_topologia_por_negocio_model.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/widgets/topologia_page_widgets/rack_view_widget.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/widgets/topologia_page_widgets/floor_plan_view_widget.dart';
+import 'package:nethive_neo/helpers/globals.dart';
+
+// Clase para agrupar componentes por distribución
+class DistribucionAgrupada {
+  final String id;
+  final String nombre;
+  final String tipo;
+  final List<VistaTopologiaPorNegocio> componentes;
+
+  DistribucionAgrupada({
+    required this.id,
+    required this.nombre,
+    required this.tipo,
+    required this.componentes,
+  });
+
+  int get componentesActivos => componentes.where((c) => c.activo).length;
+  int get componentesEnUso => componentes.where((c) => c.enUso).length;
+
+  bool get esMDF => tipo.toUpperCase() == 'MDF';
+  bool get esIDF => tipo.toUpperCase() == 'IDF';
+
+  String get estadoDistribucion {
+    if (componentesActivos == 0) return 'inactivo';
+    if (componentesEnUso == componentesActivos) return 'optimo';
+    if (componentesEnUso > 0) return 'parcial';
+    return 'disponible';
+  }
+}
 
 class TopologiaPage extends StatefulWidget {
   const TopologiaPage({super.key});
@@ -572,196 +602,201 @@ class _TopologiaPageState extends State<TopologiaPage>
 
   Future<void> _buildNetworkTopologyFromData(
       ComponentesProvider provider) async {
+    // Limpiar completamente el dashboard y mapa de elementos
     dashboard.removeAllElements();
     elementosMap.clear();
 
-    // Obtener componentes organizados por tipo
-    final mdfComponents = provider.getComponentesMDF();
-    final idfComponents = provider.getComponentesIDF();
-    final switchComponents = provider.getComponentesSwitch();
-    final routerComponents = provider.getComponentesRouter();
-    final serverComponents = provider.getComponentesServidor();
+    // Asegurar que el dashboard esté completamente limpio
+    await Future.delayed(const Duration(milliseconds: 50));
 
-    print('Construyendo topología con datos reales:');
-    print('- MDF: ${mdfComponents.length}');
-    print('- IDF: ${idfComponents.length}');
-    print('- Switches: ${switchComponents.length}');
-    print('- Routers: ${routerComponents.length}');
-    print('- Servidores: ${serverComponents.length}');
+    // Cargar datos separando componentes con y sin distribución
+    final topologiaOptimizada = await _cargarTopologiaOptimizada(provider);
+    final componentesIndividuales =
+        await _cargarComponentesSinDistribucion(provider);
 
-    double currentX = 100;
-    double currentY = 100;
-    const double espacioX = 220;
-    const double espacioY = 180;
-
-    // 1. Crear elementos MDF
-    if (mdfComponents.isNotEmpty) {
-      double mdfX = currentX + espacioX * 2;
-      for (var mdfComp in mdfComponents) {
-        final mdfElement = _createMDFElement(mdfComp, Offset(mdfX, currentY));
-        dashboard.addElement(mdfElement);
-        elementosMap[mdfComp.id] = mdfElement;
-        mdfX += espacioX * 0.8;
-      }
-      currentY += espacioY;
-    }
-
-    // 2. Crear elementos IDF
-    if (idfComponents.isNotEmpty) {
-      double idfX = currentX;
-      for (var idfComp in idfComponents) {
-        final idfElement = _createIDFElement(idfComp, Offset(idfX, currentY));
-        dashboard.addElement(idfElement);
-        elementosMap[idfComp.id] = idfElement;
-        idfX += espacioX;
-      }
-      currentY += espacioY;
-    }
-
-    // 3. Crear routers
-    if (routerComponents.isNotEmpty) {
-      double routerX = currentX;
-      for (var router in routerComponents) {
-        final routerElement =
-            _createRouterElement(router, Offset(routerX, currentY));
-        dashboard.addElement(routerElement);
-        elementosMap[router.id] = routerElement;
-        routerX += espacioX * 0.9;
-      }
-      currentY += espacioY;
-    }
-
-    // 4. Crear switches
-    if (switchComponents.isNotEmpty) {
-      double switchX = currentX;
-      for (var switchComp in switchComponents) {
-        final switchElement =
-            _createSwitchElement(switchComp, Offset(switchX, currentY));
-        dashboard.addElement(switchElement);
-        elementosMap[switchComp.id] = switchElement;
-        switchX += espacioX * 0.8;
-      }
-      currentY += espacioY;
-    }
-
-    // 5. Crear servidores
-    if (serverComponents.isNotEmpty) {
-      double serverX = currentX + espacioX;
-      for (var servidor in serverComponents) {
-        final serverElement =
-            _createServerElement(servidor, Offset(serverX, currentY));
-        dashboard.addElement(serverElement);
-        elementosMap[servidor.id] = serverElement;
-        serverX += espacioX * 0.8;
-      }
-    }
-
-    // 6. Crear conexiones basadas en datos reales
-    _createConnections(provider);
-
-    print('Elementos creados: ${elementosMap.length}');
+    print('Construyendo topología:');
+    print('- Distribuciones encontradas: ${topologiaOptimizada.length}');
     print(
-        'Conexiones de datos disponibles: ${provider.conexionesDatos.length}');
+        '- Componentes individuales (sin distribución): ${componentesIndividuales.length}');
+
+    double currentX = 150;
+    double currentY = 100;
+    const double espacioX = 250;
+    const double espacioY = 200;
+
+    // Procesar distribuciones ordenadas por prioridad
+    final distribucionesOrdenadas =
+        _ordenarDistribucionesPorTipo(topologiaOptimizada);
+
+    for (var distribucion in distribucionesOrdenadas) {
+      print(
+          '- ${distribucion.tipo}: ${distribucion.nombre} (${distribucion.componentes.length} componentes)');
+
+      // Verificar que no existe ya un elemento con este ID
+      if (elementosMap.containsKey(distribucion.id)) {
+        print(
+            'ADVERTENCIA: Distribución duplicada detectada: ${distribucion.id}');
+        continue;
+      }
+
+      FlowElement elemento;
+
+      if (distribucion.tipo == 'MDF') {
+        elemento = _createDistribucionMDFElement(
+            distribucion, Offset(currentX, currentY));
+        currentY += espacioY;
+      } else if (distribucion.tipo == 'IDF') {
+        elemento = _createDistribucionIDFElement(
+            distribucion, Offset(currentX, currentY));
+        currentX += espacioX;
+
+        // Si hay muchos IDF, pasar a la siguiente fila
+        if (currentX > 800) {
+          currentX = 150;
+          currentY += espacioY;
+        }
+      } else {
+        // Otros tipos de distribución
+        elemento = _createDistribucionGeneralElement(
+            distribucion, Offset(currentX, currentY));
+        currentX += espacioX * 0.8;
+      }
+
+      dashboard.addElement(elemento);
+      elementosMap[distribucion.id] = elemento;
+    }
+
+    // Agregar componentes individuales (sin distribución)
+    for (var componente in componentesIndividuales) {
+      print('- Componente individual: ${componente.componenteNombre}');
+
+      // Verificar que no existe ya un elemento con este ID
+      if (elementosMap.containsKey(componente.componenteId)) {
+        print(
+            'ADVERTENCIA: Componente duplicado detectado: ${componente.componenteId}');
+        continue;
+      }
+
+      final elemento = _createComponenteIndividualElement(
+          componente, Offset(currentX, currentY));
+
+      dashboard.addElement(elemento);
+      elementosMap[componente.componenteId] = elemento;
+
+      currentX += espacioX * 0.7;
+
+      // Si hay muchos componentes individuales, pasar a la siguiente fila
+      if (currentX > 900) {
+        currentX = 150;
+        currentY += espacioY;
+      }
+    }
+
+    // Crear conexiones entre distribuciones y componentes individuales
+    _createDistributionConnections(
+        provider, distribucionesOrdenadas, componentesIndividuales);
+
+    print(
+        'Elementos creados: ${elementosMap.length} (${distribucionesOrdenadas.length} distribuciones + ${componentesIndividuales.length} individuales)');
   }
 
-  FlowElement _createMDFElement(
-      ComponenteTopologia component, Offset position) {
-    return FlowElement(
-      position: position,
-      size: const Size(180, 140),
-      text: 'MDF\n${component.nombre}',
-      textColor: Colors.white,
-      textSize: 14,
-      textIsBold: true,
-      kind: ElementKind.rectangle,
-      backgroundColor:
-          component.activo ? const Color(0xFF2196F3) : const Color(0xFF757575),
-      borderColor:
-          component.activo ? const Color(0xFF1976D2) : const Color(0xFF424242),
-      borderThickness: 3,
-      elevation: component.activo ? 8 : 4,
-      data: _buildElementData(component, 'MDF'),
-      handlers: [
-        Handler.bottomCenter,
-        Handler.leftCenter,
-        Handler.rightCenter,
-      ],
-    );
+  Future<List<DistribucionAgrupada>> _cargarTopologiaOptimizada(
+      ComponentesProvider provider) async {
+    try {
+      final response = await supabaseLU
+          .from('vista_topologia_por_negocio')
+          .select()
+          .eq('negocio_id', provider.negocioSeleccionadoId!)
+          .not('distribucion_id', 'is',
+              null) // Solo componentes CON distribución
+          .order('tipo_distribucion')
+          .order('distribucion_nombre');
+
+      // Agrupar componentes por distribución
+      final Map<String, DistribucionAgrupada> distribucionesMap = {};
+
+      for (var item in response) {
+        final vista = VistaTopologiaPorNegocio.fromMap(item);
+
+        final distribId = vista.distribucionId!;
+        final distribNombre = vista.distribucionNombre!;
+        final distribTipo = vista.tipoDistribucion!;
+
+        if (!distribucionesMap.containsKey(distribId)) {
+          distribucionesMap[distribId] = DistribucionAgrupada(
+            id: distribId,
+            nombre: distribNombre,
+            tipo: distribTipo,
+            componentes: [],
+          );
+        }
+
+        distribucionesMap[distribId]!.componentes.add(vista);
+      }
+
+      return distribucionesMap.values.toList();
+    } catch (e) {
+      print('Error al cargar distribuciones agrupadas: $e');
+      return [];
+    }
   }
 
-  FlowElement _createIDFElement(
-      ComponenteTopologia component, Offset position) {
-    return FlowElement(
-      position: position,
-      size: const Size(160, 120),
-      text: 'IDF\n${component.nombre}',
-      textColor: Colors.white,
-      textSize: 12,
-      textIsBold: true,
-      kind: ElementKind.rectangle,
-      backgroundColor: component.activo
-          ? (component.enUso
-              ? const Color(0xFF4CAF50)
-              : const Color(0xFFFF9800))
-          : const Color(0xFF757575),
-      borderColor: component.activo
-          ? (component.enUso
-              ? const Color(0xFF388E3C)
-              : const Color(0xFFF57C00))
-          : const Color(0xFF424242),
-      borderThickness: 2,
-      elevation: component.activo ? 6 : 2,
-      data: _buildElementData(component, 'IDF'),
-      handlers: [
-        Handler.topCenter,
-        Handler.bottomCenter,
-        Handler.leftCenter,
-        Handler.rightCenter,
-      ],
-    );
+  Future<List<VistaTopologiaPorNegocio>> _cargarComponentesSinDistribucion(
+      ComponentesProvider provider) async {
+    try {
+      final response = await supabaseLU
+          .from('vista_topologia_por_negocio')
+          .select()
+          .eq('negocio_id', provider.negocioSeleccionadoId!)
+          .is_('distribucion_id', null) // Solo componentes SIN distribución
+          .order('categoria_componente')
+          .order('componente_nombre');
+
+      return (response as List<dynamic>)
+          .map((item) => VistaTopologiaPorNegocio.fromMap(item))
+          .toList();
+    } catch (e) {
+      print('Error al cargar componentes individuales: $e');
+      return [];
+    }
   }
 
-  FlowElement _createSwitchElement(
-      ComponenteTopologia component, Offset position) {
+  FlowElement _createComponenteIndividualElement(
+      VistaTopologiaPorNegocio componente, Offset position) {
+    // Obtener colores basados en la categoría del componente
+    final coloresComponente = _getColoresPorCategoria(
+        componente.categoriaComponente, componente.colorCategoria);
+
+    // Si el componente no está activo, usar colores grises
+    Color backgroundColor = componente.activo
+        ? coloresComponente['background']!
+        : const Color(0xFF757575);
+    Color borderColor = componente.activo
+        ? coloresComponente['border']!
+        : const Color(0xFF424242);
+
+    // Crear texto del elemento con indicadores de estado
+    final statusIcon =
+        componente.activo ? (componente.enUso ? '🟢' : '🟡') : '🔴';
+
+    final elementText = '${componente.componenteNombre}\n\n'
+        'Categoría: ${componente.categoriaComponente}\n'
+        'Estado: $statusIcon\n'
+        '${componente.ubicacion ?? "Sin ubicación"}';
+
     return FlowElement(
       position: position,
-      size: const Size(140, 100),
-      text: 'Switch\n${component.nombre}',
+      size: const Size(160, 140),
+      text: elementText,
       textColor: Colors.white,
       textSize: 10,
       textIsBold: true,
       kind: ElementKind.rectangle,
-      backgroundColor:
-          component.activo ? const Color(0xFF9C27B0) : const Color(0xFF757575),
-      borderColor:
-          component.activo ? const Color(0xFF7B1FA2) : const Color(0xFF424242),
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
       borderThickness: 2,
-      elevation: component.activo ? 4 : 2,
-      data: _buildElementData(component, 'Switch'),
-      handlers: [
-        Handler.topCenter,
-        Handler.bottomCenter,
-      ],
-    );
-  }
-
-  FlowElement _createRouterElement(
-      ComponenteTopologia component, Offset position) {
-    return FlowElement(
-      position: position,
-      size: const Size(160, 100),
-      text: 'Router\n${component.nombre}',
-      textColor: Colors.white,
-      textSize: 11,
-      textIsBold: true,
-      kind: ElementKind.rectangle,
-      backgroundColor:
-          component.activo ? const Color(0xFFFF5722) : const Color(0xFF757575),
-      borderColor:
-          component.activo ? const Color(0xFFE64A19) : const Color(0xFF424242),
-      borderThickness: 3,
-      elevation: component.activo ? 6 : 2,
-      data: _buildElementData(component, 'Router'),
+      elevation: 6,
+      data: _buildComponenteIndividualElementData(componente),
       handlers: [
         Handler.topCenter,
         Handler.bottomCenter,
@@ -771,137 +806,232 @@ class _TopologiaPageState extends State<TopologiaPage>
     );
   }
 
-  FlowElement _createServerElement(
-      ComponenteTopologia component, Offset position) {
-    return FlowElement(
-      position: position,
-      size: const Size(150, 100),
-      text: 'Servidor\n${component.nombre}',
-      textColor: Colors.white,
-      textSize: 11,
-      textIsBold: true,
-      kind: ElementKind.rectangle,
-      backgroundColor:
-          component.activo ? const Color(0xFFE91E63) : const Color(0xFF757575),
-      borderColor:
-          component.activo ? const Color(0xFFC2185B) : const Color(0xFF424242),
-      borderThickness: 3,
-      elevation: component.activo ? 6 : 2,
-      data: _buildElementData(component, 'Server'),
-      handlers: [
-        Handler.topCenter,
-        Handler.leftCenter,
-        Handler.rightCenter,
-      ],
-    );
+  Map<String, Color> _getColoresPorCategoria(
+      String categoria, String? colorCategoria) {
+    // Si la categoría tiene un color específico definido, usarlo
+    if (colorCategoria != null && colorCategoria.isNotEmpty) {
+      try {
+        final colorHex = colorCategoria.replaceAll('#', '');
+        final colorValue = int.parse('FF$colorHex', radix: 16);
+        final backgroundColor = Color(colorValue);
+        final borderColor = Color(colorValue).withOpacity(0.8);
+
+        return {
+          'background': backgroundColor,
+          'border': borderColor,
+        };
+      } catch (e) {
+        print('Error parsing color for category $categoria: $colorCategoria');
+      }
+    }
+
+    // Colores por defecto basados en el nombre de la categoría
+    final categoriaLower = categoria.toLowerCase();
+
+    if (categoriaLower.contains('switch')) {
+      return {
+        'background': const Color(0xFF9C27B0), // Morado
+        'border': const Color(0xFF7B1FA2),
+      };
+    } else if (categoriaLower.contains('router') ||
+        categoriaLower.contains('firewall')) {
+      return {
+        'background': const Color(0xFFFF5722), // Naranja rojizo
+        'border': const Color(0xFFE64A19),
+      };
+    } else if (categoriaLower.contains('servidor') ||
+        categoriaLower.contains('server')) {
+      return {
+        'background': const Color(0xFFE91E63), // Rosa
+        'border': const Color(0xFFC2185B),
+      };
+    } else if (categoriaLower.contains('patch') ||
+        categoriaLower.contains('panel')) {
+      return {
+        'background': const Color(0xFF607D8B), // Azul gris
+        'border': const Color(0xFF455A64),
+      };
+    } else if (categoriaLower.contains('rack')) {
+      return {
+        'background': const Color(0xFF795548), // Marrón
+        'border': const Color(0xFF5D4037),
+      };
+    } else if (categoriaLower.contains('ups')) {
+      return {
+        'background': const Color(0xFFFFC107), // Amarillo
+        'border': const Color(0xFFFFA000),
+      };
+    } else if (categoriaLower.contains('cable')) {
+      return {
+        'background': const Color(0xFF4CAF50), // Verde
+        'border': const Color(0xFF388E3C),
+      };
+    } else if (categoriaLower.contains('organizador')) {
+      return {
+        'background': const Color(0xFF9E9E9E), // Gris
+        'border': const Color(0xFF757575),
+      };
+    } else {
+      return {
+        'background': const Color(0xFF2196F3), // Azul por defecto
+        'border': const Color(0xFF1976D2),
+      };
+    }
   }
 
-  Map<String, dynamic> _buildElementData(
-      ComponenteTopologia component, String displayType) {
+  Map<String, dynamic> _buildComponenteIndividualElementData(
+      VistaTopologiaPorNegocio componente) {
     return {
-      'type': displayType,
-      'componenteId': component.id,
-      'name': component.nombre,
-      'categoria': component.categoria,
-      'status': component.activo
-          ? (component.enUso ? 'active' : 'warning')
-          : 'disconnected',
-      'description': component.descripcion ?? 'Sin descripción',
-      'ubicacion': component.ubicacion ?? 'Sin ubicación',
-      'distribucion': component.nombreDistribucion ?? 'Sin distribución',
-      'tipoDistribucion': component.tipoDistribucion,
-      'enUso': component.enUso,
-      'fechaRegistro': component.fechaRegistro.toString().split(' ')[0],
+      'type': 'INDIVIDUAL',
+      'componenteId': componente.componenteId,
+      'name': componente.componenteNombre,
+      'categoria': componente.categoriaComponente,
+      'enUso': componente.enUso,
+      'activo': componente.activo,
+      'ubicacion': componente.ubicacion,
+      'descripcion': componente.descripcion,
+      'imagenUrl': componente.imagenUrl,
+      'rfid': componente.rfid,
+      'colorCategoria': componente.colorCategoria,
+      'status': componente.activo
+          ? (componente.enUso ? 'active' : 'available')
+          : 'inactive',
     };
   }
 
-  void _createConnections(ComponentesProvider provider) {
-    // Crear conexiones basadas en los datos reales
-    for (var conexion in provider.conexionesDatos) {
-      if (!conexion.activo) continue;
+  void _createDistributionConnections(
+      ComponentesProvider provider,
+      List<DistribucionAgrupada> distribuciones,
+      List<VistaTopologiaPorNegocio> componentesIndividuales) {
+    // Crear conexiones lógicas entre distribuciones
+    final mdfDistribuciones =
+        distribuciones.where((d) => d.tipo == 'MDF').toList();
+    final idfDistribuciones =
+        distribuciones.where((d) => d.tipo == 'IDF').toList();
+    final otrasDistribuciones = distribuciones
+        .where((d) => d.tipo != 'MDF' && d.tipo != 'IDF')
+        .toList();
 
-      final sourceElement = elementosMap[conexion.componenteOrigenId];
-      final targetElement = elementosMap[conexion.componenteDestinoId];
+    // Conectar cada IDF con el MDF principal (si existe)
+    if (mdfDistribuciones.isNotEmpty) {
+      final mdfPrincipal = mdfDistribuciones.first;
+      final mdfElement = elementosMap[mdfPrincipal.id];
 
-      if (sourceElement != null && targetElement != null) {
-        // Determinar color y grosor basado en el tipo de conexión
-        Color connectionColor = _getConnectionColor(conexion, provider);
-        double thickness = _getConnectionThickness(conexion, provider);
+      if (mdfElement != null) {
+        for (var idf in idfDistribuciones) {
+          final idfElement = elementosMap[idf.id];
 
-        final connectionParams = ConnectionParams(
-          destElementId: targetElement.id,
-          arrowParams: ArrowParams(
-            color: connectionColor,
-            thickness: thickness,
-          ),
-        );
+          if (idfElement != null) {
+            final connectionParams = ConnectionParams(
+              destElementId: idfElement.id,
+              arrowParams: ArrowParams(
+                color: Colors.cyan,
+                thickness: 3,
+              ),
+            );
 
-        sourceElement.next = [...sourceElement.next, connectionParams];
+            mdfElement.next = [...mdfElement.next, connectionParams];
+          }
+        }
       }
     }
 
-    // También crear conexiones de energía si es necesario
-    for (var conexionEnergia in provider.conexionesEnergia) {
-      if (!conexionEnergia.activo) continue;
+    // Determinar el elemento principal para conectar otros elementos
+    final distribucionPrincipal = mdfDistribuciones.isNotEmpty
+        ? mdfDistribuciones.first
+        : (idfDistribuciones.isNotEmpty ? idfDistribuciones.first : null);
 
-      final sourceElement = elementosMap[conexionEnergia.origenId];
-      final targetElement = elementosMap[conexionEnergia.destinoId];
+    // Conectar otras distribuciones al elemento principal
+    if (distribucionPrincipal != null && otrasDistribuciones.isNotEmpty) {
+      final elementoPrincipal = elementosMap[distribucionPrincipal.id];
 
-      if (sourceElement != null && targetElement != null) {
-        final connectionParams = ConnectionParams(
-          destElementId: targetElement.id,
-          arrowParams: ArrowParams(
-            color: Colors.red.withOpacity(0.7),
-            thickness: 2,
-          ),
-        );
+      if (elementoPrincipal != null) {
+        for (var otra in otrasDistribuciones) {
+          final otroElement = elementosMap[otra.id];
 
-        sourceElement.next = [...sourceElement.next, connectionParams];
+          if (otroElement != null) {
+            final connectionParams = ConnectionParams(
+              destElementId: otroElement.id,
+              arrowParams: ArrowParams(
+                color: Colors.yellow,
+                thickness: 2,
+              ),
+            );
+
+            elementoPrincipal.next = [
+              ...elementoPrincipal.next,
+              connectionParams
+            ];
+          }
+        }
       }
     }
-  }
 
-  Color _getConnectionColor(
-      ConexionDatos conexion, ComponentesProvider provider) {
-    // Determinar color basado en el tipo de cable o componentes conectados
-    if (conexion.nombreCable != null) {
-      final cableName = conexion.nombreCable!.toLowerCase();
-      if (cableName.contains('fibra')) return Colors.cyan;
-      if (cableName.contains('utp')) return Colors.yellow;
-      if (cableName.contains('coaxial')) return Colors.orange;
+    // Conectar componentes individuales importantes al elemento principal
+    if (distribucionPrincipal != null) {
+      final elementoPrincipal = elementosMap[distribucionPrincipal.id];
+
+      if (elementoPrincipal != null) {
+        // Solo conectar componentes individuales importantes (switches, routers, servidores)
+        final componentesImportantes = componentesIndividuales
+            .where((c) =>
+                c.tipoComponentePrincipal == 'switch' ||
+                c.tipoComponentePrincipal == 'router' ||
+                c.tipoComponentePrincipal == 'servidor')
+            .toList();
+
+        for (var componente in componentesImportantes) {
+          final componenteElement = elementosMap[componente.componenteId];
+
+          if (componenteElement != null) {
+            final connectionParams = ConnectionParams(
+              destElementId: componenteElement.id,
+              arrowParams: ArrowParams(
+                color: Colors.orange,
+                thickness: 2,
+              ),
+            );
+
+            elementoPrincipal.next = [
+              ...elementoPrincipal.next,
+              connectionParams
+            ];
+          }
+        }
+      }
+    } else if (componentesIndividuales.isNotEmpty) {
+      // Si no hay distribuciones principales, conectar entre componentes individuales importantes
+      final switches = componentesIndividuales
+          .where((c) => c.tipoComponentePrincipal == 'switch')
+          .toList();
+      final routers = componentesIndividuales
+          .where((c) => c.tipoComponentePrincipal == 'router')
+          .toList();
+
+      // Conectar routers a switches si existen ambos
+      if (routers.isNotEmpty && switches.isNotEmpty) {
+        final routerPrincipal = routers.first;
+        final routerElement = elementosMap[routerPrincipal.componenteId];
+
+        if (routerElement != null) {
+          for (var switchComp in switches) {
+            final switchElement = elementosMap[switchComp.componenteId];
+
+            if (switchElement != null) {
+              final connectionParams = ConnectionParams(
+                destElementId: switchElement.id,
+                arrowParams: ArrowParams(
+                  color: Colors.green,
+                  thickness: 2,
+                ),
+              );
+
+              routerElement.next = [...routerElement.next, connectionParams];
+            }
+          }
+        }
+      }
     }
-
-    // Color por defecto basado en los componentes
-    final sourceComponent =
-        provider.getComponenteTopologiaById(conexion.componenteOrigenId);
-    final targetComponent =
-        provider.getComponenteTopologiaById(conexion.componenteDestinoId);
-
-    if (sourceComponent?.esMDF == true || targetComponent?.esMDF == true) {
-      return Colors.cyan; // Conexiones principales
-    }
-    if (sourceComponent?.esIDF == true || targetComponent?.esIDF == true) {
-      return Colors.yellow; // Conexiones intermedias
-    }
-
-    return Colors.green; // Conexiones generales
-  }
-
-  double _getConnectionThickness(
-      ConexionDatos conexion, ComponentesProvider provider) {
-    final sourceComponent =
-        provider.getComponenteTopologiaById(conexion.componenteOrigenId);
-    final targetComponent =
-        provider.getComponenteTopologiaById(conexion.componenteDestinoId);
-
-    if (sourceComponent?.esMDF == true || targetComponent?.esMDF == true) {
-      return 4; // Conexiones principales más gruesas
-    }
-    if (sourceComponent?.esIDF == true || targetComponent?.esIDF == true) {
-      return 3; // Conexiones intermedias
-    }
-
-    return 2; // Conexiones estándar
   }
 
   void _showElementDetails(FlowElement element, ComponentesProvider provider) {
@@ -1288,5 +1418,205 @@ class _TopologiaPageState extends State<TopologiaPage>
         _isLoading = false;
       });
     }
+  }
+
+  List<DistribucionAgrupada> _ordenarDistribucionesPorTipo(
+      List<DistribucionAgrupada> distribuciones) {
+    distribuciones.sort((a, b) {
+      // Primero MDF, luego IDF, luego otros
+      final prioridadA = _getPrioridadDistribucion(a.tipo);
+      final prioridadB = _getPrioridadDistribucion(b.tipo);
+
+      if (prioridadA != prioridadB) {
+        return prioridadA.compareTo(prioridadB);
+      }
+
+      // Dentro del mismo tipo, ordenar por nombre
+      return a.nombre.compareTo(b.nombre);
+    });
+
+    return distribuciones;
+  }
+
+  int _getPrioridadDistribucion(String tipo) {
+    switch (tipo.toUpperCase()) {
+      case 'MDF':
+        return 1;
+      case 'IDF':
+        return 2;
+      default:
+        return 3;
+    }
+  }
+
+  FlowElement _createDistribucionMDFElement(
+      DistribucionAgrupada distribucion, Offset position) {
+    final componentesActivos =
+        distribucion.componentes.where((c) => c.activo).length;
+    final componentesEnUso =
+        distribucion.componentes.where((c) => c.enUso).length;
+
+    // Crear resumen de tipos de componentes
+    final tiposComponentes =
+        _getTiposComponentesResumen(distribucion.componentes);
+
+    return FlowElement(
+      position: position,
+      size: const Size(200, 160),
+      text:
+          '${distribucion.tipo}\n${distribucion.nombre}\n\n${distribucion.componentes.length} componentes\n$tiposComponentes',
+      textColor: Colors.white,
+      textSize: 12,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF1565C0), // Azul más oscuro para MDF
+      borderColor: const Color(0xFF0D47A1),
+      borderThickness: 4,
+      elevation: 10,
+      data: _buildDistribucionElementData(distribucion, 'MDF'),
+      handlers: [
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+  }
+
+  FlowElement _createDistribucionIDFElement(
+      DistribucionAgrupada distribucion, Offset position) {
+    final componentesActivos =
+        distribucion.componentes.where((c) => c.activo).length;
+    final componentesEnUso =
+        distribucion.componentes.where((c) => c.enUso).length;
+
+    // Determinar estado del IDF basado en sus componentes
+    Color backgroundColor;
+    Color borderColor;
+
+    if (componentesActivos == 0) {
+      backgroundColor = const Color(0xFF757575); // Gris - inactivo
+      borderColor = const Color(0xFF424242);
+    } else if (componentesEnUso == componentesActivos) {
+      backgroundColor = const Color(0xFF2E7D32); // Verde - todo en uso
+      borderColor = const Color(0xFF1B5E20);
+    } else if (componentesEnUso > 0) {
+      backgroundColor =
+          const Color(0xFFE65100); // Naranja - parcialmente en uso
+      borderColor = const Color(0xFFBF360C);
+    } else {
+      backgroundColor =
+          const Color(0xFFF57C00); // Amarillo - activo pero no en uso
+      borderColor = const Color(0xFFE65100);
+    }
+
+    final tiposComponentes =
+        _getTiposComponentesResumen(distribucion.componentes);
+
+    return FlowElement(
+      position: position,
+      size: const Size(180, 140),
+      text:
+          '${distribucion.tipo}\n${distribucion.nombre}\n\n${distribucion.componentes.length} componentes\n$tiposComponentes',
+      textColor: Colors.white,
+      textSize: 11,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
+      borderThickness: 3,
+      elevation: 8,
+      data: _buildDistribucionElementData(distribucion, 'IDF'),
+      handlers: [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ],
+    );
+  }
+
+  FlowElement _createDistribucionGeneralElement(
+      DistribucionAgrupada distribucion, Offset position) {
+    final tiposComponentes =
+        _getTiposComponentesResumen(distribucion.componentes);
+
+    return FlowElement(
+      position: position,
+      size: const Size(160, 120),
+      text:
+          '${distribucion.nombre}\n\n${distribucion.componentes.length} componentes\n$tiposComponentes',
+      textColor: Colors.white,
+      textSize: 10,
+      textIsBold: true,
+      kind: ElementKind.rectangle,
+      backgroundColor: const Color(0xFF5D4037), // Marrón para otros
+      borderColor: const Color(0xFF3E2723),
+      borderThickness: 2,
+      elevation: 6,
+      data: _buildDistribucionElementData(distribucion, 'OTRO'),
+      handlers: [
+        Handler.topCenter,
+        Handler.bottomCenter,
+      ],
+    );
+  }
+
+  String _getTiposComponentesResumen(
+      List<VistaTopologiaPorNegocio> componentes) {
+    final Map<String, int> conteoTipos = {};
+
+    for (var componente in componentes.where((c) => c.activo)) {
+      final tipo = _getTipoComponenteSimplificado(componente);
+      conteoTipos[tipo] = (conteoTipos[tipo] ?? 0) + 1;
+    }
+
+    // Mostrar solo los 3 tipos más comunes
+    final tiposOrdenados = conteoTipos.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final resumen = tiposOrdenados
+        .take(3)
+        .map((entry) => '${entry.key}: ${entry.value}')
+        .join('\n');
+
+    return resumen.isNotEmpty ? resumen : 'Sin componentes';
+  }
+
+  String _getTipoComponenteSimplificado(VistaTopologiaPorNegocio componente) {
+    final categoria = componente.categoriaComponente.toLowerCase();
+    final nombre = componente.componenteNombre.toLowerCase();
+
+    if (categoria.contains('switch') || nombre.contains('switch')) return 'SW';
+    if (categoria.contains('router') ||
+        nombre.contains('router') ||
+        categoria.contains('firewall')) return 'RT';
+    if (categoria.contains('patch') || nombre.contains('patch')) return 'PP';
+    if (categoria.contains('rack') || nombre.contains('rack')) return 'RK';
+    if (categoria.contains('ups') || nombre.contains('ups')) return 'UPS';
+    if (categoria.contains('cable') || nombre.contains('cable')) return 'CBL';
+    if (categoria.contains('servidor') || nombre.contains('servidor'))
+      return 'SRV';
+
+    return 'OTR';
+  }
+
+  Map<String, dynamic> _buildDistribucionElementData(
+      DistribucionAgrupada distribucion, String displayType) {
+    return {
+      'type': displayType,
+      'distribucionId': distribucion.id,
+      'name': distribucion.nombre,
+      'tipoDistribucion': distribucion.tipo,
+      'componentCount': distribucion.componentes.length,
+      'activeComponents':
+          distribucion.componentes.where((c) => c.activo).length,
+      'usedComponents': distribucion.componentes.where((c) => c.enUso).length,
+      'componentes': distribucion.componentes,
+      'ubicaciones': distribucion.componentes
+          .map((c) => c.ubicacion)
+          .where((u) => u != null)
+          .toSet()
+          .join(', '),
+    };
   }
 }
