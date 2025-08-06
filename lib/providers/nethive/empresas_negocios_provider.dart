@@ -143,9 +143,12 @@ class EmpresasNegociosProvider extends ChangeNotifier {
   void _buildNegociosRows() {
     negociosRows.clear();
 
-    for (Negocio negocio in negocios) {
+    for (int i = 0; i < negocios.length; i++) {
+      final negocio = negocios[i];
       negociosRows.add(PlutoRow(cells: {
-        'id': PlutoCell(value: negocio.id),
+        'numero': PlutoCell(value: (i + 1).toString()), // Contador secuencial
+        'id': PlutoCell(
+            value: negocio.id), // Mantener ID para operaciones internas
         'empresa_id': PlutoCell(value: negocio.empresaId),
         'nombre': PlutoCell(value: negocio.nombre),
         'direccion': PlutoCell(value: negocio.direccion),

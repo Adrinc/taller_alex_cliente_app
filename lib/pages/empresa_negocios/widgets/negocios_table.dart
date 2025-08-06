@@ -67,24 +67,30 @@ class NegociosTable extends StatelessWidget {
       ),
       columns: [
         PlutoColumn(
-          title: 'ID',
-          field: 'id',
+          title: 'Nu.',
+          field: 'numero',
           titleTextAlign: PlutoColumnTextAlign.center,
           textAlign: PlutoColumnTextAlign.center,
-          width: 100,
+          width: 60,
           type: PlutoColumnType.text(),
           enableEditingMode: false,
           backgroundColor: AppTheme.of(context).primaryColor,
           enableContextMenu: false,
           enableDropToResize: false,
           renderer: (rendererContext) {
-            return Text(
-              '${rendererContext.cell.value.toString().substring(0, 8)}...',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.of(context).primaryText,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+            // Obtener el índice de la fila + 1 para el contador
+            final rowIndex =
+                provider.negociosRows.indexOf(rendererContext.row) + 1;
+            return Container(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                rowIndex.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppTheme.of(context).primaryText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             );
           },

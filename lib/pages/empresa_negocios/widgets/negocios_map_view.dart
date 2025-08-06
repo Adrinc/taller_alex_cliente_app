@@ -31,6 +31,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
   String? _hoveredNegocioId;
   Offset? _tooltipPosition;
   bool _showTooltip = false;
+  String? _lastEmpresaId; // Para detectar cambios de empresa
 
   @override
   void initState() {
@@ -68,10 +69,40 @@ class _NegociosMapViewState extends State<NegociosMapView>
       curve: Curves.easeOutCubic,
     ));
 
-    // Centrar el mapa después de que se construya con múltiples intentos
+    // Centrar el mapa después de que se construya
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeMap();
+      _initializeMapIfNeeded();
     });
+  }
+
+  @override
+  void didUpdateWidget(NegociosMapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Detectar si cambió la empresa seleccionada o si cambiaron los negocios
+    if (oldWidget.provider.empresaSeleccionadaId !=
+            widget.provider.empresaSeleccionadaId ||
+        oldWidget.provider.negocios.length != widget.provider.negocios.length) {
+      _initializeMapIfNeeded();
+    }
+  }
+
+  // Nuevo método que verifica si debe inicializar el mapa
+  void _initializeMapIfNeeded() {
+    final currentEmpresaId = widget.provider.empresaSeleccionadaId;
+
+    // Inicializar si hay empresa seleccionada y negocios, y si cambió la empresa o es la primera vez
+    if (currentEmpresaId != null && widget.provider.negocios.isNotEmpty) {
+      // Si es la primera vez o cambió la empresa
+      if (_lastEmpresaId != currentEmpresaId) {
+        _lastEmpresaId = currentEmpresaId;
+        _initializeMap();
+      }
+      // O si ya teníamos la misma empresa pero ahora hay negocios (caso de carga inicial)
+      else if (_lastEmpresaId == currentEmpresaId &&
+          widget.provider.negocios.isNotEmpty) {
+        _initializeMap();
+      }
+    }
   }
 
   // Nuevo método para inicializar el mapa con refresh forzado
@@ -210,8 +241,8 @@ class _NegociosMapViewState extends State<NegociosMapView>
               onExit: (_) => _hideTooltip(),
               child: FlutterMap(
                 mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: const LatLng(19.4326, -99.1332),
+                options: const MapOptions(
+                  initialCenter: LatLng(19.4326, -99.1332),
                   initialZoom: 10,
                   minZoom: 3,
                   maxZoom: 18,
@@ -364,7 +395,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.transparent,
       ),
@@ -528,7 +559,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
                       color: Colors.white.withOpacity(0.3),
                     ),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
@@ -536,7 +567,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
                         color: Colors.white,
                         size: 16,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text(
                         'Clic para ver infraestructura',
                         style: TextStyle(
@@ -576,7 +607,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
             return child;
           }
           // Mientras carga, mostrar un spinner
-          return Center(
+          return const Center(
             child: SizedBox(
               width: 20,
               height: 20,
@@ -602,7 +633,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
         color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(
+      child: const Icon(
         Icons.store,
         color: Colors.white,
         size: 24,
@@ -632,7 +663,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.map,
               color: Colors.white,
               size: 20,
@@ -643,9 +674,9 @@ class _NegociosMapViewState extends State<NegociosMapView>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Mapa de Sucursales',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -667,7 +698,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
@@ -675,7 +706,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
                   color: Colors.white,
                   size: 16,
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 Text(
                   'OpenStreetMap',
                   style: TextStyle(
@@ -715,7 +746,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
               borderRadius: BorderRadius.circular(10),
               child: Container(
                 padding: const EdgeInsets.all(12),
-                child: Icon(
+                child: const Icon(
                   Icons.center_focus_strong,
                   color: Colors.white,
                   size: 24,
@@ -828,7 +859,7 @@ class _NegociosMapViewState extends State<NegociosMapView>
                 gradient: AppTheme.of(context).modernGradient,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.location_off,
                 size: 60,
                 color: Colors.white,
