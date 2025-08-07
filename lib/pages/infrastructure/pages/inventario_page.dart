@@ -1307,26 +1307,6 @@ class _InventarioPageState extends State<InventarioPage>
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 20),
-
-                // ID con estilo
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'ID: ${componente.id.substring(0, 8)}...',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
