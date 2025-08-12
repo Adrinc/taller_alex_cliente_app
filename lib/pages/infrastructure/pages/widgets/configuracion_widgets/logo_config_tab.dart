@@ -324,13 +324,18 @@ class LogoConfigTab extends StatelessWidget {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 120, maxHeight: 120),
-            child: Image.memory(
-              mode == 'light'
-                  ? provider.lightLogoBytes!
-                  : provider.darkLogoBytes!,
-              fit: BoxFit.contain,
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              child: Image.memory(
+                mode == 'light'
+                    ? provider.lightLogoBytes!
+                    : provider.darkLogoBytes!,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -356,18 +361,25 @@ class LogoConfigTab extends StatelessWidget {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 120, maxHeight: 120),
-            child: Image.network(
-              mode == 'light' ? provider.lightLogoUrl! : provider.darkLogoUrl!,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  Icons.broken_image,
-                  size: 48,
-                  color: AppTheme.of(context).secondaryText,
-                );
-              },
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              child: Image.network(
+                mode == 'light'
+                    ? provider.lightLogoUrl!
+                    : provider.darkLogoUrl!,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.broken_image,
+                    size: 48,
+                    color: AppTheme.of(context).secondaryText,
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(height: 8),
