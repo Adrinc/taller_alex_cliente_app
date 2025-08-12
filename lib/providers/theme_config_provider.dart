@@ -47,18 +47,18 @@ class ThemeConfigProvider extends ChangeNotifier {
         'name': 'Tema Por Defecto',
         'light': {
           'colors': {
-            'primary': '#6366F1',
-            'secondary': '#8B5CF6',
-            'tertiary': '#06B6D4',
-            'accent': '#F59E0B',
-            'primaryBackground': '#FFFFFF',
-            'secondaryBackground': '#F8FAFC',
-            'primaryText': '#1E293B',
-            'secondaryText': '#64748B',
-            'success': '#10B981',
-            'warning': '#F59E0B',
-            'error': '#EF4444',
-            'info': '#3B82F6',
+            'primary': '#10B981', // Verde esmeralda principal
+            'secondary': '#059669', // Verde más oscuro
+            'tertiary': '#0D9488', // Verde azulado
+            'accent': '#3B82F6', // Azul de acento
+            'primaryBackground': '#0F172A', // Fondo muy oscuro
+            'secondaryBackground': '#1E293B', // Fondo secundario oscuro
+            'primaryText': '#FFFFFF', // Texto blanco
+            'secondaryText': '#94A3B8', // Texto gris claro
+            'success': '#10B981', // Verde para éxito
+            'warning': '#F59E0B', // Amarillo para advertencias
+            'error': '#EF4444', // Rojo para errores
+            'info': '#3B82F6', // Azul para información
           },
           'typography': {
             'fontFamily': 'Poppins',
@@ -78,18 +78,18 @@ class ThemeConfigProvider extends ChangeNotifier {
         },
         'dark': {
           'colors': {
-            'primary': '#818CF8',
-            'secondary': '#A78BFA',
-            'tertiary': '#22D3EE',
-            'accent': '#FBBF24',
-            'primaryBackground': '#0F172A',
-            'secondaryBackground': '#1E293B',
-            'primaryText': '#F1F5F9',
-            'secondaryText': '#CBD5E1',
-            'success': '#34D399',
-            'warning': '#FBBF24',
-            'error': '#F87171',
-            'info': '#60A5FA',
+            'primary': '#10B981', // Verde esmeralda principal
+            'secondary': '#059669', // Verde más oscuro
+            'tertiary': '#0D9488', // Verde azulado
+            'accent': '#3B82F6', // Azul de acento
+            'primaryBackground': '#0F172A', // Fondo muy oscuro
+            'secondaryBackground': '#1E293B', // Fondo secundario oscuro
+            'primaryText': '#FFFFFF', // Texto blanco
+            'secondaryText': '#94A3B8', // Texto gris claro
+            'success': '#10B981', // Verde para éxito
+            'warning': '#F59E0B', // Amarillo para advertencias
+            'error': '#EF4444', // Rojo para errores
+            'info': '#3B82F6', // Azul para información
           },
           'typography': {
             'fontFamily': 'Poppins',
@@ -137,6 +137,7 @@ class ThemeConfigProvider extends ChangeNotifier {
 
   void _initializeConfig() {
     _currentConfig = Map<String, dynamic>.from(defaultConfig);
+    notifyListeners(); // Notificar que la configuración por defecto está lista
     loadSavedThemes();
     loadCurrentTheme();
   }
@@ -152,12 +153,15 @@ class ThemeConfigProvider extends ChangeNotifier {
           .single();
 
       if (response['config'] != null) {
-        _currentConfig = Map<String, dynamic>.from(response['config']);
+        final savedConfig = Map<String, dynamic>.from(response['config']);
+        // Merge con la configuración por defecto para asegurar que no falten valores
+        _currentConfig = _mergeConfigs(defaultConfig, savedConfig);
         await _loadLogos();
       }
     } catch (e) {
       log('Error loading current theme: $e');
-      // Si no existe configuración, usar la por defecto
+      // Si no existe configuración, mantener la por defecto
+      _currentConfig = Map<String, dynamic>.from(defaultConfig);
     } finally {
       _setLoading(false);
     }
@@ -461,9 +465,19 @@ class ThemeConfigProvider extends ChangeNotifier {
   Color getColor(String mode, String colorKey) {
     final colorHex = _currentConfig[mode]?['colors']?[colorKey];
     if (colorHex != null && colorHex is String) {
+      log('getColor($mode, $colorKey): Found $colorHex');
       return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
     }
-    return Colors.blue; // Color por defecto
+
+    // Si no se encuentra el color, usar el color por defecto del defaultConfig
+    final defaultColorHex = defaultConfig[mode]?['colors']?[colorKey];
+    if (defaultColorHex != null && defaultColorHex is String) {
+      log('getColor($mode, $colorKey): Using default $defaultColorHex');
+      return Color(int.parse(defaultColorHex.replaceFirst('#', '0xFF')));
+    }
+
+    log('getColor($mode, $colorKey): Using fallback blue');
+    return Colors.blue; // Último recurso
   }
 
   // Obtener fuente
@@ -497,5 +511,22 @@ class ThemeConfigProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  // Método para hacer merge de configuraciones manteniendo valores por defecto
+  Map<String, dynamic> _mergeConfigs(
+      Map<String, dynamic> defaultConf, Map<String, dynamic> savedConf) {
+    final merged = Map<String, dynamic>.from(defaultConf);
+
+    for (final key in savedConf.keys) {
+      if (savedConf[key] is Map<String, dynamic> &&
+          merged[key] is Map<String, dynamic>) {
+        merged[key] = _mergeConfigs(merged[key], savedConf[key]);
+      } else {
+        merged[key] = savedConf[key];
+      }
+    }
+
+    return merged;
   }
 }
