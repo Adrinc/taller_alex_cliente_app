@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:nethive_neo/helpers/globals.dart';
+import 'package:nethive_neo/models/configuration.dart';
+import 'package:nethive_neo/theme/theme.dart';
 
 class ThemeConfigProvider extends ChangeNotifier {
   static const int organizationId = 10;
@@ -348,6 +350,9 @@ class ThemeConfigProvider extends ChangeNotifier {
       final theme = _savedThemes.firstWhere((theme) => theme['id'] == themeId);
       _currentConfig = Map<String, dynamic>.from(theme['config']);
       await _loadLogos();
+
+      // Aplicar automáticamente el tema cargado
+      await _updateGlobalTheme();
     } catch (e) {
       log('Error loading theme: $e');
       _setError('Error al cargar tema');
@@ -415,12 +420,79 @@ class ThemeConfigProvider extends ChangeNotifier {
         'config': _currentConfig,
       });
 
-      // Aquí puedes agregar lógica para aplicar el tema globalmente
-      // Por ejemplo, actualizar el AppTheme
+      // Actualizar el AppTheme globalmente
+      await _updateGlobalTheme();
+
+      log('Theme applied successfully');
     } catch (e) {
       log('Error applying theme: $e');
       _setError('Error al aplicar tema');
     }
+  }
+
+  // Método para actualizar el tema global de la aplicación
+  Future<void> _updateGlobalTheme() async {
+    try {
+      // Importar las clases necesarias
+      final Configuration configuration = _convertToConfiguration();
+
+      // Actualizar AppTheme
+      AppTheme.initConfiguration(configuration);
+
+      // Notificar a todos los widgets que el tema ha cambiado
+      notifyListeners();
+
+      log('Global theme updated successfully');
+    } catch (e) {
+      log('Error updating global theme: $e');
+    }
+  }
+
+  // Convertir la configuración actual al formato Configuration
+  Configuration _convertToConfiguration() {
+    final lightColors = _currentConfig['light']?['colors'] ?? {};
+    final darkColors = _currentConfig['dark']?['colors'] ?? {};
+
+    return Configuration(
+      config: Config(
+        light: Mode(
+          primaryColor: lightColors['primary'],
+          secondaryColor: lightColors['secondary'],
+          tertiaryColor: lightColors['tertiary'],
+          alternate: lightColors['accent'],
+          primaryBackground: lightColors['primaryBackground'],
+          secondaryBackground: lightColors['secondaryBackground'],
+          primaryText: lightColors['primaryText'],
+          secondaryText: lightColors['secondaryText'],
+          tertiaryText:
+              lightColors['secondaryText'], // Usar secondaryText como fallback
+          hintText:
+              lightColors['secondaryText'], // Usar secondaryText como fallback
+          tertiaryBackground: lightColors[
+              'secondaryBackground'], // Usar secondaryBackground como fallback
+        ),
+        dark: Mode(
+          primaryColor: darkColors['primary'],
+          secondaryColor: darkColors['secondary'],
+          tertiaryColor: darkColors['tertiary'],
+          alternate: darkColors['accent'],
+          primaryBackground: darkColors['primaryBackground'],
+          secondaryBackground: darkColors['secondaryBackground'],
+          primaryText: darkColors['primaryText'],
+          secondaryText: darkColors['secondaryText'],
+          tertiaryText:
+              darkColors['secondaryText'], // Usar secondaryText como fallback
+          hintText:
+              darkColors['secondaryText'], // Usar secondaryText como fallback
+          tertiaryBackground: darkColors[
+              'secondaryBackground'], // Usar secondaryBackground como fallback
+        ),
+        logos: Logos(
+          logoColor: _currentConfig['light']?['logo'],
+          logoBlanco: _currentConfig['dark']?['logo'],
+        ),
+      ),
+    );
   }
 
   // Preview

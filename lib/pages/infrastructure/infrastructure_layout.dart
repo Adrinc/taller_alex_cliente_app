@@ -447,6 +447,11 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
                 ),
               ),
 
+              // Theme Switch móvil
+              _buildMobileThemeSwitch(),
+
+              const SizedBox(width: 8),
+
               // Indicador de módulo actual
               Container(
                 padding: const EdgeInsets.all(8),
@@ -561,6 +566,51 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
         ),
       ),
     );
+  }
+
+  Widget _buildMobileThemeSwitch() {
+    final isDark = AppTheme.themeMode == ThemeMode.dark;
+
+    return GestureDetector(
+      onTap: () => _switchTheme(isDark ? ThemeMode.light : ThemeMode.dark),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return RotationTransition(
+              turns: animation,
+              child: ScaleTransition(
+                scale: animation,
+                child: child,
+              ),
+            );
+          },
+          child: Icon(
+            isDark ? Icons.dark_mode : Icons.light_mode,
+            key: ValueKey(isDark),
+            color: Colors.white,
+            size: 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _switchTheme(ThemeMode mode) {
+    AppTheme.saveThemeMode(mode);
+    // Forzar rebuild de la aplicación
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Widget _buildMainContent(NavigationProvider navigationProvider) {

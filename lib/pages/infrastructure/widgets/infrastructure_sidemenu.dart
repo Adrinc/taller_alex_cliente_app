@@ -88,6 +88,8 @@ class _InfrastructureSidemenuState extends State<InfrastructureSidemenu>
 
                 // Footer con información adicional
                 if (widget.isExpanded) _buildFooter(),
+                // Footer compacto cuando está contraído (solo switch de tema)
+                if (!widget.isExpanded) _buildCompactFooter(),
               ],
             ),
           );
@@ -421,6 +423,11 @@ class _InfrastructureSidemenuState extends State<InfrastructureSidemenu>
             ),
           ),
           const SizedBox(height: 16),
+
+          // Theme Switch para desktop
+          _buildFooterThemeSwitch(),
+
+          const SizedBox(height: 16),
           Row(
             children: [
               Icon(
@@ -444,6 +451,182 @@ class _InfrastructureSidemenuState extends State<InfrastructureSidemenu>
         ],
       ),
     );
+  }
+
+  Widget _buildCompactFooter() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.of(context).primaryBackground.withOpacity(0.0),
+            AppTheme.of(context).primaryBackground,
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 1,
+            width: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  AppTheme.of(context).primaryColor.withOpacity(0.5),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Switch de tema compacto centrado
+          _buildCompactThemeSwitch(),
+
+          const SizedBox(height: 8),
+
+          // Indicador de conexión segura compacto
+          Icon(
+            Icons.shield_outlined,
+            color: AppTheme.of(context).primaryColor,
+            size: 14,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactThemeSwitch() {
+    final isDark = AppTheme.themeMode == ThemeMode.dark;
+
+    return GestureDetector(
+      onTap: () => _switchTheme(isDark ? ThemeMode.light : ThemeMode.dark),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppTheme.of(context).secondaryBackground,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: AppTheme.of(context).primaryColor.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return RotationTransition(
+              turns: animation,
+              child: ScaleTransition(
+                scale: animation,
+                child: child,
+              ),
+            );
+          },
+          child: Icon(
+            isDark ? Icons.dark_mode : Icons.light_mode,
+            key: ValueKey(isDark),
+            color: AppTheme.of(context).primaryColor,
+            size: 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterThemeSwitch() {
+    final isDark = AppTheme.themeMode == ThemeMode.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.of(context).secondaryBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.of(context).primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildFooterThemeOption(
+              icon: Icons.light_mode,
+              label: 'Claro',
+              isSelected: !isDark,
+              onTap: () => _switchTheme(ThemeMode.light),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 40,
+            color: AppTheme.of(context).primaryColor.withOpacity(0.2),
+          ),
+          Expanded(
+            child: _buildFooterThemeOption(
+              icon: Icons.dark_mode,
+              label: 'Oscuro',
+              isSelected: isDark,
+              onTap: () => _switchTheme(ThemeMode.dark),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooterThemeOption({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.of(context).primaryColor.withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected
+                  ? AppTheme.of(context).primaryColor
+                  : AppTheme.of(context).secondaryText,
+              size: 16,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? AppTheme.of(context).primaryColor
+                    : AppTheme.of(context).secondaryText,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _switchTheme(ThemeMode mode) {
+    AppTheme.saveThemeMode(mode);
+    // Forzar rebuild de la aplicación
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _handleMenuTap(

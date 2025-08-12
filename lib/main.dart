@@ -79,30 +79,34 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return Portal(
-      child: MaterialApp.router(
-        title: 'NETHIVE',
-        debugShowCheckedModeBanner: false,
-        locale: _locale,
-        localizationsDelegates: const [
-          AppLocalizationsDelegate(),
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('en', 'US')],
-        theme: ThemeData(
-          brightness: Brightness.light,
-          dividerColor: Colors.grey,
-        ),
-        darkTheme: ThemeData(
-          brightness: Brightness.dark,
-          dividerColor: Colors.grey,
-        ),
-        themeMode: _themeMode,
-        routerConfig: router,
-        scrollBehavior: MyCustomScrollBehavior(),
-      ),
+    return Consumer<ThemeConfigProvider>(
+      builder: (context, themeProvider, child) {
+        return Portal(
+          child: MaterialApp.router(
+            title: 'NETHIVE',
+            debugShowCheckedModeBanner: false,
+            locale: _locale,
+            localizationsDelegates: const [
+              AppLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en', 'US')],
+            theme: ThemeData(
+              brightness: Brightness.light,
+              dividerColor: Colors.grey,
+            ),
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              dividerColor: Colors.grey,
+            ),
+            themeMode: _themeMode,
+            routerConfig: router,
+            scrollBehavior: MyCustomScrollBehavior(),
+          ),
+        );
+      },
     );
   }
 }
