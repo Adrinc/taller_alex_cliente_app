@@ -13,6 +13,7 @@ import 'package:nethive_neo/providers/users_provider.dart';
 import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/providers/nethive/navigation_provider.dart';
+import 'package:nethive_neo/providers/theme_config_provider.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:url_strategy/url_strategy.dart';
 
@@ -48,6 +49,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => EmpresasNegociosProvider()),
         ChangeNotifierProvider(create: (_) => ComponentesProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeConfigProvider()),
       ],
       child: const MyApp(),
     ),

@@ -31,7 +31,7 @@ dependencies:
   provider: ^6.1.1
   random_password_generator: ^0.2.1
   email_validator: ^3.0.0
-  file_picker: ^8.0.5
+  file_picker: ^10.3.0
   flutter_side_menu: ^0.4.0
   auto_size_text: ^3.0.0
   url_launcher: ^6.2.0
@@ -74,6 +74,10 @@ dependencies:
   flutter_graph_view: ^1.1.6
   flutter_animate: ^4.2.0
   flutter_flow_chart: 3.2.3
+  flutter_colorpicker: ^1.1.0
+  flutter_staggered_grid_view: ^0.7.0
+  animated_theme_switcher: ^2.0.10
+  material_design_icons_flutter: ^7.0.7296
 
 dev_dependencies:
   flutter_test:
