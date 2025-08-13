@@ -623,11 +623,8 @@ class _InfrastructureSidemenuState extends State<InfrastructureSidemenu>
   }
 
   void _switchTheme(ThemeMode mode) {
-    AppTheme.saveThemeMode(mode);
-    // Forzar rebuild de la aplicación
-    if (mounted) {
-      setState(() {});
-    }
+    // Usar la función de tema global para cambiar el modo
+    setDarkModeSetting(context, mode);
   }
 
   void _handleMenuTap(

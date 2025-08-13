@@ -213,7 +213,7 @@ class SavedThemesTab extends StatelessWidget {
   Widget _buildThemeCard(BuildContext context, ThemeConfigProvider provider,
       Map<String, dynamic> theme) {
     final config = theme['config'] as Map<String, dynamic>;
-    
+
     // Extraer colores de manera compatible con ambas estructuras
     final lightColors = _extractColors(config['light']);
     final darkColors = _extractColors(config['dark']);
@@ -453,7 +453,7 @@ class SavedThemesTab extends StatelessWidget {
   /// Extrae colores de manera compatible con ambas estructuras (nueva y antigua)
   Map<String, dynamic> _extractColors(Map<String, dynamic>? modeConfig) {
     if (modeConfig == null) return {};
-    
+
     // Verificar si tiene la estructura nueva (con 'colors' anidado)
     if (modeConfig.containsKey('colors')) {
       // Estructura nueva: config['light']['colors']['primary']
@@ -463,13 +463,16 @@ class SavedThemesTab extends StatelessWidget {
       // Mapear los nombres de la estructura antigua a la nueva
       return {
         'primary': modeConfig['primary'] ?? modeConfig['primaryColor'],
-        'secondary': modeConfig['secondary'] ?? modeConfig['secondaryColor'], 
+        'secondary': modeConfig['secondary'] ?? modeConfig['secondaryColor'],
         'tertiary': modeConfig['tertiary'] ?? modeConfig['tertiaryColor'],
         'accent': modeConfig['primaryContainer'] ?? modeConfig['alternate'],
-        'primaryBackground': modeConfig['surface'] ?? modeConfig['primaryBackground'],
-        'secondaryBackground': modeConfig['surfaceContainer'] ?? modeConfig['secondaryBackground'],
+        'primaryBackground':
+            modeConfig['surface'] ?? modeConfig['primaryBackground'],
+        'secondaryBackground':
+            modeConfig['surfaceContainer'] ?? modeConfig['secondaryBackground'],
         'primaryText': modeConfig['onSurface'] ?? modeConfig['primaryText'],
-        'secondaryText': modeConfig['onSurfaceVariant'] ?? modeConfig['secondaryText'],
+        'secondaryText':
+            modeConfig['onSurfaceVariant'] ?? modeConfig['secondaryText'],
         'error': modeConfig['error'],
       };
     }
