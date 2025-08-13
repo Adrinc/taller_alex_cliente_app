@@ -88,6 +88,18 @@ class _TopologiaPageState extends State<TopologiaPage>
       blockDefaultZoomGestures: false,
       minimumZoomFactor: 0.25,
     );
+
+    // Intentar configurar fondo del grid después de la inicialización
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        dashboard.setGridBackgroundParams(GridBackgroundParams(
+          backgroundColor: Colors.transparent,
+          gridThickness: 0.0,
+        ));
+      } catch (e) {
+        print('Error configurando fondo del dashboard: $e');
+      }
+    });
   }
 
   @override
@@ -514,7 +526,7 @@ class _TopologiaPageState extends State<TopologiaPage>
       bool isMediumScreen, ComponentesProvider provider) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1117), // Fondo oscuro profesional tipo GitHub
+        color: const Color(0xFF0D1117), // Fondo oscuro profesional
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppTheme.of(context).primaryColor.withOpacity(0.2),
@@ -573,25 +585,53 @@ class _TopologiaPageState extends State<TopologiaPage>
       future: _buildNetworkTopologyFromData(provider),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
+          return Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/blueprint2.jpg'),
+                fit: BoxFit.fill, // Consistente para llenar todo el espacio
+                opacity: 0.3,
+              ),
+            ),
+            child: Container(
+              color: const Color(0xFF0D1117).withOpacity(0.6),
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
           );
         }
 
-        return FlowChart(
-          dashboard: dashboard,
-          onElementPressed: (context, position, element) {
-            _showElementDetails(element, provider);
-          },
-          onElementLongPressed: (context, position, element) {
-            _showElementContextMenu(context, position, element, provider);
-          },
-          onNewConnection: (source, target) {
-            _handleNewConnection(source, target, provider);
-          },
-          onDashboardTapped: (context, position) {
-            // Limpiar selecciones
-          },
+        return DecoratedBox(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/blueprint2.jpg'),
+              fit: BoxFit.fill, // Cambiar a cover para llenar todo el espacio
+              opacity: 0.6,
+            ),
+          ),
+          child: ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              const Color(0xFF0D1117)
+                  .withOpacity(0.3), // Filtro oscuro semi-transparente
+              BlendMode.overlay,
+            ),
+            child: FlowChart(
+              dashboard: dashboard,
+              onElementPressed: (context, position, element) {
+                _showElementDetails(element, provider);
+              },
+              onElementLongPressed: (context, position, element) {
+                _showElementContextMenu(context, position, element, provider);
+              },
+              onNewConnection: (source, target) {
+                _handleNewConnection(source, target, provider);
+              },
+              onDashboardTapped: (context, position) {
+                // Limpiar selecciones
+              },
+            ),
+          ),
         )
             .animate()
             .fadeIn(duration: 800.ms)
