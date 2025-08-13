@@ -152,32 +152,19 @@ class ThemeConfigProvider extends ChangeNotifier {
 
   // Método público para recargar el tema después del login
   Future<void> reloadUserTheme() async {
-    print('🔄 [reloadUserTheme] Recargando tema del usuario...');
     await loadCurrentTheme();
-    print('🔄 [reloadUserTheme] Tema recargado completamente');
   }
 
   // Cargar configuración actual desde Supabase
   Future<void> loadCurrentTheme() async {
-    print('🎨 [ThemeConfigProvider] Iniciando loadCurrentTheme...');
     _setLoading(true);
     try {
       // Obtener el tema del usuario usando el nuevo flujo
-      print('🎨 [ThemeConfigProvider] Obteniendo tema del usuario...');
       final userTheme = await SupabaseQueries.getUserTheme();
 
-      print('🎨 [ThemeConfigProvider] Tema obtenido: ${userTheme?.toJson()}');
-
       if (userTheme?.config != null) {
-        print('🎨 [ThemeConfigProvider] Procesando configuración del tema...');
         // Convertir Configuration a Map<String, dynamic> para el provider
         final config = userTheme!.config!;
-
-        print(
-            '🎨 [ThemeConfigProvider] Config light: ${config.light?.toJson()}');
-        print('🎨 [ThemeConfigProvider] Config dark: ${config.dark?.toJson()}');
-        print(
-            '🎨 [ThemeConfigProvider] Config logos: ${config.logos?.toJson()}');
 
         _currentConfig = {
           'name': 'Tema del Usuario',
@@ -195,35 +182,21 @@ class ThemeConfigProvider extends ChangeNotifier {
           },
         };
 
-        print(
-            '🎨 [ThemeConfigProvider] Configuración procesada: $_currentConfig');
-
         await _loadLogos();
         log('Tema del usuario cargado exitosamente en ThemeConfigProvider');
-        print('✅ [ThemeConfigProvider] Tema del usuario cargado exitosamente');
 
         // ¡IMPORTANTE! Aplicar la configuración al AppTheme
-        print(
-            '🎨 [ThemeConfigProvider] Aplicando configuración al AppTheme...');
-        print(
-            '🎨 [ThemeConfigProvider] userTheme antes de aplicar: ${userTheme.toJson()}');
         AppTheme.initConfiguration(userTheme);
-        print(
-            '🎨 [ThemeConfigProvider] Configuración aplicada al AppTheme exitosamente');
       } else {
         log('No se pudo cargar el tema del usuario, usando configuración por defecto');
-        print(
-            '⚠️ [ThemeConfigProvider] No se pudo cargar el tema, usando configuración por defecto');
         _currentConfig = Map<String, dynamic>.from(defaultConfig);
       }
     } catch (e) {
       log('Error loading current theme: $e');
-      print('🔴 [ThemeConfigProvider] Error loading current theme: $e');
       // Si no existe configuración, mantener la por defecto
       _currentConfig = Map<String, dynamic>.from(defaultConfig);
     } finally {
       _setLoading(false);
-      print('🎨 [ThemeConfigProvider] loadCurrentTheme completado');
     }
   } // Cargar logos desde storage
 
@@ -276,12 +249,10 @@ class ThemeConfigProvider extends ChangeNotifier {
 
     // Al modificar, se convierte en tema temporal
     _currentThemeId = null;
-    print('🎨 [updateColor] Tema convertido a temporal debido a modificación');
 
     notifyListeners();
-  }
+  } // Actualizar fuente
 
-  // Actualizar fuente
   void updateFont(String mode, String fontFamily) {
     if (_currentConfig[mode] == null) _currentConfig[mode] = {};
     if (_currentConfig[mode]['typography'] == null)
@@ -291,7 +262,6 @@ class ThemeConfigProvider extends ChangeNotifier {
 
     // Al modificar, se convierte en tema temporal
     _currentThemeId = null;
-    print('🎨 [updateFont] Tema convertido a temporal debido a modificación');
 
     notifyListeners();
   }
@@ -303,8 +273,6 @@ class ThemeConfigProvider extends ChangeNotifier {
 
     // Al modificar, se convierte en tema temporal
     _currentThemeId = null;
-    print(
-        '🎨 [updateIconStyle] Tema convertido a temporal debido a modificación');
 
     notifyListeners();
   }
@@ -432,8 +400,6 @@ class ThemeConfigProvider extends ChangeNotifier {
 
       // Aplicar automáticamente el tema cargado
       await _updateGlobalTheme();
-
-      print('🎨 [loadTheme] Tema cargado y aplicado: ID $themeId');
     } catch (e) {
       log('Error loading theme: $e');
       _setError('Error al cargar tema');
@@ -495,27 +461,18 @@ class ThemeConfigProvider extends ChangeNotifier {
   // Aplicar tema al sistema
   Future<void> applyTheme() async {
     try {
-      print('🎨 [applyTheme] Iniciando aplicación de tema...');
-      print('🎨 [applyTheme] currentThemeId: $_currentThemeId');
-
       if (_currentThemeId != null) {
         // Es un tema guardado - actualizar user_profile.theme_fk
-        print('🎨 [applyTheme] Aplicando tema guardado ID: $_currentThemeId');
         await _updateUserTheme(_currentThemeId!);
       } else {
         // Es un tema temporal - solo aplicar visualmente
-        print('🎨 [applyTheme] Aplicando tema temporal (solo visual)');
         await _updateGlobalTheme();
       }
 
-      print('🎨 [applyTheme] Tema aplicado exitosamente');
-
       // Forzar notificación para asegurar que todos los widgets se actualicen
       notifyListeners();
-      print('🎨 [applyTheme] notifyListeners() ejecutado');
     } catch (e) {
       log('Error applying theme: $e');
-      print('🔴 [applyTheme] Error: $e');
       _setError('Error al aplicar tema');
       notifyListeners(); // También notificar en caso de error
     }
@@ -529,9 +486,6 @@ class ThemeConfigProvider extends ChangeNotifier {
         throw Exception('Usuario no autenticado');
       }
 
-      print(
-          '🎨 [_updateUserTheme] Actualizando user_profile.theme_fk a $themeId para usuario ${user.id}');
-
       await supabase
           .from('user_profile')
           .update({'theme_fk': themeId})
@@ -541,11 +495,9 @@ class ThemeConfigProvider extends ChangeNotifier {
       // También aplicar el tema visualmente
       await _updateGlobalTheme();
 
-      print('🎨 [_updateUserTheme] Usuario actualizado exitosamente');
       log('Theme applied to user successfully - ID: $themeId');
     } catch (e) {
       log('Error updating user theme: $e');
-      print('🔴 [_updateUserTheme] Error: $e');
       throw e;
     }
   }
@@ -553,26 +505,18 @@ class ThemeConfigProvider extends ChangeNotifier {
   // Método para actualizar el tema global de la aplicación
   Future<void> _updateGlobalTheme() async {
     try {
-      print(
-          '🎨 [_updateGlobalTheme] Iniciando actualización del tema global...');
-
       // Importar las clases necesarias
       final Configuration configuration = _convertToConfiguration();
-      print('🎨 [_updateGlobalTheme] Configuration creada exitosamente');
 
       // Actualizar AppTheme
       AppTheme.initConfiguration(configuration);
-      print('🎨 [_updateGlobalTheme] AppTheme.initConfiguration() ejecutado');
 
       // Notificar a todos los widgets que el tema ha cambiado
       notifyListeners();
-      print('🎨 [_updateGlobalTheme] notifyListeners() ejecutado');
 
       log('Global theme updated successfully');
-      print('🎨 [_updateGlobalTheme] Tema global actualizado exitosamente');
     } catch (e) {
       log('Error updating global theme: $e');
-      print('🔴 [_updateGlobalTheme] Error: $e');
     }
   }
 
@@ -715,10 +659,7 @@ class ThemeConfigProvider extends ChangeNotifier {
 
   // Métodos auxiliares para convertir Configuration a Map
   Map<String, String?> _extractColors(Mode? mode) {
-    print('🎨 [_extractColors] Extrayendo colores de mode: ${mode?.toJson()}');
-
     if (mode == null) {
-      print('🎨 [_extractColors] Mode es null, retornando mapa vacío');
       return {};
     }
 
@@ -736,17 +677,12 @@ class ThemeConfigProvider extends ChangeNotifier {
       'hintText': mode.hintText,
     };
 
-    print('🎨 [_extractColors] Colores extraídos: $colors');
     return colors;
   }
 
   Map<String, String?> _extractTypography(Mode? mode) {
-    print(
-        '🎨 [_extractTypography] Extrayendo tipografía de mode: ${mode?.toJson()}');
-
     // Para tipografía, usando colores de texto como base
     if (mode == null) {
-      print('🎨 [_extractTypography] Mode es null, retornando mapa vacío');
       return {};
     }
 
@@ -757,15 +693,11 @@ class ThemeConfigProvider extends ChangeNotifier {
       'bodyColor': mode.secondaryText,
     };
 
-    print('🎨 [_extractTypography] Tipografía extraída: $typography');
     return typography;
   }
 
   /// Convierte del formato del provider (nuevo) al formato antiguo para guardar en BD
   Map<String, dynamic> _convertToOldFormat(Map<String, dynamic> currentConfig) {
-    print('🔄 [_convertToOldFormat] Convirtiendo al formato antiguo...');
-    print('🔄 [_convertToOldFormat] Input: $currentConfig');
-
     final converted = <String, dynamic>{};
 
     // Convertir light mode
@@ -829,7 +761,6 @@ class ThemeConfigProvider extends ChangeNotifier {
       converted['logos']['logoBlanco'] = currentConfig['dark']['logo'];
     }
 
-    print('🔄 [_convertToOldFormat] Resultado: $converted');
     return converted;
   }
 }

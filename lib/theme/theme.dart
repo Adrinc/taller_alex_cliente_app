@@ -24,23 +24,10 @@ abstract class AppTheme {
   static DarkModeTheme darkTheme = DarkModeTheme();
 
   static void initConfiguration(Configuration? conf) {
-    print('🎨 [AppTheme] Inicializando configuración...');
-    print('🎨 [AppTheme] Configuration recibida: ${conf?.toJson()}');
-
     if (conf?.config != null) {
-      print('🎨 [AppTheme] Config no es null, procesando...');
-      print('🎨 [AppTheme] Light mode: ${conf!.config!.light?.toJson()}');
-      print('🎨 [AppTheme] Dark mode: ${conf.config!.dark?.toJson()}');
-
-      lightTheme = LightModeTheme(mode: conf.config!.light);
+      lightTheme = LightModeTheme(mode: conf!.config!.light);
       darkTheme = DarkModeTheme(mode: conf.config!.dark);
-
-      print('🎨 [AppTheme] Temas actualizados exitosamente');
-      print('🎨 [AppTheme] Light primaryColor: ${lightTheme.primaryColor}');
-      print('🎨 [AppTheme] Dark primaryColor: ${darkTheme.primaryColor}');
     } else {
-      print(
-          '⚠️ [AppTheme] Configuration o config es null, usando temas por defecto');
       lightTheme = LightModeTheme();
       darkTheme = DarkModeTheme();
     }
@@ -189,26 +176,12 @@ class LightModeTheme extends AppTheme {
       const Color(0xFF10B981).withOpacity(.05); // Fondo de formularios
 
   LightModeTheme({Mode? mode}) {
-    print(
-        '🎨 [LightModeTheme] Constructor llamado con mode: ${mode?.toJson()}');
-
     if (mode != null) {
-      print('🎨 [LightModeTheme] Aplicando colores personalizados...');
       primaryColor = hexToColor(mode.primaryColor!);
       secondaryColor = hexToColor(mode.secondaryColor!);
       tertiaryColor = hexToColor(mode.tertiaryColor!);
       primaryText = hexToColor(mode.primaryText!);
       primaryBackground = hexToColor(mode.primaryBackground!);
-
-      print('🎨 [LightModeTheme] Colores aplicados:');
-      print('  - primaryColor: ${mode.primaryColor} -> $primaryColor');
-      print('  - secondaryColor: ${mode.secondaryColor} -> $secondaryColor');
-      print('  - tertiaryColor: ${mode.tertiaryColor} -> $tertiaryColor');
-      print('  - primaryText: ${mode.primaryText} -> $primaryText');
-      print(
-          '  - primaryBackground: ${mode.primaryBackground} -> $primaryBackground');
-    } else {
-      print('🎨 [LightModeTheme] Mode es null, usando colores por defecto');
     }
   }
 }
@@ -282,25 +255,12 @@ class DarkModeTheme extends AppTheme {
       );
 
   DarkModeTheme({Mode? mode}) {
-    print('🎨 [DarkModeTheme] Constructor llamado con mode: ${mode?.toJson()}');
-
     if (mode != null) {
-      print('🎨 [DarkModeTheme] Aplicando colores personalizados...');
       primaryColor = hexToColor(mode.primaryColor!);
       secondaryColor = hexToColor(mode.secondaryColor!);
       tertiaryColor = hexToColor(mode.tertiaryColor!);
       primaryText = hexToColor(mode.primaryText!);
       primaryBackground = hexToColor(mode.primaryBackground!);
-
-      print('🎨 [DarkModeTheme] Colores aplicados:');
-      print('  - primaryColor: ${mode.primaryColor} -> $primaryColor');
-      print('  - secondaryColor: ${mode.secondaryColor} -> $secondaryColor');
-      print('  - tertiaryColor: ${mode.tertiaryColor} -> $tertiaryColor');
-      print('  - primaryText: ${mode.primaryText} -> $primaryText');
-      print(
-          '  - primaryBackground: ${mode.primaryBackground} -> $primaryBackground');
-    } else {
-      print('🎨 [DarkModeTheme] Mode es null, usando colores por defecto');
     }
   }
 }

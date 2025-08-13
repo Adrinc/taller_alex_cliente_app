@@ -109,12 +109,9 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
           ),
           child: Consumer2<NavigationProvider, ThemeConfigProvider>(
             builder: (context, navigationProvider, themeProvider, child) {
-              print('🎨 [InfrastructureLayout] Rebuild por cambio de tema');
-
               if (navigationProvider.negocioSeleccionado == null) {
                 return _buildLoadingScreen();
               }
-
               if (isMediumScreen) {
                 // Vista desktop/tablet
                 return Row(

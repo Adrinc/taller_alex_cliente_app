@@ -54,8 +54,6 @@ class _InfrastructureSidemenuState extends State<InfrastructureSidemenu>
       opacity: _fadeAnimation,
       child: Consumer2<NavigationProvider, ThemeConfigProvider>(
         builder: (context, navigationProvider, themeProvider, child) {
-          print('🎨 [InfrastructureSidemenu] Rebuild por cambio de tema');
-
           return Container(
             width: widget.isExpanded ? 280 : 80,
             decoration: BoxDecoration(
