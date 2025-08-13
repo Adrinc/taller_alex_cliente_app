@@ -509,10 +509,15 @@ class ThemeConfigProvider extends ChangeNotifier {
       }
 
       print('🎨 [applyTheme] Tema aplicado exitosamente');
+
+      // Forzar notificación para asegurar que todos los widgets se actualicen
+      notifyListeners();
+      print('🎨 [applyTheme] notifyListeners() ejecutado');
     } catch (e) {
       log('Error applying theme: $e');
       print('🔴 [applyTheme] Error: $e');
       _setError('Error al aplicar tema');
+      notifyListeners(); // También notificar en caso de error
     }
   }
 
@@ -548,18 +553,26 @@ class ThemeConfigProvider extends ChangeNotifier {
   // Método para actualizar el tema global de la aplicación
   Future<void> _updateGlobalTheme() async {
     try {
+      print(
+          '🎨 [_updateGlobalTheme] Iniciando actualización del tema global...');
+
       // Importar las clases necesarias
       final Configuration configuration = _convertToConfiguration();
+      print('🎨 [_updateGlobalTheme] Configuration creada exitosamente');
 
       // Actualizar AppTheme
       AppTheme.initConfiguration(configuration);
+      print('🎨 [_updateGlobalTheme] AppTheme.initConfiguration() ejecutado');
 
       // Notificar a todos los widgets que el tema ha cambiado
       notifyListeners();
+      print('🎨 [_updateGlobalTheme] notifyListeners() ejecutado');
 
       log('Global theme updated successfully');
+      print('🎨 [_updateGlobalTheme] Tema global actualizado exitosamente');
     } catch (e) {
       log('Error updating global theme: $e');
+      print('🔴 [_updateGlobalTheme] Error: $e');
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:gap/gap.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nethive_neo/providers/nethive/navigation_provider.dart';
+import 'package:nethive_neo/providers/theme_config_provider.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class InfrastructureSidemenu extends StatefulWidget {
@@ -51,8 +52,10 @@ class _InfrastructureSidemenuState extends State<InfrastructureSidemenu>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: Consumer<NavigationProvider>(
-        builder: (context, navigationProvider, child) {
+      child: Consumer2<NavigationProvider, ThemeConfigProvider>(
+        builder: (context, navigationProvider, themeProvider, child) {
+          print('🎨 [InfrastructureSidemenu] Rebuild por cambio de tema');
+
           return Container(
             width: widget.isExpanded ? 280 : 80,
             decoration: BoxDecoration(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:nethive_neo/providers/nethive/navigation_provider.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
+import 'package:nethive_neo/providers/theme_config_provider.dart';
 import 'package:nethive_neo/pages/infrastructure/widgets/infrastructure_sidemenu.dart';
 import 'package:nethive_neo/pages/infrastructure/widgets/mobile_navigation_modal.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/dashboard_page.dart';
@@ -106,8 +107,10 @@ class _InfrastructureLayoutState extends State<InfrastructureLayout>
           decoration: BoxDecoration(
             gradient: AppTheme.of(context).darkBackgroundGradient,
           ),
-          child: Consumer<NavigationProvider>(
-            builder: (context, navigationProvider, child) {
+          child: Consumer2<NavigationProvider, ThemeConfigProvider>(
+            builder: (context, navigationProvider, themeProvider, child) {
+              print('🎨 [InfrastructureLayout] Rebuild por cambio de tema');
+
               if (navigationProvider.negocioSeleccionado == null) {
                 return _buildLoadingScreen();
               }
