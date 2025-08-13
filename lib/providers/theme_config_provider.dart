@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:nethive_neo/helpers/globals.dart';
+import 'package:nethive_neo/helpers/supabase/queries.dart';
 import 'package:nethive_neo/models/configuration.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
@@ -18,6 +19,9 @@ class ThemeConfigProvider extends ChangeNotifier {
   // Configuración actual
   Map<String, dynamic> _currentConfig = {};
   List<Map<String, dynamic>> _savedThemes = [];
+
+  // Tracking del tema activo
+  int? _currentThemeId; // ID del tema activo (null si es temporal)
 
   // Modo preview
   ThemeMode _previewMode = ThemeMode.light;
@@ -43,6 +47,7 @@ class ThemeConfigProvider extends ChangeNotifier {
   String? get darkLogoUrl => _darkLogoUrl;
   Uint8List? get lightLogoBytes => _lightLogoBytes;
   Uint8List? get darkLogoBytes => _darkLogoBytes;
+  int? get currentThemeId => _currentThemeId; // ID del tema activo
 
   // Configuración por defecto
   Map<String, dynamic> get defaultConfig => {
@@ -141,35 +146,87 @@ class ThemeConfigProvider extends ChangeNotifier {
     _currentConfig = Map<String, dynamic>.from(defaultConfig);
     notifyListeners(); // Notificar que la configuración por defecto está lista
     loadSavedThemes();
-    loadCurrentTheme();
+    // No cargar tema del usuario automáticamente en la inicialización
+    // Se cargará cuando el usuario inicie sesión
+  }
+
+  // Método público para recargar el tema después del login
+  Future<void> reloadUserTheme() async {
+    print('🔄 [reloadUserTheme] Recargando tema del usuario...');
+    await loadCurrentTheme();
+    print('🔄 [reloadUserTheme] Tema recargado completamente');
   }
 
   // Cargar configuración actual desde Supabase
   Future<void> loadCurrentTheme() async {
+    print('🎨 [ThemeConfigProvider] Iniciando loadCurrentTheme...');
     _setLoading(true);
     try {
-      final response = await supabase
-          .from('theme')
-          .select('config')
-          .eq('organization_fk', organizationId)
-          .single();
+      // Obtener el tema del usuario usando el nuevo flujo
+      print('🎨 [ThemeConfigProvider] Obteniendo tema del usuario...');
+      final userTheme = await SupabaseQueries.getUserTheme();
 
-      if (response['config'] != null) {
-        final savedConfig = Map<String, dynamic>.from(response['config']);
-        // Merge con la configuración por defecto para asegurar que no falten valores
-        _currentConfig = _mergeConfigs(defaultConfig, savedConfig);
+      print('🎨 [ThemeConfigProvider] Tema obtenido: ${userTheme?.toJson()}');
+
+      if (userTheme?.config != null) {
+        print('🎨 [ThemeConfigProvider] Procesando configuración del tema...');
+        // Convertir Configuration a Map<String, dynamic> para el provider
+        final config = userTheme!.config!;
+
+        print(
+            '🎨 [ThemeConfigProvider] Config light: ${config.light?.toJson()}');
+        print('🎨 [ThemeConfigProvider] Config dark: ${config.dark?.toJson()}');
+        print(
+            '🎨 [ThemeConfigProvider] Config logos: ${config.logos?.toJson()}');
+
+        _currentConfig = {
+          'name': 'Tema del Usuario',
+          'light': {
+            'colors': _extractColors(config.light),
+            'typography': _extractTypography(config.light),
+            'logo': config.logos?.logoColor,
+            'iconStyle': 'material',
+          },
+          'dark': {
+            'colors': _extractColors(config.dark),
+            'typography': _extractTypography(config.dark),
+            'logo': config.logos?.logoBlanco,
+            'iconStyle': 'material',
+          },
+        };
+
+        print(
+            '🎨 [ThemeConfigProvider] Configuración procesada: $_currentConfig');
+
         await _loadLogos();
+        log('Tema del usuario cargado exitosamente en ThemeConfigProvider');
+        print('✅ [ThemeConfigProvider] Tema del usuario cargado exitosamente');
+
+        // ¡IMPORTANTE! Aplicar la configuración al AppTheme
+        print(
+            '🎨 [ThemeConfigProvider] Aplicando configuración al AppTheme...');
+        print(
+            '🎨 [ThemeConfigProvider] userTheme antes de aplicar: ${userTheme.toJson()}');
+        AppTheme.initConfiguration(userTheme);
+        print(
+            '🎨 [ThemeConfigProvider] Configuración aplicada al AppTheme exitosamente');
+      } else {
+        log('No se pudo cargar el tema del usuario, usando configuración por defecto');
+        print(
+            '⚠️ [ThemeConfigProvider] No se pudo cargar el tema, usando configuración por defecto');
+        _currentConfig = Map<String, dynamic>.from(defaultConfig);
       }
     } catch (e) {
       log('Error loading current theme: $e');
+      print('🔴 [ThemeConfigProvider] Error loading current theme: $e');
       // Si no existe configuración, mantener la por defecto
       _currentConfig = Map<String, dynamic>.from(defaultConfig);
     } finally {
       _setLoading(false);
+      print('🎨 [ThemeConfigProvider] loadCurrentTheme completado');
     }
-  }
+  } // Cargar logos desde storage
 
-  // Cargar logos desde storage
   Future<void> _loadLogos() async {
     try {
       final lightLogo = _currentConfig['light']?['logo'];
@@ -216,6 +273,11 @@ class ThemeConfigProvider extends ChangeNotifier {
 
     _currentConfig[mode]['colors'][colorKey] =
         '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+
+    // Al modificar, se convierte en tema temporal
+    _currentThemeId = null;
+    print('🎨 [updateColor] Tema convertido a temporal debido a modificación');
+
     notifyListeners();
   }
 
@@ -226,6 +288,11 @@ class ThemeConfigProvider extends ChangeNotifier {
       _currentConfig[mode]['typography'] = {};
 
     _currentConfig[mode]['typography']['fontFamily'] = fontFamily;
+
+    // Al modificar, se convierte en tema temporal
+    _currentThemeId = null;
+    print('🎨 [updateFont] Tema convertido a temporal debido a modificación');
+
     notifyListeners();
   }
 
@@ -233,6 +300,12 @@ class ThemeConfigProvider extends ChangeNotifier {
   void updateIconStyle(String mode, String iconStyle) {
     if (_currentConfig[mode] == null) _currentConfig[mode] = {};
     _currentConfig[mode]['iconStyle'] = iconStyle;
+
+    // Al modificar, se convierte en tema temporal
+    _currentThemeId = null;
+    print(
+        '🎨 [updateIconStyle] Tema convertido a temporal debido a modificación');
+
     notifyListeners();
   }
 
@@ -317,11 +390,16 @@ class ThemeConfigProvider extends ChangeNotifier {
       // Actualizar nombre del tema
       _currentConfig['name'] = themeName;
 
+      // Convertir al formato antiguo antes de guardar
+      final configToSave = _convertToOldFormat(_currentConfig);
+      print(
+          '🎨 [saveTheme] Guardando configuración en formato antiguo: $configToSave');
+
       // Guardar en Supabase
       await supabase.from('theme').upsert({
         'organization_fk': organizationId,
         'name': themeName,
-        'config': _currentConfig,
+        'config': configToSave,
       });
 
       // Limpiar logos temporales
@@ -349,10 +427,13 @@ class ThemeConfigProvider extends ChangeNotifier {
     try {
       final theme = _savedThemes.firstWhere((theme) => theme['id'] == themeId);
       _currentConfig = Map<String, dynamic>.from(theme['config']);
+      _currentThemeId = themeId; // Trackear el tema activo
       await _loadLogos();
 
       // Aplicar automáticamente el tema cargado
       await _updateGlobalTheme();
+
+      print('🎨 [loadTheme] Tema cargado y aplicado: ID $themeId');
     } catch (e) {
       log('Error loading theme: $e');
       _setError('Error al cargar tema');
@@ -414,19 +495,53 @@ class ThemeConfigProvider extends ChangeNotifier {
   // Aplicar tema al sistema
   Future<void> applyTheme() async {
     try {
-      await supabase.from('theme').upsert({
-        'organization_fk': organizationId,
-        'name': _currentConfig['name'] ?? 'Tema Actual',
-        'config': _currentConfig,
-      });
+      print('🎨 [applyTheme] Iniciando aplicación de tema...');
+      print('🎨 [applyTheme] currentThemeId: $_currentThemeId');
 
-      // Actualizar el AppTheme globalmente
-      await _updateGlobalTheme();
+      if (_currentThemeId != null) {
+        // Es un tema guardado - actualizar user_profile.theme_fk
+        print('🎨 [applyTheme] Aplicando tema guardado ID: $_currentThemeId');
+        await _updateUserTheme(_currentThemeId!);
+      } else {
+        // Es un tema temporal - solo aplicar visualmente
+        print('🎨 [applyTheme] Aplicando tema temporal (solo visual)');
+        await _updateGlobalTheme();
+      }
 
-      log('Theme applied successfully');
+      print('🎨 [applyTheme] Tema aplicado exitosamente');
     } catch (e) {
       log('Error applying theme: $e');
+      print('🔴 [applyTheme] Error: $e');
       _setError('Error al aplicar tema');
+    }
+  }
+
+  // Actualizar el theme_fk del usuario en user_profile
+  Future<void> _updateUserTheme(int themeId) async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      print(
+          '🎨 [_updateUserTheme] Actualizando user_profile.theme_fk a $themeId para usuario ${user.id}');
+
+      await supabase
+          .from('user_profile')
+          .update({'theme_fk': themeId})
+          .eq('user_profile_id', user.id)
+          .eq('organization_fk', organizationId);
+
+      // También aplicar el tema visualmente
+      await _updateGlobalTheme();
+
+      print('🎨 [_updateUserTheme] Usuario actualizado exitosamente');
+      log('Theme applied to user successfully - ID: $themeId');
+    } catch (e) {
+      log('Error updating user theme: $e');
+      print('🔴 [_updateUserTheme] Error: $e');
+      throw e;
     }
   }
 
@@ -585,20 +700,123 @@ class ThemeConfigProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Método para hacer merge de configuraciones manteniendo valores por defecto
-  Map<String, dynamic> _mergeConfigs(
-      Map<String, dynamic> defaultConf, Map<String, dynamic> savedConf) {
-    final merged = Map<String, dynamic>.from(defaultConf);
+  // Métodos auxiliares para convertir Configuration a Map
+  Map<String, String?> _extractColors(Mode? mode) {
+    print('🎨 [_extractColors] Extrayendo colores de mode: ${mode?.toJson()}');
 
-    for (final key in savedConf.keys) {
-      if (savedConf[key] is Map<String, dynamic> &&
-          merged[key] is Map<String, dynamic>) {
-        merged[key] = _mergeConfigs(merged[key], savedConf[key]);
-      } else {
-        merged[key] = savedConf[key];
+    if (mode == null) {
+      print('🎨 [_extractColors] Mode es null, retornando mapa vacío');
+      return {};
+    }
+
+    final colors = {
+      'primary': mode.primaryColor,
+      'secondary': mode.secondaryColor,
+      'tertiary': mode.tertiaryColor,
+      'primaryBackground': mode.primaryBackground,
+      'secondaryBackground': mode.secondaryBackground,
+      'tertiaryBackground': mode.tertiaryBackground,
+      'primaryText': mode.primaryText,
+      'secondaryText': mode.secondaryText,
+      'tertiaryText': mode.tertiaryText,
+      'alternate': mode.alternate,
+      'hintText': mode.hintText,
+    };
+
+    print('🎨 [_extractColors] Colores extraídos: $colors');
+    return colors;
+  }
+
+  Map<String, String?> _extractTypography(Mode? mode) {
+    print(
+        '🎨 [_extractTypography] Extrayendo tipografía de mode: ${mode?.toJson()}');
+
+    // Para tipografía, usando colores de texto como base
+    if (mode == null) {
+      print('🎨 [_extractTypography] Mode es null, retornando mapa vacío');
+      return {};
+    }
+
+    final typography = {
+      'headingFamily': 'Poppins',
+      'bodyFamily': 'Poppins',
+      'headingColor': mode.primaryText,
+      'bodyColor': mode.secondaryText,
+    };
+
+    print('🎨 [_extractTypography] Tipografía extraída: $typography');
+    return typography;
+  }
+
+  /// Convierte del formato del provider (nuevo) al formato antiguo para guardar en BD
+  Map<String, dynamic> _convertToOldFormat(Map<String, dynamic> currentConfig) {
+    print('🔄 [_convertToOldFormat] Convirtiendo al formato antiguo...');
+    print('🔄 [_convertToOldFormat] Input: $currentConfig');
+
+    final converted = <String, dynamic>{};
+
+    // Convertir light mode
+    if (currentConfig['light'] != null) {
+      final lightSection = currentConfig['light'] as Map<String, dynamic>;
+      final lightColors = lightSection['colors'] as Map<String, dynamic>?;
+
+      converted['light'] = <String, dynamic>{};
+
+      if (lightColors != null) {
+        converted['light']['primaryColor'] = lightColors['primary'];
+        converted['light']['secondaryColor'] = lightColors['secondary'];
+        converted['light']['tertiaryColor'] = lightColors['tertiary'];
+        converted['light']['primaryText'] = lightColors['primaryText'];
+        converted['light']['secondaryText'] = lightColors['secondaryText'];
+        converted['light']['tertiaryText'] = lightColors['tertiaryText'];
+        converted['light']['primaryBackground'] =
+            lightColors['primaryBackground'];
+        converted['light']['secondaryBackground'] =
+            lightColors['secondaryBackground'];
+        converted['light']['tertiaryBackground'] =
+            lightColors['tertiaryBackground'];
+        converted['light']['alternate'] = lightColors['alternate'];
+        converted['light']['hintText'] = lightColors['hintText'];
       }
     }
 
-    return merged;
+    // Convertir dark mode
+    if (currentConfig['dark'] != null) {
+      final darkSection = currentConfig['dark'] as Map<String, dynamic>;
+      final darkColors = darkSection['colors'] as Map<String, dynamic>?;
+
+      converted['dark'] = <String, dynamic>{};
+
+      if (darkColors != null) {
+        converted['dark']['primaryColor'] = darkColors['primary'];
+        converted['dark']['secondaryColor'] = darkColors['secondary'];
+        converted['dark']['tertiaryColor'] = darkColors['tertiary'];
+        converted['dark']['primaryText'] = darkColors['primaryText'];
+        converted['dark']['secondaryText'] = darkColors['secondaryText'];
+        converted['dark']['tertiaryText'] = darkColors['tertiaryText'];
+        converted['dark']['primaryBackground'] =
+            darkColors['primaryBackground'];
+        converted['dark']['secondaryBackground'] =
+            darkColors['secondaryBackground'];
+        converted['dark']['tertiaryBackground'] =
+            darkColors['tertiaryBackground'];
+        converted['dark']['alternate'] = darkColors['alternate'];
+        converted['dark']['hintText'] = darkColors['hintText'];
+      }
+    }
+
+    // Agregar logos
+    converted['logos'] = <String, dynamic>{};
+    if (currentConfig['light'] != null &&
+        currentConfig['light']['logo'] != null) {
+      converted['logos']['logoColor'] = currentConfig['light']['logo'];
+    }
+    if (currentConfig['dark'] != null &&
+        currentConfig['dark']['logo'] != null) {
+      converted['logos']['logoBlanco'] = currentConfig['dark']['logo'];
+    }
+
+    print('🔄 [_convertToOldFormat] Resultado: $converted');
+    return converted;
   }
 }

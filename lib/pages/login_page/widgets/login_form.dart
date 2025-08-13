@@ -10,8 +10,8 @@ import 'package:provider/provider.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/helpers/supabase/queries.dart';
 import 'package:nethive_neo/providers/providers.dart';
+import 'package:nethive_neo/providers/theme_config_provider.dart';
 import 'package:nethive_neo/services/api_error_handler.dart';
-import 'package:nethive_neo/theme/theme.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -94,10 +94,24 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
         currentUser = await SupabaseQueries.getCurrentUserData();
 
         if (currentUser == null) {
-          await ApiErrorHandler.callToast();
+          await ApiErrorHandler.callToast('Error al obtener datos del usuario');
           setState(() => _isLoading = false);
           return;
         }
+
+        // Recargar el tema del usuario después de la autenticación
+        log('Usuario autenticado exitosamente: ${currentUser!.id}');
+        print('🚀 [LoginForm] Usuario autenticado: ${currentUser!.id}');
+
+        // Usar el provider para recargar el tema del usuario
+        if (mounted) {
+          print('🚀 [LoginForm] Iniciando recarga de tema...');
+          final themeProvider =
+              Provider.of<ThemeConfigProvider>(context, listen: false);
+          await themeProvider.reloadUserTheme();
+          print('🚀 [LoginForm] Recarga de tema completada');
+        }
+
         /* 
         13: limitado
         14: ilimitado
@@ -110,9 +124,6 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
           return;
         } */
         /* LIMITADO */
-
-        theme = await SupabaseQueries.getUserTheme();
-        AppTheme.initConfiguration(theme);
 
         if (!mounted) return;
 
