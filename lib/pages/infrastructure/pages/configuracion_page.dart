@@ -6,6 +6,7 @@ import 'package:nethive_neo/pages/infrastructure/pages/widgets/configuracion_wid
 import 'package:nethive_neo/pages/infrastructure/pages/widgets/configuracion_widgets/typography_config_tab.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/widgets/configuracion_widgets/logo_config_tab.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/widgets/configuracion_widgets/saved_themes_tab.dart';
+import 'package:nethive_neo/pages/infrastructure/pages/widgets/configuracion_widgets/advanced_schemes_tab.dart';
 import 'package:nethive_neo/pages/infrastructure/pages/widgets/configuracion_widgets/theme_preview_panel.dart';
 
 // Data class para tabs de configuración
@@ -97,6 +98,16 @@ class _ConfiguracionPageState extends State<ConfiguracionPage>
           colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
         ),
         widget: const ColorConfigTab(),
+      ),
+      ConfigTab(
+        id: 'advanced_schemes',
+        title: 'Esquemas Avanzados',
+        subtitle: 'Más de 40 paletas profesionales',
+        icon: Icons.auto_awesome_outlined,
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF6B6B), Color(0xFF4ECDC4)],
+        ),
+        widget: const AdvancedSchemesTab(),
       ),
       ConfigTab(
         id: 'typography',

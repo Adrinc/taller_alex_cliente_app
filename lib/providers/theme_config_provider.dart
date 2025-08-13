@@ -394,7 +394,10 @@ class ThemeConfigProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       final theme = _savedThemes.firstWhere((theme) => theme['id'] == themeId);
-      _currentConfig = Map<String, dynamic>.from(theme['config']);
+      final savedConfig = theme['config'] as Map<String, dynamic>;
+
+      // Convertir de la estructura guardada a la estructura del provider
+      _currentConfig = _convertFromSavedFormat(savedConfig);
       _currentThemeId = themeId; // Trackear el tema activo
       await _loadLogos();
 
@@ -705,23 +708,79 @@ class ThemeConfigProvider extends ChangeNotifier {
       final lightSection = currentConfig['light'] as Map<String, dynamic>;
       final lightColors = lightSection['colors'] as Map<String, dynamic>?;
 
-      converted['light'] = <String, dynamic>{};
-
       if (lightColors != null) {
-        converted['light']['primaryColor'] = lightColors['primary'];
-        converted['light']['secondaryColor'] = lightColors['secondary'];
-        converted['light']['tertiaryColor'] = lightColors['tertiary'];
-        converted['light']['primaryText'] = lightColors['primaryText'];
-        converted['light']['secondaryText'] = lightColors['secondaryText'];
-        converted['light']['tertiaryText'] = lightColors['tertiaryText'];
-        converted['light']['primaryBackground'] =
-            lightColors['primaryBackground'];
-        converted['light']['secondaryBackground'] =
-            lightColors['secondaryBackground'];
-        converted['light']['tertiaryBackground'] =
-            lightColors['tertiaryBackground'];
-        converted['light']['alternate'] = lightColors['alternate'];
-        converted['light']['hintText'] = lightColors['hintText'];
+        // Usar colores base para crear colores derivados según Material Design
+        final primary = lightColors['primary'] ?? '#10B981';
+        final secondary = lightColors['secondary'] ?? '#059669';
+        final tertiary = lightColors['tertiary'] ?? '#0D9488';
+        final surface = lightColors['primaryBackground'] ?? '#FFFFFF';
+        final error = lightColors['error'] ?? '#EF4444';
+
+        converted['light'] = <String, dynamic>{
+          // Colores principales
+          'primary': primary,
+          'onPrimary': '#FFFFFF',
+          'primaryContainer': _lightenColor(primary, 0.8),
+          'onPrimaryContainer': '#000000',
+          'primaryFixed': _lightenColor(primary, 0.9),
+          'onPrimaryFixed': '#000000',
+          'primaryFixedDim': _lightenColor(primary, 0.7),
+          'onPrimaryFixedVariant': '#000000',
+
+          // Colores secundarios
+          'secondary': secondary,
+          'onSecondary': '#FFFFFF',
+          'secondaryContainer': _lightenColor(secondary, 0.8),
+          'onSecondaryContainer': '#000000',
+          'secondaryFixed': _lightenColor(secondary, 0.9),
+          'onSecondaryFixed': '#000000',
+          'secondaryFixedDim': _lightenColor(secondary, 0.7),
+          'onSecondaryFixedVariant': '#000000',
+
+          // Colores terciarios
+          'tertiary': tertiary,
+          'onTertiary': '#FFFFFF',
+          'tertiaryContainer': _lightenColor(tertiary, 0.8),
+          'onTertiaryContainer': '#000000',
+          'tertiaryFixed': _lightenColor(tertiary, 0.9),
+          'onTertiaryFixed': '#000000',
+          'tertiaryFixedDim': _lightenColor(tertiary, 0.7),
+          'onTertiaryFixedVariant': '#000000',
+
+          // Superficies
+          'surface': surface,
+          'onSurface': surface == '#FFFFFF' ? '#000000' : '#FFFFFF',
+          'surfaceContainer': _darkenColor(surface, 0.05),
+          'surfaceContainerHigh': _darkenColor(surface, 0.08),
+          'surfaceContainerHighest': _darkenColor(surface, 0.12),
+          'surfaceContainerLow': _lightenColor(surface, 0.05),
+          'surfaceContainerLowest': _lightenColor(surface, 0.1),
+          'surfaceDim': _darkenColor(surface, 0.06),
+          'surfaceBright': _lightenColor(surface, 0.08),
+          'surfaceTint': primary,
+          'onSurfaceVariant': surface == '#FFFFFF' ? '#393939' : '#CACACA',
+
+          // Error
+          'error': error,
+          'onError': '#FFFFFF',
+          'errorContainer': _lightenColor(error, 0.8),
+          'onErrorContainer': '#000000',
+
+          // Inversed
+          'inversePrimary': _lightenColor(primary, 0.3),
+          'inverseSurface': surface == '#FFFFFF' ? '#2A2A2A' : '#E8E8E8',
+          'onInverseSurface': surface == '#FFFFFF' ? '#F1F1F1' : '#2A2A2A',
+
+          // Outline y otros
+          'outline': '#919191',
+          'outlineVariant': '#D1D1D1',
+          'shadow': '#000000',
+          'scrim': '#000000',
+          'brightness': 'light',
+
+          // AppBar
+          'appBarColor': primary,
+        };
       }
     }
 
@@ -730,27 +789,83 @@ class ThemeConfigProvider extends ChangeNotifier {
       final darkSection = currentConfig['dark'] as Map<String, dynamic>;
       final darkColors = darkSection['colors'] as Map<String, dynamic>?;
 
-      converted['dark'] = <String, dynamic>{};
-
       if (darkColors != null) {
-        converted['dark']['primaryColor'] = darkColors['primary'];
-        converted['dark']['secondaryColor'] = darkColors['secondary'];
-        converted['dark']['tertiaryColor'] = darkColors['tertiary'];
-        converted['dark']['primaryText'] = darkColors['primaryText'];
-        converted['dark']['secondaryText'] = darkColors['secondaryText'];
-        converted['dark']['tertiaryText'] = darkColors['tertiaryText'];
-        converted['dark']['primaryBackground'] =
-            darkColors['primaryBackground'];
-        converted['dark']['secondaryBackground'] =
-            darkColors['secondaryBackground'];
-        converted['dark']['tertiaryBackground'] =
-            darkColors['tertiaryBackground'];
-        converted['dark']['alternate'] = darkColors['alternate'];
-        converted['dark']['hintText'] = darkColors['hintText'];
+        // Usar colores base para crear colores derivados según Material Design
+        final primary = darkColors['primary'] ?? '#10B981';
+        final secondary = darkColors['secondary'] ?? '#059669';
+        final tertiary = darkColors['tertiary'] ?? '#0D9488';
+        final surface = darkColors['primaryBackground'] ?? '#080808';
+        final error = darkColors['error'] ?? '#CF6679';
+
+        converted['dark'] = <String, dynamic>{
+          // Colores principales
+          'primary': primary,
+          'onPrimary': '#000000',
+          'primaryContainer': _darkenColor(primary, 0.3),
+          'onPrimaryContainer': '#FFFFFF',
+          'primaryFixed': _lightenColor(primary, 0.8),
+          'onPrimaryFixed': '#000000',
+          'primaryFixedDim': _lightenColor(primary, 0.6),
+          'onPrimaryFixedVariant': '#000000',
+
+          // Colores secundarios
+          'secondary': secondary,
+          'onSecondary': '#000000',
+          'secondaryContainer': _darkenColor(secondary, 0.3),
+          'onSecondaryContainer': '#FFFFFF',
+          'secondaryFixed': _lightenColor(secondary, 0.8),
+          'onSecondaryFixed': '#000000',
+          'secondaryFixedDim': _lightenColor(secondary, 0.6),
+          'onSecondaryFixedVariant': '#000000',
+
+          // Colores terciarios
+          'tertiary': tertiary,
+          'onTertiary': '#000000',
+          'tertiaryContainer': _darkenColor(tertiary, 0.3),
+          'onTertiaryContainer': '#FFFFFF',
+          'tertiaryFixed': _lightenColor(tertiary, 0.8),
+          'onTertiaryFixed': '#000000',
+          'tertiaryFixedDim': _lightenColor(tertiary, 0.6),
+          'onTertiaryFixedVariant': '#000000',
+
+          // Superficies
+          'surface': surface,
+          'onSurface': '#F1F1F1',
+          'surfaceContainer': _lightenColor(surface, 0.15),
+          'surfaceContainerHigh': _lightenColor(surface, 0.25),
+          'surfaceContainerHighest': _lightenColor(surface, 0.35),
+          'surfaceContainerLow': _lightenColor(surface, 0.08),
+          'surfaceContainerLowest': _darkenColor(surface, 0.02),
+          'surfaceDim': _darkenColor(surface, 0.02),
+          'surfaceBright': _lightenColor(surface, 0.4),
+          'surfaceTint': primary,
+          'onSurfaceVariant': '#CACACA',
+
+          // Error
+          'error': error,
+          'onError': '#000000',
+          'errorContainer': _darkenColor(error, 0.3),
+          'onErrorContainer': '#FFFFFF',
+
+          // Inversed
+          'inversePrimary': _darkenColor(primary, 0.3),
+          'inverseSurface': '#E8E8E8',
+          'onInverseSurface': '#2A2A2A',
+
+          // Outline y otros
+          'outline': '#777777',
+          'outlineVariant': '#414141',
+          'shadow': '#000000',
+          'scrim': '#000000',
+          'brightness': 'dark',
+
+          // AppBar
+          'appBarColor': primary,
+        };
       }
     }
 
-    // Agregar logos
+    // Agregar logos (manteniendo la estructura correcta)
     converted['logos'] = <String, dynamic>{};
     if (currentConfig['light'] != null &&
         currentConfig['light']['logo'] != null) {
@@ -762,5 +877,149 @@ class ThemeConfigProvider extends ChangeNotifier {
     }
 
     return converted;
+  }
+
+  /// Convierte del formato guardado en BD al formato del provider
+  Map<String, dynamic> _convertFromSavedFormat(
+      Map<String, dynamic> savedConfig) {
+    final converted = <String, dynamic>{};
+
+    // Detectar si es estructura nueva (simplificada) o estructura antigua (completa)
+    final lightSection = savedConfig['light'] as Map<String, dynamic>?;
+    final darkSection = savedConfig['dark'] as Map<String, dynamic>?;
+
+    if (lightSection != null) {
+      // Verificar si tiene la estructura nueva (con 'colors' anidado)
+      if (lightSection.containsKey('colors')) {
+        // Es estructura nueva, copiar directamente
+        converted['light'] = Map<String, dynamic>.from(lightSection);
+      } else {
+        // Es estructura antigua (completa), extraer colores principales
+        converted['light'] = {
+          'colors': {
+            'primary': lightSection['primary'] ??
+                lightSection['primaryColor'] ??
+                '#10B981',
+            'secondary': lightSection['secondary'] ??
+                lightSection['secondaryColor'] ??
+                '#059669',
+            'tertiary': lightSection['tertiary'] ??
+                lightSection['tertiaryColor'] ??
+                '#0D9488',
+            'accent': lightSection['primaryContainer'] ?? '#3B82F6',
+            'primaryBackground': lightSection['surface'] ?? '#FFFFFF',
+            'secondaryBackground': lightSection['surfaceContainer'] ??
+                lightSection['surface'] ??
+                '#F5F5F5',
+            'primaryText': lightSection['onSurface'] ?? '#000000',
+            'secondaryText': lightSection['onSurfaceVariant'] ?? '#666666',
+            'success': '#10B981',
+            'warning': '#F59E0B',
+            'error': lightSection['error'] ?? '#EF4444',
+            'info': '#3B82F6',
+          },
+          'typography': {
+            'fontFamily': 'Poppins',
+            'fontSize': {
+              'xs': 12,
+              'sm': 14,
+              'base': 16,
+              'lg': 18,
+              'xl': 20,
+              '2xl': 24,
+              '3xl': 30,
+              '4xl': 36,
+            }
+          },
+          'logo': savedConfig['logos']?['logoColor'],
+          'iconStyle': 'material',
+        };
+      }
+    }
+
+    if (darkSection != null) {
+      // Verificar si tiene la estructura nueva (con 'colors' anidado)
+      if (darkSection.containsKey('colors')) {
+        // Es estructura nueva, copiar directamente
+        converted['dark'] = Map<String, dynamic>.from(darkSection);
+      } else {
+        // Es estructura antigua (completa), extraer colores principales
+        converted['dark'] = {
+          'colors': {
+            'primary': darkSection['primary'] ??
+                darkSection['primaryColor'] ??
+                '#10B981',
+            'secondary': darkSection['secondary'] ??
+                darkSection['secondaryColor'] ??
+                '#059669',
+            'tertiary': darkSection['tertiary'] ??
+                darkSection['tertiaryColor'] ??
+                '#0D9488',
+            'accent': darkSection['primaryContainer'] ?? '#3B82F6',
+            'primaryBackground': darkSection['surface'] ?? '#080808',
+            'secondaryBackground': darkSection['surfaceContainer'] ??
+                darkSection['surface'] ??
+                '#1A1A1A',
+            'primaryText': darkSection['onSurface'] ?? '#FFFFFF',
+            'secondaryText': darkSection['onSurfaceVariant'] ?? '#AAAAAA',
+            'success': '#10B981',
+            'warning': '#F59E0B',
+            'error': darkSection['error'] ?? '#CF6679',
+            'info': '#3B82F6',
+          },
+          'typography': {
+            'fontFamily': 'Poppins',
+            'fontSize': {
+              'xs': 12,
+              'sm': 14,
+              'base': 16,
+              'lg': 18,
+              'xl': 20,
+              '2xl': 24,
+              '3xl': 30,
+              '4xl': 36,
+            }
+          },
+          'logo': savedConfig['logos']?['logoBlanco'],
+          'iconStyle': 'material',
+        };
+      }
+    }
+
+    // Copiar nombre si existe
+    if (savedConfig.containsKey('name')) {
+      converted['name'] = savedConfig['name'];
+    }
+
+    log('🔄 [_convertFromSavedFormat] Convertido: light=${converted['light']?['colors']?['primary']}, dark=${converted['dark']?['colors']?['primary']}');
+
+    return converted;
+  }
+
+  // Métodos auxiliares para generar colores derivados
+  String _lightenColor(String hexColor, double amount) {
+    try {
+      final color = Color(int.parse(hexColor.replaceFirst('#', '0xFF')));
+      final hsl = HSLColor.fromColor(color);
+      final lightened =
+          hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0));
+      final newColor = lightened.toColor();
+      return '#${newColor.value.toRadixString(16).substring(2).toUpperCase()}';
+    } catch (e) {
+      return hexColor; // Retornar el color original si hay error
+    }
+  }
+
+  String _darkenColor(String hexColor, double amount) {
+    try {
+      final color = Color(int.parse(hexColor.replaceFirst('#', '0xFF')));
+      final hsl = HSLColor.fromColor(color);
+      final darkened =
+          hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
+      final newColor = darkened.toColor();
+      return '#${newColor.value.toRadixString(16).substring(2).toUpperCase()}';
+    } catch (e) {
+      return hexColor; // Retornar el color original si hay error
+    }
   }
 }

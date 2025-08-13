@@ -213,8 +213,10 @@ class SavedThemesTab extends StatelessWidget {
   Widget _buildThemeCard(BuildContext context, ThemeConfigProvider provider,
       Map<String, dynamic> theme) {
     final config = theme['config'] as Map<String, dynamic>;
-    final lightColors = config['light']?['colors'] ?? {};
-    final darkColors = config['dark']?['colors'] ?? {};
+    
+    // Extraer colores de manera compatible con ambas estructuras
+    final lightColors = _extractColors(config['light']);
+    final darkColors = _extractColors(config['dark']);
 
     return Container(
       decoration: BoxDecoration(
@@ -446,6 +448,31 @@ class SavedThemesTab extends StatelessWidget {
       }
     }
     return Colors.grey;
+  }
+
+  /// Extrae colores de manera compatible con ambas estructuras (nueva y antigua)
+  Map<String, dynamic> _extractColors(Map<String, dynamic>? modeConfig) {
+    if (modeConfig == null) return {};
+    
+    // Verificar si tiene la estructura nueva (con 'colors' anidado)
+    if (modeConfig.containsKey('colors')) {
+      // Estructura nueva: config['light']['colors']['primary']
+      return modeConfig['colors'] as Map<String, dynamic>? ?? {};
+    } else {
+      // Estructura antigua: config['light']['primary'] directo
+      // Mapear los nombres de la estructura antigua a la nueva
+      return {
+        'primary': modeConfig['primary'] ?? modeConfig['primaryColor'],
+        'secondary': modeConfig['secondary'] ?? modeConfig['secondaryColor'], 
+        'tertiary': modeConfig['tertiary'] ?? modeConfig['tertiaryColor'],
+        'accent': modeConfig['primaryContainer'] ?? modeConfig['alternate'],
+        'primaryBackground': modeConfig['surface'] ?? modeConfig['primaryBackground'],
+        'secondaryBackground': modeConfig['surfaceContainer'] ?? modeConfig['secondaryBackground'],
+        'primaryText': modeConfig['onSurface'] ?? modeConfig['primaryText'],
+        'secondaryText': modeConfig['onSurfaceVariant'] ?? modeConfig['secondaryText'],
+        'error': modeConfig['error'],
+      };
+    }
   }
 
   String _formatDate(String? dateString) {
