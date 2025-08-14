@@ -5,10 +5,11 @@ import 'package:supabase/supabase.dart' hide User;
 
 import 'package:nethive_neo/helpers/supabase/queries.dart';
 import 'package:nethive_neo/models/models.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
 final GlobalKey<ScaffoldMessengerState> snackbarKey =
     GlobalKey<ScaffoldMessengerState>();
-
+final supabase = Supabase.instance.client;
 const storage = FlutterSecureStorage();
 
 // Usar el cliente directo de Supabase

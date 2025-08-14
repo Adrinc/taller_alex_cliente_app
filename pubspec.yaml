@@ -17,7 +17,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   intl: ^0.20.2
   dio: ^5.7.0
-  # supabase_flutter: ^1.10.25  # Comentado para evitar sign_in_with_apple
+  supabase_flutter: ^1.10.25  # Comentado para evitar sign_in_with_apple
   # Dependencias individuales de Supabase sin Apple Sign In
   supabase: ^1.11.11
   gotrue: ^1.12.6
