@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase/supabase.dart' hide User;
 
 import 'package:nethive_neo/helpers/supabase/queries.dart';
 import 'package:nethive_neo/models/models.dart';

@@ -6,7 +6,6 @@ version: 1.0.0+1
 
 environment:
   sdk: ">=3.1.4 <4.0.0"
-  
 
 dependencies:
   flutter:
@@ -19,7 +18,7 @@ dependencies:
   dio: ^5.7.0
   supabase_flutter: ^1.10.25  # Comentado para evitar sign_in_with_apple
   # Dependencias individuales de Supabase sin Apple Sign In
-  supabase: ^1.11.11
+  # supabase: ^1.11.11
   gotrue: ^1.12.6
   postgrest: ^1.5.2
   storage_client: ^1.5.4
@@ -57,7 +56,9 @@ dev_dependencies:
 
 dependency_overrides:
   # Override para evitar problemas con sign_in_with_apple en Android
-  sign_in_with_apple_platform_interface: ^1.0.0
+  sign_in_with_apple: 
+  # O usar una versión específica que funcione
+  # sign_in_with_apple: ^4.3.0
 
 flutter:
   uses-material-design: true

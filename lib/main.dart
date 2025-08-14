@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nethive_neo/providers/theme_config_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase/supabase.dart';
+
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nethive_neo/helpers/constants.dart';
 import 'package:nethive_neo/helpers/globals.dart';
