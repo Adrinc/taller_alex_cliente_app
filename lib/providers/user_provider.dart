@@ -10,7 +10,6 @@ import 'package:uuid/uuid.dart';
 
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/helpers/supabase/queries.dart';
-import 'package:nethive_neo/router/router.dart';
 
 class UserState extends ChangeNotifier {
   //EMAIL
@@ -367,7 +366,8 @@ class UserState extends ChangeNotifier {
     await prefs.remove('currentRol');
     /* Configuration? conf = await SupabaseQueries.getDefaultTheme();
     AppTheme.initConfiguration(conf); */
-    router.pushReplacement('/');
+    // TODO: Implement mobile navigation to login
+    print('User logged out - navigate to login');
   }
 
   @override

@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:nethive_neo/helpers/globals.dart';
-import 'package:nethive_neo/main.dart';
 import 'package:nethive_neo/models/configuration.dart';
 
 const kThemeModeKey = '__theme_mode__';
 
-void setDarkModeSetting(BuildContext context, ThemeMode themeMode) =>
-    MyApp.of(context).setThemeMode(themeMode);
+// TODO: Implement mobile theme switching
+void setDarkModeSetting(BuildContext context, ThemeMode themeMode) {
+  // Implementation for mobile theme switching
+}
 
 abstract class AppTheme {
   static ThemeMode get themeMode {

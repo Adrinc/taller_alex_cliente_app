@@ -21,6 +21,6 @@ User? currentUser;
 Future<void> initGlobals() async {
   prefs = await SharedPreferences.getInstance();
   currentUser = await SupabaseQueries.getCurrentUserData();
-  
+
   if (currentUser == null) return;
 }

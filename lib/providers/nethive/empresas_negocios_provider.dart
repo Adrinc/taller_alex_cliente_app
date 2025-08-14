@@ -1,20 +1,12 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:pluto_grid/pluto_grid.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/models/nethive/empresa_model.dart';
 import 'package:nethive_neo/models/nethive/negocio_model.dart';
 
 class EmpresasNegociosProvider extends ChangeNotifier {
-  // State managers para las grillas
-  PlutoGridStateManager? empresasStateManager;
-  PlutoGridStateManager? negociosStateManager;
-
   // Controladores de búsqueda
   final busquedaEmpresaController = TextEditingController();
   final busquedaNegocioController = TextEditingController();
@@ -22,8 +14,6 @@ class EmpresasNegociosProvider extends ChangeNotifier {
   // Listas de datos
   List<Empresa> empresas = [];
   List<Negocio> negocios = [];
-  List<PlutoRow> empresasRows = [];
-  List<PlutoRow> negociosRows = [];
 
   // Variables para formularios
   String? logoFileName;
@@ -50,383 +40,278 @@ class EmpresasNegociosProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  // Método seguro para notificar listeners
-  void _safeNotifyListeners() {
+  void _notifyListeners() {
     if (!_isDisposed) {
       notifyListeners();
     }
   }
 
-  // Métodos para empresas
-  Future<void> getEmpresas([String? busqueda]) async {
+  // EMPRESAS
+  Future<void> getEmpresas() async {
     try {
-      var query = supabaseLU.from('empresa').select();
+      print('EmpresasNegociosProvider: Obteniendo empresas...');
+      
+      final response = await supabaseLU
+          .from('empresa')
+          .select('*')
+          .order('nombre');
 
-      if (busqueda != null && busqueda.isNotEmpty) {
-        query = query.or(
-            'nombre.ilike.%$busqueda%,rfc.ilike.%$busqueda%,email.ilike.%$busqueda%');
+      if (response.isNotEmpty) {
+        empresas = response
+            .map<Empresa>((json) => Empresa.fromMap(json))
+            .toList();
+        _notifyListeners();
+        print('EmpresasNegociosProvider: ${empresas.length} empresas obtenidas');
       }
-
-      final res = await query.order('fecha_creacion', ascending: false);
-
-      empresas = (res as List<dynamic>)
-          .map((empresa) => Empresa.fromMap(empresa))
-          .toList();
-
-      _buildEmpresasRows();
-
-      // Seleccionar automáticamente la primera empresa si:
-      // 1. Hay al menos una empresa disponible
-      // 2. No hay ninguna empresa seleccionada actualmente
-      // 3. No se está realizando una búsqueda (para evitar cambios no deseados durante filtrado)
-      if (empresas.isNotEmpty &&
-          empresaSeleccionada == null &&
-          (busqueda == null || busqueda.isEmpty)) {
-        setEmpresaSeleccionada(empresas.first.id);
-      }
-
-      _safeNotifyListeners();
     } catch (e) {
-      print('Error en getEmpresas: ${e.toString()}');
+      print('EmpresasNegociosProvider: Error obteniendo empresas: $e');
     }
   }
 
-  void _buildEmpresasRows() {
-    empresasRows.clear();
-
-    for (Empresa empresa in empresas) {
-      empresasRows.add(PlutoRow(cells: {
-        'id': PlutoCell(value: empresa.id),
-        'nombre': PlutoCell(value: empresa.nombre),
-        'rfc': PlutoCell(value: empresa.rfc),
-        'direccion': PlutoCell(value: empresa.direccion),
-        'telefono': PlutoCell(value: empresa.telefono),
-        'email': PlutoCell(value: empresa.email),
-        'fecha_creacion':
-            PlutoCell(value: empresa.fechaCreacion.toString().split(' ')[0]),
-        'logo_url': PlutoCell(
-          value: empresa.logoUrl != null
-              ? "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/logos/${empresa.logoUrl}?${DateTime.now().millisecondsSinceEpoch}"
-              : '',
-        ),
-        'imagen_url': PlutoCell(
-          value: empresa.imagenUrl != null
-              ? "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/imagenes/${empresa.imagenUrl}?${DateTime.now().millisecondsSinceEpoch}"
-              : '',
-        ),
-        'editar': PlutoCell(value: empresa.id),
-        'eliminar': PlutoCell(value: empresa.id),
-        'ver_negocios': PlutoCell(value: empresa.id),
-      }));
-    }
-  }
-
-  Future<void> getNegociosPorEmpresa(String empresaId) async {
+  // NEGOCIOS
+  Future<void> getNegocios({String? empresaId}) async {
     try {
-      final res = await supabaseLU
+      print('EmpresasNegociosProvider: Obteniendo negocios...');
+      
+      final response = empresaId != null
+          ? await supabaseLU
+              .from('negocio')
+              .select('*, empresa(*)')
+              .eq('empresa_id', empresaId)
+              .order('nombre')
+          : await supabaseLU
+              .from('negocio')
+              .select('*, empresa(*)')
+              .order('nombre');
+
+      if (response.isNotEmpty) {
+        negocios = response
+            .map<Negocio>((json) => Negocio.fromMap(json))
+            .toList();
+        _notifyListeners();
+        print('EmpresasNegociosProvider: ${negocios.length} negocios obtenidos');
+      } else {
+        negocios = [];
+        _notifyListeners();
+      }
+    } catch (e) {
+      print('EmpresasNegociosProvider: Error obteniendo negocios: $e');
+      negocios = [];
+      _notifyListeners();
+    }
+  }
+
+  // BUSCAR EMPRESAS
+  void buscarEmpresas(String query) {
+    // Implementar lógica de búsqueda local
+    _notifyListeners();
+  }
+
+  // BUSCAR NEGOCIOS
+  void buscarNegocios(String query) {
+    // Implementar lógica de búsqueda local
+    _notifyListeners();
+  }
+
+  // CREAR EMPRESA
+  Future<bool> createEmpresa(Map<String, dynamic> empresaData) async {
+    try {
+      print('EmpresasNegociosProvider: Creando empresa...');
+      
+      final response = await supabaseLU
+          .from('empresa')
+          .insert(empresaData)
+          .select();
+
+      if (response.isNotEmpty) {
+        await getEmpresas();
+        print('EmpresasNegociosProvider: Empresa creada exitosamente');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('EmpresasNegociosProvider: Error creando empresa: $e');
+      return false;
+    }
+  }
+
+  // CREAR NEGOCIO
+  Future<bool> createNegocio(Map<String, dynamic> negocioData) async {
+    try {
+      print('EmpresasNegociosProvider: Creando negocio...');
+      
+      final response = await supabaseLU
           .from('negocio')
-          .select()
-          .eq('empresa_id', empresaId)
-          .order('fecha_creacion', ascending: false);
+          .insert(negocioData)
+          .select();
 
-      negocios = (res as List<dynamic>)
-          .map((negocio) => Negocio.fromMap(negocio))
-          .toList();
-
-      _buildNegociosRows();
-      _safeNotifyListeners();
+      if (response.isNotEmpty) {
+        await getNegocios(empresaId: empresaSeleccionadaId);
+        print('EmpresasNegociosProvider: Negocio creado exitosamente');
+        return true;
+      }
+      return false;
     } catch (e) {
-      print('Error en getNegociosPorEmpresa: ${e.toString()}');
+      print('EmpresasNegociosProvider: Error creando negocio: $e');
+      return false;
     }
   }
 
-  void _buildNegociosRows() {
-    negociosRows.clear();
+  // ACTUALIZAR EMPRESA
+  Future<bool> updateEmpresa(String empresaId, Map<String, dynamic> empresaData) async {
+    try {
+      print('EmpresasNegociosProvider: Actualizando empresa $empresaId...');
+      
+      final response = await supabaseLU
+          .from('empresa')
+          .update(empresaData)
+          .eq('id', empresaId)
+          .select();
 
-    for (int i = 0; i < negocios.length; i++) {
-      final negocio = negocios[i];
-      negociosRows.add(PlutoRow(cells: {
-        'numero': PlutoCell(value: (i + 1).toString()), // Contador secuencial
-        'id': PlutoCell(
-            value: negocio.id), // Mantener ID para operaciones internas
-        'empresa_id': PlutoCell(value: negocio.empresaId),
-        'nombre': PlutoCell(value: negocio.nombre),
-        'direccion': PlutoCell(value: negocio.direccion),
-        'direccion_completa': PlutoCell(
-            value: negocio.direccion), // Nuevo campo para la segunda columna
-        'latitud': PlutoCell(value: negocio.latitud.toString()),
-        'longitud': PlutoCell(value: negocio.longitud.toString()),
-        'tipo_local': PlutoCell(value: negocio.tipoLocal),
-        'fecha_creacion':
-            PlutoCell(value: negocio.fechaCreacion.toString().split(' ')[0]),
-        'logo_url': PlutoCell(
-          value: negocio.logoUrl != null
-              ? "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/logos/${negocio.logoUrl}?${DateTime.now().millisecondsSinceEpoch}"
-              : '',
-        ),
-        'imagen_url': PlutoCell(
-          value: negocio.imagenUrl != null
-              ? "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/imagenes/${negocio.imagenUrl}?${DateTime.now().millisecondsSinceEpoch}"
-              : '',
-        ),
-        'acceder_infraestructura': PlutoCell(value: negocio.id),
-        'editar': PlutoCell(value: negocio.id),
-        'eliminar': PlutoCell(value: negocio.id),
-        'ver_componentes': PlutoCell(value: negocio.id),
-      }));
+      if (response.isNotEmpty) {
+        await getEmpresas();
+        print('EmpresasNegociosProvider: Empresa actualizada exitosamente');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('EmpresasNegociosProvider: Error actualizando empresa: $e');
+      return false;
     }
   }
 
-  // Métodos para subir archivos
-  Future<void> selectLogo() async {
+  // ACTUALIZAR NEGOCIO
+  Future<bool> updateNegocio(String negocioId, Map<String, dynamic> negocioData) async {
+    try {
+      print('EmpresasNegociosProvider: Actualizando negocio $negocioId...');
+      
+      final response = await supabaseLU
+          .from('negocio')
+          .update(negocioData)
+          .eq('id', negocioId)
+          .select();
+
+      if (response.isNotEmpty) {
+        await getNegocios(empresaId: empresaSeleccionadaId);
+        print('EmpresasNegociosProvider: Negocio actualizado exitosamente');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('EmpresasNegociosProvider: Error actualizando negocio: $e');
+      return false;
+    }
+  }
+
+  // GESTIÓN DE IMÁGENES
+  Future<void> pickLogo() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        logoFileName = result.files.single.name;
+        logoToUpload = result.files.single.bytes;
+        _notifyListeners();
+      }
+    } catch (e) {
+      print('EmpresasNegociosProvider: Error seleccionando logo: $e');
+    }
+  }
+
+  Future<void> pickImagen() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        imagenFileName = result.files.single.name;
+        imagenToUpload = result.files.single.bytes;
+        _notifyListeners();
+      }
+    } catch (e) {
+      print('EmpresasNegociosProvider: Error seleccionando imagen: $e');
+    }
+  }
+
+  Future<String?> uploadLogo(String empresaId) async {
+    if (logoToUpload == null || logoFileName == null) return null;
+
+    try {
+      final fileName = 'logo_${empresaId}_${DateTime.now().millisecondsSinceEpoch}_$logoFileName';
+      
+      await supabase.storage
+          .from('empresas')
+          .uploadBinary(fileName, logoToUpload!);
+
+      final url = supabase.storage
+          .from('empresas')
+          .getPublicUrl(fileName);
+
+      return url;
+    } catch (e) {
+      print('EmpresasNegociosProvider: Error subiendo logo: $e');
+      return null;
+    }
+  }
+
+  Future<String?> uploadImagen(String negocioId) async {
+    if (imagenToUpload == null || imagenFileName == null) return null;
+
+    try {
+      final fileName = 'imagen_${negocioId}_${DateTime.now().millisecondsSinceEpoch}_$imagenFileName';
+      
+      await supabase.storage
+          .from('negocios')
+          .uploadBinary(fileName, imagenToUpload!);
+
+      final url = supabase.storage
+          .from('negocios')
+          .getPublicUrl(fileName);
+
+      return url;
+    } catch (e) {
+      print('EmpresasNegociosProvider: Error subiendo imagen: $e');
+      return null;
+    }
+  }
+
+  // LIMPIAR FORMULARIOS
+  void clearEmpresaForm() {
     logoFileName = null;
     logoToUpload = null;
-
-    FilePickerResult? picker = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'png', 'jpeg'],
-    );
-
-    if (picker != null) {
-      var now = DateTime.now();
-      var formatter = DateFormat('yyyyMMddHHmmss');
-      var timestamp = formatter.format(now);
-
-      logoFileName = 'logo-$timestamp-${picker.files.single.name}';
-      logoToUpload = picker.files.single.bytes;
-
-      // Notificar inmediatamente después de seleccionar
-      _safeNotifyListeners();
-    }
+    _notifyListeners();
   }
 
-  Future<void> selectImagen() async {
+  void clearNegocioForm() {
     imagenFileName = null;
     imagenToUpload = null;
-
-    FilePickerResult? picker = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'png', 'jpeg'],
-    );
-
-    if (picker != null) {
-      var now = DateTime.now();
-      var formatter = DateFormat('yyyyMMddHHmmss');
-      var timestamp = formatter.format(now);
-
-      imagenFileName = 'imagen-$timestamp-${picker.files.single.name}';
-      imagenToUpload = picker.files.single.bytes;
-
-      // Notificar inmediatamente después de seleccionar
-      _safeNotifyListeners();
-    }
+    _notifyListeners();
   }
 
-  Future<String?> uploadLogo() async {
-    if (logoToUpload != null && logoFileName != null) {
-      await supabaseLU.storage.from('nethive/logos').uploadBinary(
-            logoFileName!,
-            logoToUpload!,
-            fileOptions: const FileOptions(
-              cacheControl: '3600',
-              upsert: false,
-            ),
-          );
-      return logoFileName;
-    }
-    return null;
-  }
-
-  Future<String?> uploadImagen() async {
-    if (imagenToUpload != null && imagenFileName != null) {
-      await supabaseLU.storage.from('nethive/imagenes').uploadBinary(
-            imagenFileName!,
-            imagenToUpload!,
-            fileOptions: const FileOptions(
-              cacheControl: '3600',
-              upsert: false,
-            ),
-          );
-      return imagenFileName;
-    }
-    return null;
-  }
-
-  // CRUD Empresas
-  Future<bool> crearEmpresa({
-    required String nombre,
-    required String rfc,
-    required String direccion,
-    required String telefono,
-    required String email,
-  }) async {
-    try {
-      final logoUrl = await uploadLogo();
-      final imagenUrl = await uploadImagen();
-
-      final res = await supabaseLU.from('empresa').insert({
-        'nombre': nombre,
-        'rfc': rfc,
-        'direccion': direccion,
-        'telefono': telefono,
-        'email': email,
-        'logo_url': logoUrl,
-        'imagen_url': imagenUrl,
-      }).select();
-
-      if (res.isNotEmpty) {
-        await getEmpresas();
-        resetFormData();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error en crearEmpresa: ${e.toString()}');
-      return false;
-    }
-  }
-
-  Future<bool> crearNegocio({
-    required String empresaId,
-    required String nombre,
-    required String direccion,
-    required double latitud,
-    required double longitud,
-    required String tipoLocal,
-  }) async {
-    try {
-      final logoUrl = await uploadLogo();
-      final imagenUrl = await uploadImagen();
-
-      final res = await supabaseLU.from('negocio').insert({
-        'empresa_id': empresaId,
-        'nombre': nombre,
-        'direccion': direccion,
-        'latitud': latitud,
-        'longitud': longitud,
-        'tipo_local': tipoLocal,
-        'logo_url': logoUrl,
-        'imagen_url': imagenUrl,
-      }).select();
-
-      if (res.isNotEmpty) {
-        await getNegociosPorEmpresa(empresaId);
-        resetFormData();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('Error en crearNegocio: ${e.toString()}');
-      return false;
-    }
-  }
-
-  Future<bool> eliminarEmpresa(String empresaId) async {
-    try {
-      // Primero eliminar todos los negocios asociados
-      await supabaseLU.from('negocio').delete().eq('empresa_id', empresaId);
-
-      // Luego eliminar la empresa
-      await supabaseLU.from('empresa').delete().eq('id', empresaId);
-
-      // Solo actualizar si el provider sigue activo
-      if (!_isDisposed) {
-        await getEmpresas();
-      }
-      return true;
-    } catch (e) {
-      print('Error en eliminarEmpresa: ${e.toString()}');
-      return false;
-    }
-  }
-
-  Future<bool> eliminarNegocio(String negocioId) async {
-    try {
-      await supabaseLU.from('negocio').delete().eq('id', negocioId);
-
-      // Solo actualizar si el provider sigue activo y hay una empresa seleccionada
-      if (!_isDisposed && empresaSeleccionadaId != null) {
-        await getNegociosPorEmpresa(empresaSeleccionadaId!);
-      }
-      return true;
-    } catch (e) {
-      print('Error en eliminarNegocio: ${e.toString()}');
-      return false;
-    }
-  }
-
-  // Métodos de utilidad
-  void setEmpresaSeleccionada(String empresaId) {
+  // SETTERS
+  void setEmpresaSeleccionada(String? empresaId) {
     empresaSeleccionadaId = empresaId;
-    empresaSeleccionada = empresas.firstWhere((e) => e.id == empresaId);
-    getNegociosPorEmpresa(empresaId);
-    _safeNotifyListeners();
-  }
-
-  void resetFormData() {
-    logoFileName = null;
-    imagenFileName = null;
-    logoToUpload = null;
-    imagenToUpload = null;
-    _safeNotifyListeners();
-  }
-
-  void buscarEmpresas(String busqueda) {
-    getEmpresas(busqueda.isEmpty ? null : busqueda);
-  }
-
-  Widget? getImageWidget(dynamic image,
-      {double height = 100, double width = 100}) {
-    if (image == null || image.toString().isEmpty) {
-      return Container(
-        height: height,
-        width: width,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Image.asset(
-          'assets/images/placeholder_no_image.jpg',
-          height: height,
-          width: width,
-          fit: BoxFit.cover,
-        ),
-      );
-    } else if (image is Uint8List) {
-      return Image.memory(
-        image,
-        height: height,
-        width: width,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Image.asset(
-            'assets/images/placeholder_no_image.jpg',
-            height: height,
-            width: width,
-            fit: BoxFit.cover,
-          );
-        },
-      );
-    } else if (image is String) {
-      return Image.network(
-        image,
-        height: height,
-        width: width,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Image.asset(
-            'assets/images/placeholder_no_image.jpg',
-            height: height,
-            width: width,
-            fit: BoxFit.cover,
-          );
-        },
-      );
-    }
-    return Image.asset(
-      'assets/images/placeholder_no_image.jpg',
-      height: height,
-      width: width,
-      fit: BoxFit.cover,
+    empresaSeleccionada = empresas.firstWhere(
+      (empresa) => empresa.id == empresaId,
+      orElse: () => Empresa(
+        id: '',
+        nombre: '',
+        rfc: '',
+        direccion: '',
+        telefono: '',
+        email: '',
+        fechaCreacion: DateTime.now(),
+      ),
     );
+    
+    if (empresaId != null) {
+      getNegocios(empresaId: empresaId);
+    }
+    _notifyListeners();
   }
 }
