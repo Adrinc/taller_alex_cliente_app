@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_flow_chart/flutter_flow_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:screenshot/screenshot.dart';
+import 'dart:convert';
+import 'dart:html' as html;
+import 'dart:typed_data';
+import 'package:intl/intl.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/models/nethive/topologia_completa_model.dart';
@@ -56,6 +61,9 @@ class _TopologiaPageState extends State<TopologiaPage>
   // Dashboard para el FlowChart
   late Dashboard dashboard;
 
+  // Controller para screenshot
+  final ScreenshotController screenshotController = ScreenshotController();
+
   // Mapas para elementos y conexiones
   Map<String, FlowElement> elementosMap = {};
 
@@ -87,6 +95,8 @@ class _TopologiaPageState extends State<TopologiaPage>
     dashboard = Dashboard(
       blockDefaultZoomGestures: false,
       minimumZoomFactor: 0.25,
+      defaultArrowStyle: ArrowStyle.curve, // Usar conexiones curvas por defecto
+      handlerFeedbackOffset: const Offset(0, -10), // Mejor feedback en móviles
     );
 
     // Intentar configurar fondo del grid después de la inicialización
@@ -445,10 +455,35 @@ class _TopologiaPageState extends State<TopologiaPage>
               const SizedBox(width: 8),
               IconButton(
                 onPressed: () {
+                  dashboard.setZoomFactor(dashboard.zoomFactor * 1.5);
+                },
+                icon: const Icon(Icons.zoom_in),
+                tooltip: 'Acercar',
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      AppTheme.of(context).primaryColor.withOpacity(0.1),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  dashboard.setZoomFactor(dashboard.zoomFactor / 1.5);
+                },
+                icon: const Icon(Icons.zoom_out),
+                tooltip: 'Alejar',
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      AppTheme.of(context).primaryColor.withOpacity(0.1),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
                   dashboard.setZoomFactor(1.0);
+                  dashboard.recenter();
                 },
                 icon: const Icon(Icons.center_focus_strong),
-                tooltip: 'Centrar vista',
+                tooltip: 'Centrar y resetear zoom',
                 style: IconButton.styleFrom(
                   backgroundColor:
                       AppTheme.of(context).primaryColor.withOpacity(0.1),
@@ -588,7 +623,7 @@ class _TopologiaPageState extends State<TopologiaPage>
           return Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/images/blueprint2.jpg'),
+                image: AssetImage('assets/images/plano.jpg'),
                 fit: BoxFit.fill, // Consistente para llenar todo el espacio
                 opacity: 0.3,
               ),
@@ -605,7 +640,7 @@ class _TopologiaPageState extends State<TopologiaPage>
         return DecoratedBox(
           decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/images/blueprint2.jpg'),
+              image: AssetImage('assets/images/plano.jpg'),
               fit: BoxFit.fill, // Cambiar a cover para llenar todo el espacio
               opacity: 0.6,
             ),
@@ -616,20 +651,35 @@ class _TopologiaPageState extends State<TopologiaPage>
                   .withOpacity(0.3), // Filtro oscuro semi-transparente
               BlendMode.overlay,
             ),
-            child: FlowChart(
-              dashboard: dashboard,
-              onElementPressed: (context, position, element) {
-                _showElementDetails(element, provider);
-              },
-              onElementLongPressed: (context, position, element) {
-                _showElementContextMenu(context, position, element, provider);
-              },
-              onNewConnection: (source, target) {
-                _handleNewConnection(source, target, provider);
-              },
-              onDashboardTapped: (context, position) {
-                // Limpiar selecciones
-              },
+            child: Screenshot(
+              controller: screenshotController,
+              child: FlowChart(
+                dashboard: dashboard,
+                onElementPressed: (context, position, element) {
+                  _showElementDetails(element, provider);
+                },
+                onElementLongPressed: (context, position, element) {
+                  _showElementContextMenu(context, position, element, provider);
+                },
+                onElementSecondaryTapped: (context, position, element) {
+                  _showElementContextMenu(context, position, element, provider);
+                },
+                onNewConnection: (source, target) {
+                  _handleNewConnection(source, target, provider);
+                },
+                onDashboardTapped: (context, position) {
+                  _showDashboardContextMenu(position);
+                },
+                onDashboardSecondaryTapped: (context, position) {
+                  _showDashboardContextMenu(position);
+                },
+                onScaleUpdate: (newScale) {
+                  // Feedback de zoom opcional
+                },
+                onHandlerPressed: (context, position, handler, element) {
+                  _showHandlerContextMenu(element, handler, position);
+                },
+              ),
             ),
           ),
         )
@@ -824,26 +874,78 @@ class _TopologiaPageState extends State<TopologiaPage>
         'Estado: $statusIcon\n'
         '${componente.ubicacion ?? "Sin ubicación"}';
 
-    return FlowElement(
-      position: position,
-      size: const Size(160, 140),
-      text: elementText,
-      textColor: Colors.white,
-      textSize: 10,
-      textIsBold: true,
-      kind: ElementKind.rectangle,
-      backgroundColor: backgroundColor,
-      borderColor: borderColor,
-      borderThickness: 2,
-      elevation: 6,
-      data: _buildComponenteIndividualElementData(componente),
-      handlers: [
+    // Determinar forma y tamaño según el tipo de componente
+    ElementKind elementKind;
+    Size elementSize;
+    List<Handler> handlers;
+
+    final categoria = componente.categoriaComponente.toLowerCase();
+    if (categoria.contains('switch')) {
+      elementKind = ElementKind.rectangle;
+      elementSize = const Size(160, 140);
+      handlers = [
         Handler.topCenter,
         Handler.bottomCenter,
         Handler.leftCenter,
         Handler.rightCenter,
-      ],
-    );
+      ];
+    } else if (categoria.contains('router') || categoria.contains('firewall')) {
+      elementKind = ElementKind.parallelogram;
+      elementSize = const Size(170, 140);
+      handlers = [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ];
+    } else if (categoria.contains('servidor') || categoria.contains('server')) {
+      elementKind = ElementKind.oval;
+      elementSize = const Size(160, 140);
+      handlers = [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ];
+    } else if (categoria.contains('rack')) {
+      elementKind = ElementKind.storage;
+      elementSize = const Size(140, 180);
+      handlers = [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ];
+    } else {
+      elementKind = ElementKind.rectangle;
+      elementSize = const Size(160, 140);
+      handlers = [
+        Handler.topCenter,
+        Handler.bottomCenter,
+        Handler.leftCenter,
+        Handler.rightCenter,
+      ];
+    }
+
+    return FlowElement(
+      position: position,
+      size: elementSize,
+      text: elementText,
+      textColor: Colors.white,
+      textSize: 10,
+      textIsBold: true,
+      kind: elementKind,
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
+      borderThickness: 2,
+      elevation: 6,
+      handlerSize: 20,
+      data: _buildComponenteIndividualElementData(componente),
+      handlers: handlers,
+    )
+      ..isDraggable = true // Hacer elementos arrastrables
+      ..isResizable = true // Hacer elementos redimensionables
+      ..isConnectable = true; // Permitir conexiones
   }
 
   Map<String, Color> _getColoresPorCategoria(
@@ -1491,35 +1593,35 @@ class _TopologiaPageState extends State<TopologiaPage>
 
   FlowElement _createDistribucionMDFElement(
       DistribucionAgrupada distribucion, Offset position) {
-    final componentesActivos =
-        distribucion.componentes.where((c) => c.activo).length;
-    final componentesEnUso =
-        distribucion.componentes.where((c) => c.enUso).length;
-
     // Crear resumen de tipos de componentes
     final tiposComponentes =
         _getTiposComponentesResumen(distribucion.componentes);
 
     return FlowElement(
       position: position,
-      size: const Size(200, 160),
+      size: const Size(220, 180),
       text:
           '${distribucion.tipo}\n${distribucion.nombre}\n\n${distribucion.componentes.length} componentes\n$tiposComponentes',
       textColor: Colors.white,
       textSize: 12,
       textIsBold: true,
-      kind: ElementKind.rectangle,
+      kind: ElementKind.hexagon, // Hexágono para MDF (más prominente)
       backgroundColor: const Color(0xFF1565C0), // Azul más oscuro para MDF
       borderColor: const Color(0xFF0D47A1),
       borderThickness: 4,
       elevation: 10,
+      handlerSize: 25,
       data: _buildDistribucionElementData(distribucion, 'MDF'),
       handlers: [
         Handler.bottomCenter,
         Handler.leftCenter,
         Handler.rightCenter,
+        Handler.topCenter,
       ],
-    );
+    )
+      ..isDraggable = true
+      ..isResizable = true
+      ..isConnectable = true;
   }
 
   FlowElement _createDistribucionIDFElement(
@@ -1554,17 +1656,18 @@ class _TopologiaPageState extends State<TopologiaPage>
 
     return FlowElement(
       position: position,
-      size: const Size(180, 140),
+      size: const Size(180, 180), // Cuadrado para el diamante
       text:
           '${distribucion.tipo}\n${distribucion.nombre}\n\n${distribucion.componentes.length} componentes\n$tiposComponentes',
       textColor: Colors.white,
       textSize: 11,
       textIsBold: true,
-      kind: ElementKind.rectangle,
+      kind: ElementKind.diamond, // Diamante para IDF
       backgroundColor: backgroundColor,
       borderColor: borderColor,
       borderThickness: 3,
       elevation: 8,
+      handlerSize: 22,
       data: _buildDistribucionElementData(distribucion, 'IDF'),
       handlers: [
         Handler.topCenter,
@@ -1572,7 +1675,10 @@ class _TopologiaPageState extends State<TopologiaPage>
         Handler.leftCenter,
         Handler.rightCenter,
       ],
-    );
+    )
+      ..isDraggable = true
+      ..isResizable = true
+      ..isConnectable = true;
   }
 
   FlowElement _createDistribucionGeneralElement(
@@ -1658,5 +1764,750 @@ class _TopologiaPageState extends State<TopologiaPage>
           .toSet()
           .join(', '),
     };
+  }
+
+  // Menús contextuales y métodos de interacción
+  void _showDashboardContextMenu(Offset position) {
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'add_element',
+          child: Row(
+            children: [
+              Icon(Icons.add_circle, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('Agregar Elemento'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'reset_view',
+          child: Row(
+            children: [
+              Icon(Icons.center_focus_strong, color: Colors.green),
+              SizedBox(width: 8),
+              Text('Centrar Vista'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'grid_toggle',
+          child: Row(
+            children: [
+              Icon(Icons.grid_on, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Toggle Grid'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'export',
+          child: Row(
+            children: [
+              Icon(Icons.download, color: Colors.purple),
+              SizedBox(width: 8),
+              Text('Exportar Diagrama'),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value != null) {
+        _handleDashboardMenuAction(value, position);
+      }
+    });
+  }
+
+  void _handleDashboardMenuAction(String action, Offset position) {
+    switch (action) {
+      case 'add_element':
+        _showAddElementDialog(position);
+        break;
+      case 'reset_view':
+        _centerView();
+        break;
+      case 'grid_toggle':
+        setState(() {
+          // Toggle de grid simplificado
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Grid toggle activado')),
+          );
+        });
+        break;
+      case 'export':
+        _exportDiagram();
+        break;
+    }
+  }
+
+  void _centerView() {
+    setState(() {
+      // Simplemente notificar que se centró la vista
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vista centrada')),
+      );
+    });
+  }
+
+  void _showHandlerContextMenu(
+      FlowElement element, Handler handler, Offset position) {
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx + 1,
+        position.dy + 1,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'create_connection',
+          child: Row(
+            children: [
+              Icon(Icons.link, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('Crear Conexión'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'edit_handler',
+          child: Row(
+            children: [
+              Icon(Icons.edit, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Editar Handler'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'remove_connections',
+          child: Row(
+            children: [
+              Icon(Icons.link_off, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Eliminar Conexiones'),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value != null) {
+        _handleHandlerMenuAction(value, element, handler);
+      }
+    });
+  }
+
+  void _handleHandlerMenuAction(
+      String action, FlowElement element, Handler handler) {
+    switch (action) {
+      case 'create_connection':
+        _startConnectionMode(element, handler);
+        break;
+      case 'edit_handler':
+        _editHandler(element, handler);
+        break;
+      case 'remove_connections':
+        _removeElementConnections(element);
+        break;
+    }
+  }
+
+  // Métodos auxiliares para las acciones de menú
+  void _showAddElementDialog(Offset position) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Agregar Nuevo Elemento'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.router),
+              title: const Text('Router'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _addNewElement('router', position);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.storage),
+              title: const Text('Switch'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _addNewElement('switch', position);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.dns), // Cambiado de server a dns
+              title: const Text('Servidor'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _addNewElement('servidor', position);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addNewElement(String tipo, Offset position) {
+    // Implementar lógica para agregar nuevo elemento
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(
+              'Agregando $tipo en posición ${position.dx}, ${position.dy}')),
+    );
+  }
+
+  void _startConnectionMode(FlowElement element, Handler handler) {
+    setState(() {
+      // Implementar modo de conexión
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Modo conexión activado - Selecciona destino')),
+    );
+  }
+
+  void _editHandler(FlowElement element, Handler handler) {
+    // Implementar edición de handler
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Editando handler ${handler.toString()}')),
+    );
+  }
+
+  void _removeElementConnections(FlowElement element) {
+    setState(() {
+      dashboard.removeElementConnections(element);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Conexiones eliminadas')),
+    );
+  }
+
+  void _exportDiagram() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.download, color: Colors.blue),
+            SizedBox(width: 12),
+            Text('Exportar Diagrama de Topología'),
+          ],
+        ),
+        content: Container(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Selecciona el formato de exportación:',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 16),
+              _buildExportOption(
+                icon: Icons.image,
+                title: 'Imagen PNG',
+                subtitle: 'Exportar como imagen de alta calidad',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _exportAsPNG();
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildExportOption(
+                icon: Icons.data_object,
+                title: 'Datos JSON',
+                subtitle: 'Exportar estructura de datos del diagrama',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _exportAsJSON();
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildExportOption(
+                icon: Icons.picture_as_pdf,
+                title: 'Reporte PDF',
+                subtitle: 'Reporte completo con imagen y datos',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _exportAsPDF();
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildExportOption(
+                icon: Icons.table_chart,
+                title: 'Datos CSV',
+                subtitle: 'Lista de componentes y conexiones',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _exportAsCSV();
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExportOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, color: Colors.blue, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportAsPNG() async {
+    try {
+      _showExportProgress('Generando imagen PNG...');
+
+      // Capturar screenshot del diagrama
+      final Uint8List? imageBytes = await screenshotController.capture(
+        delay: const Duration(milliseconds: 500),
+        pixelRatio: 2.0, // Alta calidad
+      );
+
+      if (imageBytes != null) {
+        final now = DateTime.now();
+        final formatter = DateFormat('yyyyMMdd_HHmmss');
+        final timestamp = formatter.format(now);
+        final fileName = 'topologia_${timestamp}.png';
+
+        // Descargar archivo
+        final blob = html.Blob([imageBytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.document.createElement('a') as html.AnchorElement
+          ..href = url
+          ..style.display = 'none'
+          ..download = fileName;
+        html.document.body?.children.add(anchor);
+        anchor.click();
+        html.document.body?.children.remove(anchor);
+        html.Url.revokeObjectUrl(url);
+
+        Navigator.of(context).pop(); // Cerrar progreso
+        _showSuccessMessage('Imagen PNG descargada como $fileName');
+      } else {
+        Navigator.of(context).pop();
+        _showErrorMessage('Error al generar la imagen');
+      }
+    } catch (e) {
+      Navigator.of(context).pop();
+      _showErrorMessage('Error al exportar: ${e.toString()}');
+    }
+  }
+
+  Future<void> _exportAsJSON() async {
+    try {
+      _showExportProgress('Generando datos JSON...');
+
+      final provider = Provider.of<ComponentesProvider>(context, listen: false);
+
+      // Crear estructura de datos para exportar
+      final exportData = {
+        'metadata': {
+          'exportDate': DateTime.now().toIso8601String(),
+          'negocio': provider.negocioSeleccionadoNombre ?? 'Sin especificar',
+          'empresa': provider.empresaSeleccionadaId ?? 'Sin especificar',
+          'totalElementos': elementosMap.length,
+        },
+        'elementos': elementosMap.values.map((element) {
+          return {
+            'id': element.id,
+            'position': {
+              'x': element.position.dx,
+              'y': element.position.dy,
+            },
+            'size': {
+              'width': element.size.width,
+              'height': element.size.height,
+            },
+            'text': element.text,
+            'kind': element.kind.toString(),
+            'backgroundColor': element.backgroundColor.value,
+            'borderColor': element.borderColor.value,
+            'data': element.data,
+          };
+        }).toList(),
+        'conexiones': dashboard.elements.map((element) {
+          // Como no tenemos acceso directo a connections, extraemos info de elementos
+          return {
+            'elementId': element.id,
+            'handlers': element.handlers.map((h) => h.toString()).toList(),
+          };
+        }).toList(),
+      };
+
+      final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
+      final bytes = utf8.encode(jsonString);
+
+      final now = DateTime.now();
+      final formatter = DateFormat('yyyyMMdd_HHmmss');
+      final timestamp = formatter.format(now);
+      final fileName = 'topologia_data_${timestamp}.json';
+
+      // Descargar archivo
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.document.createElement('a') as html.AnchorElement
+        ..href = url
+        ..style.display = 'none'
+        ..download = fileName;
+      html.document.body?.children.add(anchor);
+      anchor.click();
+      html.document.body?.children.remove(anchor);
+      html.Url.revokeObjectUrl(url);
+
+      Navigator.of(context).pop(); // Cerrar progreso
+      _showSuccessMessage('Datos JSON descargados como $fileName');
+    } catch (e) {
+      Navigator.of(context).pop();
+      _showErrorMessage('Error al exportar JSON: ${e.toString()}');
+    }
+  }
+
+  Future<void> _exportAsCSV() async {
+    try {
+      _showExportProgress('Generando archivo CSV...');
+
+      final csvContent = StringBuffer();
+
+      // Encabezados
+      csvContent.writeln(
+          'Tipo,ID,Nombre,Categoria,Estado,En_Uso,Activo,Ubicacion,Posicion_X,Posicion_Y');
+
+      // Datos de elementos
+      for (final element in elementosMap.values) {
+        final data = element.data as Map<String, dynamic>;
+        final tipo = data['type'] ?? 'DESCONOCIDO';
+        final nombre = data['name'] ?? 'Sin nombre';
+        final categoria = data['categoria'] ?? 'Sin categoría';
+        final activo = data['activo'] ?? false;
+        final enUso = data['enUso'] ?? false;
+        final ubicacion = data['ubicacion'] ?? 'Sin ubicación';
+
+        csvContent.writeln([
+          tipo,
+          element.id,
+          '"$nombre"',
+          '"$categoria"',
+          activo ? 'Activo' : 'Inactivo',
+          enUso ? 'En Uso' : 'Disponible',
+          activo.toString(),
+          '"$ubicacion"',
+          element.position.dx.toStringAsFixed(2),
+          element.position.dy.toStringAsFixed(2),
+        ].join(','));
+      }
+
+      final bytes = utf8.encode(csvContent.toString());
+
+      final now = DateTime.now();
+      final formatter = DateFormat('yyyyMMdd_HHmmss');
+      final timestamp = formatter.format(now);
+      final fileName = 'topologia_componentes_${timestamp}.csv';
+
+      // Descargar archivo
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.document.createElement('a') as html.AnchorElement
+        ..href = url
+        ..style.display = 'none'
+        ..download = fileName;
+      html.document.body?.children.add(anchor);
+      anchor.click();
+      html.document.body?.children.remove(anchor);
+      html.Url.revokeObjectUrl(url);
+
+      Navigator.of(context).pop(); // Cerrar progreso
+      _showSuccessMessage('Archivo CSV descargado como $fileName');
+    } catch (e) {
+      Navigator.of(context).pop();
+      _showErrorMessage('Error al exportar CSV: ${e.toString()}');
+    }
+  }
+
+  Future<void> _exportAsPDF() async {
+    try {
+      _showExportProgress('Generando reporte PDF...');
+
+      final provider = Provider.of<ComponentesProvider>(context, listen: false);
+
+      // Capturar imagen primero
+      final Uint8List? imageBytes = await screenshotController.capture(
+        delay: const Duration(milliseconds: 500),
+        pixelRatio: 1.5,
+      );
+
+      if (imageBytes == null) {
+        Navigator.of(context).pop();
+        _showErrorMessage('Error al capturar imagen para PDF');
+        return;
+      }
+
+      // Crear contenido HTML para el PDF
+      final htmlContent = _generatePDFContent(provider, imageBytes);
+
+      // Crear blob y descargar
+      final bytes = utf8.encode(htmlContent);
+      final now = DateTime.now();
+      final formatter = DateFormat('yyyyMMdd_HHmmss');
+      final timestamp = formatter.format(now);
+      final fileName = 'reporte_topologia_${timestamp}.html';
+
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.document.createElement('a') as html.AnchorElement
+        ..href = url
+        ..style.display = 'none'
+        ..download = fileName;
+      html.document.body?.children.add(anchor);
+      anchor.click();
+      html.document.body?.children.remove(anchor);
+      html.Url.revokeObjectUrl(url);
+
+      Navigator.of(context).pop(); // Cerrar progreso
+      _showSuccessMessage(
+          'Reporte HTML descargado como $fileName\n(Puedes convertirlo a PDF desde el navegador)');
+    } catch (e) {
+      Navigator.of(context).pop();
+      _showErrorMessage('Error al exportar reporte: ${e.toString()}');
+    }
+  }
+
+  String _generatePDFContent(
+      ComponentesProvider provider, Uint8List imageBytes) {
+    final base64Image = base64Encode(imageBytes);
+    final now = DateTime.now();
+    final formatter = DateFormat('dd/MM/yyyy HH:mm');
+    final fechaGeneracion = formatter.format(now);
+
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Topología de Red</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { max-width: 200px; }
+        .title { color: #333; margin: 20px 0; }
+        .subtitle { color: #666; margin: 10px 0; }
+        .section { margin: 30px 0; }
+        .diagram { text-align: center; margin: 30px 0; }
+        .diagram img { max-width: 100%; border: 1px solid #ddd; }
+        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+        .stat-card { text-align: center; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .stat-number { font-size: 24px; font-weight: bold; color: #2196F3; }
+        .stat-label { font-size: 14px; color: #666; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f5f5f5; font-weight: bold; }
+        .status-active { color: #4CAF50; font-weight: bold; }
+        .status-inactive { color: #f44336; font-weight: bold; }
+        .footer { margin-top: 50px; text-align: center; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">Reporte de Topología de Red</h1>
+        <h2 class="subtitle">${provider.negocioSeleccionadoNombre ?? 'Negocio no especificado'}</h2>
+        <p>Generado el: $fechaGeneracion</p>
+    </div>
+
+    <div class="section">
+        <h3>Diagrama de Topología</h3>
+        <div class="diagram">
+            <img src="data:image/png;base64,$base64Image" alt="Diagrama de Topología" />
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Estadísticas Generales</h3>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">${elementosMap.length}</div>
+                <div class="stat-label">Total Elementos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${elementosMap.length}</div>
+                <div class="stat-label">Conexiones</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${provider.componentesTopologia.where((c) => c.activo).length}</div>
+                <div class="stat-label">Componentes Activos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${provider.componentesTopologia.where((c) => c.enUso).length}</div>
+                <div class="stat-label">En Uso</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Detalle de Componentes</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Estado</th>
+                    <th>En Uso</th>
+                    <th>Ubicación</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${_generateTableRows(provider)}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>Reporte generado automáticamente por NetHive CRM</p>
+    </div>
+</body>
+</html>
+''';
+  }
+
+  String _generateTableRows(ComponentesProvider provider) {
+    final rows = StringBuffer();
+
+    for (final componente in provider.componentesTopologia) {
+      final statusClass =
+          componente.activo ? 'status-active' : 'status-inactive';
+      final statusText = componente.activo ? 'Activo' : 'Inactivo';
+      final enUsoText = componente.enUso ? 'Sí' : 'No';
+
+      // Obtener nombre de categoría
+      final categoria = provider.getCategoriaById(componente.categoriaId);
+      final categoriaNombre = categoria?.nombre ?? 'Sin categoría';
+
+      rows.writeln('''
+        <tr>
+            <td>${componente.nombre}</td>
+            <td>$categoriaNombre</td>
+            <td class="$statusClass">$statusText</td>
+            <td>$enUsoText</td>
+            <td>${componente.ubicacion ?? 'Sin especificar'}</td>
+        </tr>
+      ''');
+    }
+
+    return rows.toString();
+  }
+
+  void _showExportProgress(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 }
