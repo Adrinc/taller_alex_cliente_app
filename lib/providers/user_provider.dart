@@ -5,7 +5,7 @@ import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:nethive_neo/helpers/globals.dart';
@@ -60,7 +60,7 @@ class UserState extends ChangeNotifier {
 
   Future<bool> actualizarContrasena() async {
     try {
-      final res = await supabase.rpc('change_user_password', params: {
+      final res = await supabaseLU.rpc('change_user_password', params: {
         'current_plain_password': contrasenaAnteriorPerfil.text,
         'new_plain_password': contrasenaPerfil.text,
       });
@@ -113,13 +113,9 @@ class UserState extends ChangeNotifier {
 
   Future<String?> uploadImage() async {
     if (webImage != null && imageName != null) {
-      await supabase.storage.from('avatars').uploadBinary(
+      await supabaseLU.storage.from('avatars').uploadBinary(
             imageName!,
             webImage!,
-            fileOptions: const FileOptions(
-              cacheControl: '3600',
-              upsert: false,
-            ),
           );
 
       return imageName;
@@ -129,7 +125,7 @@ class UserState extends ChangeNotifier {
 
   Future<bool> editarPerfilDeUsuario() async {
     try {
-      await supabase.from('perfil_usuario').update(
+      await supabaseLU.from('perfil_usuario').update(
         {
           'nombre': nombrePerfil.text,
           'apellidos': apellidosPerfil.text,
@@ -237,7 +233,8 @@ class UserState extends ChangeNotifier {
 
   Future<Map<String, String>?> resetPassword(String email) async {
     try {
-      final res = await supabase.from('users').select('id').eq('email', email);
+      final res =
+          await supabaseLU.from('users').select('id').eq('email', email);
       if ((res as List).isEmpty) {
         return {'Error': 'El correo no está registrado'};
       }
@@ -268,7 +265,8 @@ class UserState extends ChangeNotifier {
 
   Future<String?> getUserId(String email) async {
     try {
-      final res = await supabase.from('users').select('id').eq('email', email);
+      final res =
+          await supabaseLU.from('users').select('id').eq('email', email);
       if ((res as List).isNotEmpty) {
         return res[0]['id'];
       }
@@ -281,7 +279,7 @@ class UserState extends ChangeNotifier {
 
   Future<bool> validateAccessCode(String userId, String accessCode) async {
     try {
-      final res = await supabase.rpc('validate_access_code', params: {
+      final res = await supabaseLU.rpc('validate_access_code', params: {
         'id': userId,
         'access_code_attempt': accessCode,
       });
@@ -294,7 +292,7 @@ class UserState extends ChangeNotifier {
 
   Future<bool> sendAccessCode(String userId) async {
     try {
-      final codeSaved = await supabase.rpc(
+      final codeSaved = await supabaseLU.rpc(
         'save_access_code',
         params: {'id': userId},
       );
@@ -317,7 +315,7 @@ class UserState extends ChangeNotifier {
     loginAttempts += 1;
     if (loginAttempts >= 3) {
       try {
-        await supabase.rpc('block_user', params: {'email': email});
+        await supabaseLU.rpc('block_user', params: {'email': email});
       } catch (e) {
         log('Error en incrementLoginAttempts() - $e');
       } finally {
@@ -329,7 +327,7 @@ class UserState extends ChangeNotifier {
 
   Future<void> registerLogin(String userId) async {
     try {
-      await supabase.from('login_historico').insert({'usuario_fk': userId});
+      await supabaseLU.from('login_historico').insert({'usuario_fk': userId});
     } catch (e) {
       log('registerLogin() - $e');
     }
@@ -337,7 +335,7 @@ class UserState extends ChangeNotifier {
 
   Future<bool> checkIfUserBlocked(String email) async {
     try {
-      final res = await supabase.rpc('check_if_user_blocked', params: {
+      final res = await supabaseLU.rpc('check_if_user_blocked', params: {
         'email': email,
       });
 
@@ -350,7 +348,7 @@ class UserState extends ChangeNotifier {
 
   Future<void> checkIfUserChangedPasswordInLast90Days(String userId) async {
     try {
-      final res = await supabase.rpc('usuario_cambio_contrasena', params: {
+      final res = await supabaseLU.rpc('usuario_cambio_contrasena', params: {
         'user_id': userId,
       });
 
@@ -361,7 +359,7 @@ class UserState extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await supabase.auth.signOut();
+    await supabaseLU.auth.signOut();
     currentUser = null;
     await prefs.remove('currentRol');
     /* Configuration? conf = await SupabaseQueries.getDefaultTheme();

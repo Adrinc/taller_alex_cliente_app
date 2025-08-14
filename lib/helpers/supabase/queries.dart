@@ -1,17 +1,17 @@
 import 'dart:developer';
 
-import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:supabase/supabase.dart' hide User;
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/models/models.dart';
 
 class SupabaseQueries {
   static Future<User?> getCurrentUserData() async {
     try {
-      final user = supabase.auth.currentUser;
+      final user = supabaseLU.auth.currentUser;
       if (user == null) return null;
 
       final PostgrestFilterBuilder query =
-          supabase.from('user_profile').select('''
+          supabaseLU.from('user_profile').select('''
             *,
             role:role_fk(*)
           ''').eq('user_profile_id', user.id);
@@ -41,7 +41,7 @@ class SupabaseQueries {
     try {
       print('🔍 [getDefaultTheme] Cargando tema por defecto...');
 
-      final res = await supabase
+      final res = await supabaseLU
           .from('theme')
           .select('config')
           .eq('id', 1)
@@ -77,7 +77,7 @@ class SupabaseQueries {
 
   static Future<Configuration?> getUserTheme() async {
     try {
-      final user = supabase.auth.currentUser;
+      final user = supabaseLU.auth.currentUser;
       if (user == null) {
         print('🔍 [getUserTheme] No hay usuario autenticado');
         return null;
@@ -86,7 +86,7 @@ class SupabaseQueries {
       print('🔍 [getUserTheme] Buscando tema para usuario: ${user.id}');
 
       // Buscar en user_profile usando el user_profile_id y verificar organization_fk
-      final userProfileRes = await supabase
+      final userProfileRes = await supabaseLU
           .from('user_profile')
           .select('theme_fk, organization_fk')
           .eq('user_profile_id', user.id)
@@ -113,7 +113,7 @@ class SupabaseQueries {
       }
 
       // Buscar configuración del tema usando theme_fk y verificar organization_fk
-      final themeRes = await supabase
+      final themeRes = await supabaseLU
           .from('theme')
           .select('config')
           .eq('id', themeFk)
@@ -151,7 +151,7 @@ class SupabaseQueries {
 
   static Future<bool> tokenChangePassword(String id, String newPassword) async {
     try {
-      final res = await supabase.rpc('token_change_password', params: {
+      final res = await supabaseLU.rpc('token_change_password', params: {
         'user_id': id,
         'new_password': newPassword,
       });
@@ -171,7 +171,7 @@ class SupabaseQueries {
     String token,
   ) async {
     try {
-      await supabase
+      await supabaseLU
           .from('token')
           .upsert({'user_id': userId, tokenType: token});
       return true;

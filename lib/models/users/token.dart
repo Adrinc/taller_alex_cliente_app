@@ -43,7 +43,7 @@ class Token {
       final minutesPassed =
           DateTime.now().toUtc().difference(created).inMinutes;
       if (minutesPassed < timeLimit) {
-        final res = await supabase
+        final res = await supabaseLU
             .from('token')
             .select('token_$type')
             .eq('user_id', userId);

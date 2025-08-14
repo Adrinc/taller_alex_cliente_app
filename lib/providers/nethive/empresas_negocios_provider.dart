@@ -244,11 +244,11 @@ class EmpresasNegociosProvider extends ChangeNotifier {
     try {
       final fileName = 'logo_${empresaId}_${DateTime.now().millisecondsSinceEpoch}_$logoFileName';
       
-      await supabase.storage
+      await supabaseLU.storage
           .from('empresas')
           .uploadBinary(fileName, logoToUpload!);
 
-      final url = supabase.storage
+      final url = supabaseLU.storage
           .from('empresas')
           .getPublicUrl(fileName);
 
@@ -265,11 +265,11 @@ class EmpresasNegociosProvider extends ChangeNotifier {
     try {
       final fileName = 'imagen_${negocioId}_${DateTime.now().millisecondsSinceEpoch}_$imagenFileName';
       
-      await supabase.storage
+      await supabaseLU.storage
           .from('negocios')
           .uploadBinary(fileName, imagenToUpload!);
 
-      final url = supabase.storage
+      final url = supabaseLU.storage
           .from('negocios')
           .getPublicUrl(fileName);
 

@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart' as sf;
+import 'package:supabase/supabase.dart' as sf;
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -98,7 +98,7 @@ class _LoginFormState extends State<LoginForm> {
         return;
       }
 
-      await supabase.auth.signInWithPassword(
+      await supabaseLU.auth.signInWithPassword(
         email: userState.emailController.text,
         password: userState.passwordController.text,
       );

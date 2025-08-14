@@ -270,11 +270,11 @@ class ComponentesProvider extends ChangeNotifier {
     try {
       final fileName = '${componenteId}_${DateTime.now().millisecondsSinceEpoch}_$imagenFileName';
       
-      await supabase.storage
+      await supabaseLU.storage
           .from('componentes')
           .uploadBinary(fileName, imagenToUpload!);
 
-      final url = supabase.storage
+      final url = supabaseLU.storage
           .from('componentes')
           .getPublicUrl(fileName);
 
