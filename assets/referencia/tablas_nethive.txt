@@ -9,7 +9,7 @@ observaciones (text),
 
 id (int4) (PK),
 nombre (text),
-color_categoria (text)
+
 
 -- componente --
 
@@ -190,6 +190,107 @@ componente_id (UUID) (FK de nethive.componente.id),
 posicion_u (INT4), 
 fecha_registro (TIMESTAMP)
 
+
+******* TABLAS para tecnico *******
+
+-- rfid_tag --
+
+id (uuid) (PK),
+codigo (text) (UNIQUE, NOT NULL),
+activo (bool, NOT NULL, DEFAULT true),
+nota (text),
+created_at (timestamptz, NOT NULL, DEFAULT now()),
+
+-- asignacion_trabajo --
+
+id (uuid) (PK),
+tecnico_id (uuid) (FK → public.user_profile.user_profile_id, NOT NULL),
+negocio_id (uuid) (FK → nethive.negocio.id, NOT NULL),
+estado (text, NOT NULL, CHECK en ['en_progreso','completado','pausado']),
+prioridad (int, NOT NULL, DEFAULT 0),
+tipo_trabajo (text),
+descripcion_trabajo (text),
+notas (text),
+fecha_inicio (timestamptz, NOT NULL, DEFAULT now()),
+fecha_fin (timestamptz),
+created_by (uuid) (FK → public.user_profile.user_profile_id),
+created_at (timestamptz, NOT NULL, DEFAULT now()),
+updated_at (timestamptz, NOT NULL, DEFAULT now()),
+
+-- rfid_asignacion_hist --
+
+id (uuid) (PK),
+rfid_tag_id (uuid) (FK → nethive.rfid_tag.id, NOT NULL),
+componente_id (uuid) (FK → nethive.componente.id, NOT NULL),
+asignado_por (uuid) (FK → public.user_profile.user_profile_id),
+asignado_at (timestamptz, NOT NULL, DEFAULT now()),
+reasignado_at (timestamptz),
+motivo (text),
+
+-- rfid_scan_log --
+
+id (uuid) (PK),
+rfid_tag_id (uuid) (FK → nethive.rfid_tag.id, NOT NULL),
+tecnico_id (uuid) (FK → public.user_profile.user_profile_id),
+trabajo_id (uuid) (FK → nethive.asignacion_trabajo.id),
+componente_id (uuid) (FK → nethive.componente.id),
+accion (text, NOT NULL, CHECK en ['asignado','reasignado','consultado']),
+ubicacion_gps (point),
+timestamp_scan (timestamptz, NOT NULL, DEFAULT now()),
+
+-- incidencia --
+
+id (uuid) (PK),
+tecnico_id (uuid) (FK → public.user_profile.user_profile_id, NOT NULL),
+componente_id (uuid) (FK → nethive.componente.id),
+trabajo_id (uuid) (FK → nethive.asignacion_trabajo.id),
+tipo_incidencia (text, NOT NULL, CHECK en ['daño','faltante','mal_etiquetado','otro']),
+descripcion (text),
+estado (text, NOT NULL, CHECK en ['abierta','en_revision','resuelta']),
+fecha_reporte (timestamptz, NOT NULL, DEFAULT now()),
+
+-- incidencia_evidencia --
+
+id (uuid) (PK),
+incidencia_id (uuid) (FK → nethive.incidencia.id, ON DELETE CASCADE),
+url (text, NOT NULL),
+created_at (timestamptz, NOT NULL, DEFAULT now()),
+
+-- dispositivo_tecnico --
+
+id (uuid) (PK),
+tecnico_id (uuid) (FK → public.user_profile.user_profile_id, NOT NULL),
+device_id (text, NOT NULL),
+pistola_rfid_mac (text),
+configuracion (jsonb, NOT NULL, DEFAULT '{}'),
+ultimo_sync (timestamptz),
+activo (bool, NOT NULL, DEFAULT true),
+created_at (timestamptz, NOT NULL, DEFAULT now()),
+
+-- plano_negocio --
+
+id (uuid) (PK),
+negocio_id (uuid) (FK → nethive.negocio.id, NOT NULL),
+nombre (text, NOT NULL),
+image_url (text, NOT NULL),
+ancho_px (int),
+alto_px (int),
+escala (numeric),
+created_at (timestamptz, NOT NULL, DEFAULT now()),
+
+-- posicion_componente --
+
+id (uuid) (PK),
+componente_id (uuid) (FK → nethive.componente.id, NOT NULL, ON DELETE CASCADE),
+plano_id (uuid) (FK → nethive.plano_negocio.id, NOT NULL, ON DELETE CASCADE),
+x (numeric, NOT NULL),
+y (numeric, NOT NULL),
+rotacion (numeric),
+nota (text),
+updated_at (timestamptz, NOT NULL, DEFAULT now()),
+
+
+
 ******* VISTAS: *******
 
 -- vista_cables_en_uso --
@@ -201,23 +302,6 @@ color (text),
 tamaño (numeric),
 tipo_conector (text),
 conexion_id (uuid),
-
--- vista_conexiones_con_cables --
-
-conexion_id (uuid),
-descripcion (text),
-activo (bool),
-origen_id (uuid),
-componente_origen (text),
-destino_id (uuid),
-componente_destino (text),
-cable_id (uuid),
-cable_usado (text),
-tipo_cable (text),
-color (text),
-tamaño (numeric),
-tipo_conector (text),
-
 
 -- vista_conexiones_por_negocio --
 
@@ -243,25 +327,6 @@ nombre_negocio (text),
 logo_negocio (text),
 nombre_empresa (text),
 logo_empresa (text),
-
-
--- vista_inventario_por_negocio -- 
-
-componente_id (uuid),
-nombre_componente (text),
-categoria (text),
-en_uso (bool),
-activo (bool),
-ubicacion (text),
-imagen_componente (text),
-negocio_id  (uuid),
-nombre_negocio (text),
-logo_negocio (text),
-imagen_negocio (text),
-empresa_id (uuid),
-nombre_empresa (text),
-logo_empresa (text),
-imagen_empresa (text)
 
 
 -- vista_negocios_con_coordenadas -- 
@@ -303,7 +368,6 @@ ubicacion (text),
 imagen_url (text),
 fecha_registro (timestamp),
 
-
 -- vista_alimentacion_componentes --
 
 id (uuid),
@@ -322,3 +386,158 @@ categoria_cable (int4),
 descripcion (text),
 activo (bool)
 
+
+-- vista_plano_componentes --
+
+plano_id (uuid),
+negocio_id (uuid),
+plano_nombre (text),
+imagen_url (text),
+componente_id (uuid),
+componente_nombre (text),
+categoria_id (int4),
+distribucion_id (uuid),
+x (numeric),
+y (numeric),
+rotacion (numeric),
+nota (text),
+updated_at (timestamp),
+
+-- vista_inventario_por_negocio --
+
+componente_id (uuid),
+nombre_componente (text),
+categoria (text),
+en_uso (bool),
+activo (bool),
+ubicacion (text),
+imagen_componente (text),
+negocio_id (uuid),
+nombre_negocio (text),
+logo_negocio (text),
+imagen_negocio (text),
+empresa_id (uuid),
+nombre_empresa (text),
+logo_empresa (text),
+imagen_empresa (text),
+rfid (text),
+color_categoria (text),
+
+-- vista_conexiones_con_cables --
+
+conexion_id (uuid),
+descripcion (text),
+activo (bool),
+origen_id (uuid),
+componente_origen (text),
+destino_id (uuid),
+componente_destino (text),
+cable_id (uuid),
+cable_usado (text),
+tipo_cable (text),
+color (text),
+tamaño (numeric),
+tipo_conector (text),
+rfid_origen_legacy (text),
+rfid_destino_legacy (text),
+rfid_cable_legacy (text),
+
+-- vista_rfid_actual_por_componente --
+
+componente_id (uuid),
+componente_nombre (text),
+rfid_legacy (text),
+rfid_tag_id (uuid),
+rfid_codigo (text),
+asignado_at (timestamp),
+asignado_por (uuid),
+
+-- vista_productividad_tecnico --
+
+tecnico_id (uuid),
+nombre_tecnico (text),
+total_componentes_registrados (int8),
+total_trabajos (int8),
+trabajos_completados (int8),
+trabajos_en_progreso (int8),
+
+-- vista_scans_recientes_24h --
+
+rfid_tag_id (uuid),
+rfid_codigo (text),
+tecnico_id (uuid),
+nombre_tecnico (text),
+trabajo_id (uuid),
+componente_id (uuid),
+nombre_componente (text),
+accion (text),
+ubicacion_gps (point),
+timestamp_scan (timestamp),
+
+-- vista_incidencias_por_negocio --
+
+negocio_id (uuid),
+nombre_negocio (text),
+total_incidencias (int8),
+incidencias_abiertas (int8),
+incidencias_en_revision (int8),
+incidencias_resueltas (int8),
+
+-- vista_trabajos_activos_por_tecnico --
+
+tecnico_id (uuid),
+nombre_tecnico (text),
+trabajo_id (uuid),
+negocio_id (uuid),
+nombre_negocio (text),
+fecha_inicio (timestamp),
+estado (text),
+
+-- vista_conexiones_con_cables_y_rfid --
+
+conexion_id (uuid),
+descripcion (text),
+activo (bool),
+origen_id (uuid),
+componente_origen (text),
+rfid_origen (text),
+destino_id (uuid),
+componente_destino (text),
+rfid_destino (text),
+cable_id (uuid),
+cable_usado (text),
+rfid_cable (text),
+tipo_cable (text),
+color (text),
+tamaño (numeric),
+tipo_conector (text),
+
+-- vista_inventario_por_negocio_con_rfid --
+
+componente_id (uuid),
+nombre_componente (text),
+rfid_codigo (text),
+categoria (text),
+en_uso (bool),
+activo (bool),
+ubicacion (text),
+imagen_componente (text),
+negocio_id (uuid),
+nombre_negocio (text),
+logo_negocio (text),
+imagen_negocio (text),
+empresa_id (uuid),
+nombre_empresa (text),
+logo_empresa (text),
+imagen_empresa (text),
+color_categoria (text),
+
+-- vista_componentes_sin_rfid --
+
+componente_id (uuid),
+nombre_componente (text),
+categoria (text),
+negocio_id (uuid),
+nombre_negocio (text),
+empresa_id (uuid),
+nombre_empresa (text),
