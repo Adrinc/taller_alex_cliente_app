@@ -137,7 +137,7 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
 
   Widget _buildHeader(AppTheme theme, UserState userState) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Column(
         children: [
           // Barra superior con información del usuario
@@ -145,25 +145,25 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
             children: [
               // Avatar del usuario
               Container(
-                width: 60,
-                height: 60,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [theme.primaryColor, theme.secondaryColor],
                   ),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
                       color: theme.primaryColor.withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 6),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: _buildDefaultAvatar(),
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
 
               // Información del usuario
               Expanded(
@@ -175,13 +175,15 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                       style: theme.subtitle1.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       'Técnico NetHive',
                       style: theme.bodyText2.copyWith(
                         color: Colors.white60,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -192,11 +194,11 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
               IconButton(
                 onPressed: () => _showOptionsMenu(context, userState),
                 icon: Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
                     Icons.more_vert,
@@ -211,15 +213,15 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
               .fadeIn(delay: 200.ms, duration: 800.ms)
               .slideX(begin: -0.3, end: 0),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Información del negocio actual
           if (_negocioActual != null) ...[
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.2),
                 ),
@@ -231,9 +233,9 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                       Icon(
                         Icons.location_city,
                         color: theme.secondaryColor,
-                        size: 24,
+                        size: 20,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,15 +244,19 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                               'Ubicación actual',
                               style: theme.bodyText3.copyWith(
                                 color: Colors.white60,
+                                fontSize: 12,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 1),
                             Text(
                               _negocioActual!.nombre,
                               style: theme.subtitle2.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ],
                         ),
@@ -262,26 +268,30 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                           style: theme.bodyText2.copyWith(
                             color: theme.tertiaryColor,
                             fontWeight: FontWeight.w600,
+                            fontSize: 12,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Icon(
                         Icons.location_on_outlined,
                         color: Colors.white.withOpacity(0.6),
-                        size: 16,
+                        size: 14,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           _negocioActual!.direccion,
                           style: theme.bodyText3.copyWith(
                             color: Colors.white60,
+                            fontSize: 11,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                       ),
                     ],
@@ -319,7 +329,7 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
 
   Widget _buildDashboard(AppTheme theme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -328,24 +338,25 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
             style: theme.title2.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.bold,
+              fontSize: 18, // Reducido de 20 a 18
             ),
           ).animate().fadeIn(delay: 800.ms, duration: 600.ms),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           // Grid de opciones principales
           Expanded(
             child: GridView.count(
               crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.1,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.2,
               children: [
                 _buildDashboardCard(
                   theme: theme,
                   icon: Icons.qr_code_scanner,
                   title: 'Escanear RFID',
-                  subtitle: 'Escanear etiquetas RFID',
+                  subtitle: 'Escanear etiquetas',
                   onTap: () => context.push('/scanner'),
                   gradient: [theme.primaryColor, theme.secondaryColor],
                   delay: 1000,
@@ -393,16 +404,17 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
 
           // Estadísticas rápidas
           Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: Colors.white.withOpacity(0.1),
               ),
             ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildStatItem(
                   icon: Icons.check_circle,
@@ -410,14 +422,12 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                   label: 'Completados',
                   color: Colors.green,
                 ),
-                const SizedBox(width: 32),
                 _buildStatItem(
                   icon: Icons.pending,
                   value: '5',
                   label: 'Pendientes',
                   color: Colors.orange,
                 ),
-                const SizedBox(width: 32),
                 _buildStatItem(
                   icon: Icons.schedule,
                   value: '2',
@@ -451,12 +461,12 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: gradient[0].withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -464,41 +474,47 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     icon,
                     color: Colors.white,
-                    size: 30,
+                    size: 24,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Text(
                   title,
                   style: theme.subtitle2.copyWith(
                     color: Colors.white,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   style: theme.bodyText3.copyWith(
                     color: Colors.white70,
+                    fontSize: 11,
                   ),
                   textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ],
             ),
@@ -524,25 +540,27 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
           Icon(
             icon,
             color: color,
-            size: 24,
+            size: 20,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
               color: Colors.white.withOpacity(0.6),
-              fontSize: 12,
+              fontSize: 10,
             ),
             textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ],
       ),

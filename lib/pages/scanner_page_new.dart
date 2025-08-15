@@ -4,11 +4,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:nethive_neo/providers/providers.dart';
-import 'package:nethive_neo/widgets/common/custom_app_bar.dart';
 import 'package:nethive_neo/widgets/scanner/scanner_camera_view.dart';
 import 'package:nethive_neo/widgets/scanner/rfid_result_bottom_sheet_new.dart';
 import 'package:nethive_neo/widgets/scanner/manual_input_dialog.dart';
 import 'package:nethive_neo/widgets/scanner/batch_mode_panel.dart';
+import 'package:nethive_neo/theme/theme.dart';
 
 class ScannerPage extends StatefulWidget {
   const ScannerPage({super.key});
@@ -45,85 +45,148 @@ class _ScannerPageState extends State<ScannerPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.of(context);
+
     return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Escáner RFID',
-        actions: [
-          Consumer<RfidScannerProvider>(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.primaryBackground,
+              theme.secondaryBackground,
+              theme.tertiaryBackground,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Consumer<RfidScannerProvider>(
             builder: (context, scanner, child) {
-              return IconButton(
-                icon: Icon(
-                  scanner.isBatchMode ? Icons.list_alt : Icons.qr_code_scanner,
-                  color: scanner.isBatchMode ? Colors.orange : Colors.blue,
+              return Column(
+                children: [
+                  // Header personalizado
+                  _buildHeader(theme, scanner),
+
+                  // Área principal de escaneo
+                  Expanded(
+                    flex: 3,
+                    child: _buildScanningArea(scanner),
+                  ),
+
+                  // Panel de modo lote (si está activo)
+                  if (scanner.isBatchMode)
+                    Expanded(
+                      flex: 1,
+                      child: BatchModePanel(
+                        scannedRfids: scanner.batchScannedRfids,
+                        onRemoveRfid: scanner.removeFromBatch,
+                        onClearBatch: scanner.clearBatch,
+                      ),
+                    ),
+
+                  // Panel de controles inferior
+                  _buildControlsPanel(scanner),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(AppTheme theme, RfidScannerProvider scanner) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Barra superior con botón atrás
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => context.pop(),
+                icon: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Escáner RFID',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              // Botones de acción
+              IconButton(
+                icon: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    scanner.isBatchMode
+                        ? Icons.list_alt
+                        : Icons.qr_code_scanner,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
                 onPressed: () {
                   scanner.toggleBatchMode();
                 },
                 tooltip: scanner.isBatchMode ? 'Modo individual' : 'Modo lote',
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.keyboard),
-            onPressed: () => _showManualInputDialog(),
-            tooltip: 'Entrada manual',
-          ),
-        ],
-      ),
-      body: Consumer<RfidScannerProvider>(
-        builder: (context, scanner, child) {
-          return Column(
-            children: [
-              // Panel de estado superior
-              _buildStatusPanel(scanner),
-
-              // Área principal de escaneo
-              Expanded(
-                flex: 3,
-                child: _buildScanningArea(scanner),
               ),
-
-              // Panel de modo lote (si está activo)
-              if (scanner.isBatchMode)
-                Expanded(
-                  flex: 1,
-                  child: BatchModePanel(
-                    scannedRfids: scanner.batchScannedRfids,
-                    onRemoveRfid: scanner.removeFromBatch,
-                    onClearBatch: scanner.clearBatch,
+              IconButton(
+                icon: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.keyboard,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
-
-              // Panel de controles inferior
-              _buildControlsPanel(scanner),
+                onPressed: () => _showManualInputDialog(),
+                tooltip: 'Entrada manual',
+              ),
             ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStatusPanel(RfidScannerProvider scanner) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scanner.isConnected ? Colors.green.shade50 : Colors.red.shade50,
-        border: Border(
-          bottom: BorderSide(
-            color: scanner.isConnected ? Colors.green : Colors.red,
-            width: 2,
           ),
-        ),
-      ),
-      child: Row(
-        children: [
+
+          const SizedBox(height: 16),
+
           // Estado de conexión
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: scanner.isConnected ? Colors.green : Colors.red,
+              color: scanner.isConnected
+                  ? Colors.green.withOpacity(0.2)
+                  : Colors.red.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: scanner.isConnected ? Colors.green : Colors.red,
+                width: 1,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -132,62 +195,20 @@ class _ScannerPageState extends State<ScannerPage>
                   scanner.isConnected
                       ? Icons.bluetooth_connected
                       : Icons.bluetooth_disabled,
-                  color: Colors.white,
+                  color: scanner.isConnected ? Colors.green : Colors.red,
                   size: 16,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   scanner.isConnected ? 'Conectado' : 'Desconectado',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: scanner.isConnected ? Colors.green : Colors.red,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
                 ),
               ],
             ),
-          ),
-
-          const Spacer(),
-
-          // Modo del escáner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: scanner.isHidMode ? Colors.blue : Colors.purple,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              scanner.isHidMode ? 'HID' : 'Bluetooth',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-
-          const SizedBox(width: 12),
-
-          // Nivel de batería
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _getBatteryIcon(scanner.batteryLevel),
-                color: _getBatteryColor(scanner.batteryLevel),
-                size: 20,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                '${scanner.batteryLevel}%',
-                style: TextStyle(
-                  color: _getBatteryColor(scanner.batteryLevel),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -199,12 +220,21 @@ class _ScannerPageState extends State<ScannerPage>
       width: double.infinity,
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: scanner.isScanning ? Colors.blue : Colors.grey,
+          color: scanner.isScanning
+              ? Colors.blue.withOpacity(0.5)
+              : Colors.white.withOpacity(0.2),
           width: 2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Stack(
         children: [
@@ -332,9 +362,9 @@ class _ScannerPageState extends State<ScannerPage>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white.withOpacity(0.05),
         border: Border(
-          top: BorderSide(color: Colors.grey.shade300),
+          top: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
       ),
       child: Row(
@@ -361,7 +391,11 @@ class _ScannerPageState extends State<ScannerPage>
             style: ElevatedButton.styleFrom(
               backgroundColor: scanner.isScanning ? Colors.red : Colors.blue,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 12), // Reducido padding
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           )
               .animate(
@@ -369,22 +403,35 @@ class _ScannerPageState extends State<ScannerPage>
               )
               .scale(
                 begin: const Offset(1, 1),
-                end: const Offset(1.1, 1.1),
+                end: const Offset(1.05, 1.05), // Reducido el scale
                 duration: const Duration(milliseconds: 500),
               ),
 
           // Botón de configuración
           OutlinedButton.icon(
             onPressed: () => _showSettingsDialog(scanner),
-            icon: const Icon(Icons.settings),
-            label: const Text('Config'),
+            icon: const Icon(Icons.settings, color: Colors.white),
+            label: const Text('Config', style: TextStyle(color: Colors.white)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.white),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
 
           // Botón de inventario
           OutlinedButton.icon(
             onPressed: () => context.go('/inventario'),
-            icon: const Icon(Icons.inventory),
-            label: const Text('Inventario'),
+            icon: const Icon(Icons.inventory, color: Colors.white),
+            label:
+                const Text('Inventario', style: TextStyle(color: Colors.white)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Colors.white),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         ],
       ),
@@ -466,20 +513,6 @@ class _ScannerPageState extends State<ScannerPage>
         ],
       ),
     );
-  }
-
-  IconData _getBatteryIcon(int level) {
-    if (level > 75) return Icons.battery_full;
-    if (level > 50) return Icons.battery_3_bar;
-    if (level > 25) return Icons.battery_2_bar;
-    if (level > 10) return Icons.battery_1_bar;
-    return Icons.battery_0_bar;
-  }
-
-  Color _getBatteryColor(int level) {
-    if (level > 25) return Colors.green;
-    if (level > 10) return Colors.orange;
-    return Colors.red;
   }
 
   String _formatTime(DateTime time) {

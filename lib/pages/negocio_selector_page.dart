@@ -109,7 +109,7 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
             children: [
               // Header con botón de retroceso
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(16), // Reducido de 24 a 16
                 child: Column(
                   children: [
                     // Barra superior con botón atrás
@@ -146,51 +146,59 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                       ],
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16), // Reducido de 20 a 16
 
                     // Icono y título
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 60, // Reducido de 80 a 60
+                      height: 60, // Reducido de 80 a 60
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [theme.secondaryColor, theme.tertiaryColor],
                         ),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius:
+                            BorderRadius.circular(16), // Reducido de 20 a 16
                         boxShadow: [
                           BoxShadow(
                             color: theme.secondaryColor.withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                            blurRadius: 15, // Reducido de 20 a 15
+                            offset: const Offset(0, 6), // Reducido de 8 a 6
                           ),
                         ],
                       ),
                       child: const Icon(
                         Icons.location_city,
                         color: Colors.white,
-                        size: 40,
+                        size: 28, // Reducido de 40 a 28
                       ),
                     )
                         .animate()
                         .scale(delay: 200.ms, duration: 800.ms)
                         .fadeIn(duration: 800.ms),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16), // Reducido de 20 a 16
 
                     Text(
                       'Selecciona la Sucursal',
-                      style: theme.title1.copyWith(color: Colors.white),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20, // Tamaño fijo más pequeño
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     )
                         .animate()
                         .fadeIn(delay: 400.ms, duration: 600.ms)
                         .slideY(begin: 0.3, end: 0),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6), // Reducido de 8 a 6
 
                     Text(
                       'Elige la sucursal donde realizarás el trabajo',
-                      style: theme.bodyText2.copyWith(color: Colors.white60),
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 14, // Tamaño fijo más pequeño
+                      ),
                       textAlign: TextAlign.center,
                     ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
                   ],
@@ -199,7 +207,8 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
 
               // Barra de búsqueda
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16), // Reducido de 24 a 16
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
@@ -221,7 +230,8 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                         color: Colors.white.withOpacity(0.6),
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(16),
+                      contentPadding:
+                          const EdgeInsets.all(12), // Reducido de 16 a 12
                     ),
                   ),
                 ),
@@ -230,7 +240,7 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                   .fadeIn(delay: 800.ms, duration: 600.ms)
                   .slideX(begin: -0.3, end: 0),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16), // Reducido de 24 a 16
 
               // Lista de negocios
               Expanded(

@@ -5,7 +5,7 @@ import 'package:nethive_neo/pages/login_page/login_page.dart';
 import 'package:nethive_neo/pages/empresa_selector_page.dart';
 import 'package:nethive_neo/pages/negocio_selector_page.dart';
 import 'package:nethive_neo/pages/home_tecnico_page.dart';
-import 'package:nethive_neo/pages/scanner_page.dart';
+import 'package:nethive_neo/pages/scanner_page_new.dart' as new_scanner;
 
 class MobileRouter {
   static final GoRouter router = GoRouter(
@@ -48,7 +48,7 @@ class MobileRouter {
           GoRoute(
             path: '/scanner',
             name: 'scanner',
-            builder: (context, state) => const ScannerPage(),
+            builder: (context, state) => const new_scanner.ScannerPage(),
           ),
 
           // Inventario (placeholder)

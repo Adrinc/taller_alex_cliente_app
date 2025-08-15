@@ -8,6 +8,8 @@ import 'package:nethive_neo/pages/negocio_selector_page.dart';
 import 'package:nethive_neo/pages/home_tecnico_page.dart';
 import 'package:nethive_neo/pages/scanner_page_new.dart' as new_scanner;
 import 'package:nethive_neo/pages/inventario_page.dart';
+import 'package:nethive_neo/pages/crear_componente_page.dart';
+import 'package:nethive_neo/pages/componente_selector_page.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 
 class AppRouter {
@@ -97,6 +99,24 @@ class AppRouter {
       ),
 
       // Componente Form (para agregar/editar componentes)
+      GoRoute(
+        path: '/componente/crear',
+        name: 'componente-crear',
+        builder: (context, state) {
+          final rfidCode = state.uri.queryParameters['rfid'];
+          return CrearComponentePage(rfidCode: rfidCode);
+        },
+      ),
+
+      GoRoute(
+        path: '/componente/selector',
+        name: 'componente-selector',
+        builder: (context, state) {
+          final rfidCode = state.uri.queryParameters['rfid'];
+          return ComponenteSelectorPage(rfidCode: rfidCode);
+        },
+      ),
+
       GoRoute(
         path: '/componente-form',
         name: 'componente-form',

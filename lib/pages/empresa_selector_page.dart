@@ -110,53 +110,60 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
             children: [
               // Header con animación
               Container(
-                padding: const EdgeInsets.all(24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Column(
                   children: [
                     // Logo animado
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [theme.primaryColor, theme.alternate],
                         ),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
                             color: theme.primaryColor.withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
+                            blurRadius: 15,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
                       child: const Icon(
                         Icons.business,
                         color: Colors.white,
-                        size: 40,
+                        size: 30,
                       ),
                     )
                         .animate()
                         .scale(delay: 200.ms, duration: 800.ms)
                         .fadeIn(duration: 800.ms),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
 
                     // Título
                     Text(
                       'Selecciona tu Empresa',
-                      style: theme.title1.copyWith(color: Colors.white),
+                      style: theme.title2.copyWith(
+                        color: Colors.white,
+                        fontSize: 22,
+                      ),
                       textAlign: TextAlign.center,
                     )
                         .animate()
                         .fadeIn(delay: 400.ms, duration: 600.ms)
                         .slideY(begin: 0.3, end: 0),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
 
                     Text(
                       'Elige la empresa donde realizarás el trabajo técnico',
-                      style: theme.bodyText2.copyWith(color: Colors.white60),
+                      style: theme.bodyText2.copyWith(
+                        color: Colors.white60,
+                        fontSize: 14,
+                      ),
                       textAlign: TextAlign.center,
                     ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
                   ],
@@ -165,11 +172,12 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
 
               // Barra de búsqueda
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Container(
+                  height: 48,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: Colors.white.withOpacity(0.2),
                     ),
@@ -177,17 +185,23 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
                   child: TextField(
                     controller: _searchController,
                     onChanged: _filterEmpresas,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Buscar empresa...',
-                      hintStyle:
-                          TextStyle(color: Colors.white.withOpacity(0.6)),
+                      hintStyle: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 14,
+                      ),
                       prefixIcon: Icon(
                         Icons.search,
                         color: Colors.white.withOpacity(0.6),
+                        size: 20,
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),

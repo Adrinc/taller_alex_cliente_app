@@ -82,15 +82,17 @@ class _InventarioPageState extends State<InventarioPage>
 
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Reducido de 16 a 12
       child: TextField(
         controller: _searchController,
+        style: const TextStyle(fontSize: 14), // Tamaño de texto reducido
         decoration: InputDecoration(
           hintText: 'Buscar componentes...',
-          prefixIcon: const Icon(Icons.search),
+          hintStyle: const TextStyle(fontSize: 14), // Hint text más pequeño
+          prefixIcon: const Icon(Icons.search, size: 20), // Icono más pequeño
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear),
+                  icon: const Icon(Icons.clear, size: 18), // Icono más pequeño
                   onPressed: () {
                     _searchController.clear();
                     setState(() {});
@@ -102,6 +104,10 @@ class _InventarioPageState extends State<InventarioPage>
           ),
           filled: true,
           fillColor: Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8, // Padding vertical reducido
+          ),
         ),
         onChanged: (value) {
           setState(() {});
@@ -113,7 +119,8 @@ class _InventarioPageState extends State<InventarioPage>
 
   Widget _buildFiltersPanel() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+          horizontal: 12, vertical: 6), // Padding reducido
       decoration: BoxDecoration(
         color: Colors.blue.shade50,
         border: Border(
@@ -127,13 +134,13 @@ class _InventarioPageState extends State<InventarioPage>
             'Filtros',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 14, // Tamaño reducido de 16 a 14
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8), // Reducido de 12 a 8
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 6, // Reducido de 8 a 6
+            runSpacing: 4, // Reducido de 8 a 4
             children: [
               _buildFilterChip('Todos', 'todos'),
               _buildFilterChip('Con RFID', 'con_rfid'),
@@ -174,8 +181,9 @@ class _InventarioPageState extends State<InventarioPage>
 
   Widget _buildStatsPanel(ComponentesProvider componentes) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(
+          horizontal: 12, vertical: 6), // Margin reducido
+      padding: const EdgeInsets.all(12), // Padding reducido de 16 a 12
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.blue.shade400, Colors.blue.shade600],
@@ -192,7 +200,7 @@ class _InventarioPageState extends State<InventarioPage>
             ),
           ),
           Container(
-            height: 40,
+            height: 32, // Reducido de 40 a 32
             width: 1,
             color: Colors.white.withOpacity(0.3),
           ),
@@ -207,7 +215,7 @@ class _InventarioPageState extends State<InventarioPage>
             ),
           ),
           Container(
-            height: 40,
+            height: 32, // Asegurar consistencia
             width: 1,
             color: Colors.white.withOpacity(0.3),
           ),
@@ -229,14 +237,14 @@ class _InventarioPageState extends State<InventarioPage>
         Icon(
           icon,
           color: Colors.white,
-          size: 24,
+          size: 20, // Reducido de 24 a 20
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 3), // Reducido de 4 a 3
         Text(
           value,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 20,
+            fontSize: 18, // Reducido de 20 a 18
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -244,7 +252,7 @@ class _InventarioPageState extends State<InventarioPage>
           label,
           style: TextStyle(
             color: Colors.white.withOpacity(0.9),
-            fontSize: 12,
+            fontSize: 11, // Reducido de 12 a 11
           ),
         ),
       ],
@@ -286,7 +294,7 @@ class _InventarioPageState extends State<InventarioPage>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Padding reducido de 16 a 12
       itemCount: filteredComponents.length,
       itemBuilder: (context, index) {
         final component = filteredComponents[index];
