@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:vibration/vibration.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -55,6 +54,23 @@ class _ScannerPageState extends State<ScannerPage>
     super.dispose();
   }
 
+  Future<String> _simulateScanner() async {
+    // Simulación de scanner para desarrollo
+    // TODO: Reemplazar con mobile_scanner real
+    await Future.delayed(const Duration(seconds: 2));
+    
+    // Retornar un RFID de prueba
+    final List<String> testRfids = [
+      'E2001122334455667788',
+      'E2002233445566778899',
+      'E2003344556677889900',
+      'E2004455667788990011',
+    ];
+    
+    // Retornar un RFID aleatorio
+    return testRfids[(DateTime.now().millisecond % testRfids.length)];
+  }
+
   Future<void> _startScanning() async {
     // Verificar permisos de cámara
     final cameraPermission = await Permission.camera.request();
@@ -68,12 +84,9 @@ class _ScannerPageState extends State<ScannerPage>
     });
 
     try {
-      final barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
-        '#ff6666', // Color del botón cancelar
-        'Cancelar', // Texto del botón cancelar
-        true, // Mostrar flash
-        ScanMode.DEFAULT, // Modo de escaneo
-      );
+      // TODO: Implementar mobile_scanner
+      // Por ahora simulamos un resultado de prueba
+      final barcodeScanRes = await _simulateScanner();
 
       if (barcodeScanRes != '-1' && barcodeScanRes.isNotEmpty) {
         await _processScanResult(barcodeScanRes);

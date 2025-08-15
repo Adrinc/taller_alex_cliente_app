@@ -6,7 +6,8 @@ import 'package:nethive_neo/pages/login_page/login_page.dart';
 import 'package:nethive_neo/pages/empresa_selector_page.dart';
 import 'package:nethive_neo/pages/negocio_selector_page.dart';
 import 'package:nethive_neo/pages/home_tecnico_page.dart';
-import 'package:nethive_neo/pages/scanner_page.dart';
+import 'package:nethive_neo/pages/scanner_page_new.dart' as new_scanner;
+import 'package:nethive_neo/pages/inventario_page.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 
 class AppRouter {
@@ -74,21 +75,14 @@ class AppRouter {
       GoRoute(
         path: '/scanner',
         name: 'scanner',
-        builder: (context, state) {
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return ScannerPage(negocioId: negocioId);
-        },
+        builder: (context, state) => const new_scanner.ScannerPage(),
       ),
 
       // Inventario
       GoRoute(
         path: '/inventario',
         name: 'inventario',
-        builder: (context, state) => const Scaffold(
-          body: Center(
-            child: Text('Página de Inventario\n(En desarrollo)'),
-          ),
-        ),
+        builder: (context, state) => const InventarioPage(),
       ),
 
       // Conexiones

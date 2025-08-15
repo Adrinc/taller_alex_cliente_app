@@ -7,7 +7,7 @@ import 'package:random_password_generator/random_password_generator.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase/supabase.dart' hide User;
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:http/http.dart' as http;
 
 import 'package:nethive_neo/helpers/constants.dart';

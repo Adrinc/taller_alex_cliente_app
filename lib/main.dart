@@ -36,6 +36,9 @@ class NetHiveApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserState()),
         ChangeNotifierProvider(create: (_) => EmpresasNegociosProvider()),
         ChangeNotifierProvider(create: (_) => ComponentesProvider()),
+        ChangeNotifierProvider(create: (_) => RfidScannerProvider()),
+        ChangeNotifierProvider(create: (_) => ConexionesProvider()),
+        ChangeNotifierProvider(create: (_) => SyncProvider()),
         ChangeNotifierProvider(create: (_) => ThemeConfigProvider()),
       ],
       child: MaterialApp.router(
