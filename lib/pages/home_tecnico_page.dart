@@ -1,0 +1,612 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+
+import 'package:nethive_neo/providers/user_provider.dart';
+import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
+import 'package:nethive_neo/models/nethive/negocio_model.dart';
+import 'package:nethive_neo/theme/theme.dart';
+import 'package:nethive_neo/helpers/globals.dart';
+
+class HomeTecnicoPage extends StatefulWidget {
+  final String? negocioId;
+
+  const HomeTecnicoPage({
+    super.key,
+    this.negocioId,
+  });
+
+  @override
+  State<HomeTecnicoPage> createState() => _HomeTecnicoPageState();
+}
+
+class _HomeTecnicoPageState extends State<HomeTecnicoPage>
+    with TickerProviderStateMixin {
+  late AnimationController _animationController;
+  Negocio? _negocioActual;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _loadNegocio();
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadNegocio() async {
+    if (widget.negocioId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final provider =
+        Provider.of<EmpresasNegociosProvider>(context, listen: false);
+
+    try {
+      // Buscar en la lista actual de negocios
+      final negocio = provider.negocios.firstWhere(
+        (n) => n.id == widget.negocioId,
+        orElse: () => throw Exception('Negocio no encontrado'),
+      );
+
+      setState(() {
+        _negocioActual = negocio;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar información del negocio: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.of(context);
+    final userState = Provider.of<UserState>(context);
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.primaryBackground,
+              theme.secondaryBackground,
+              theme.tertiaryBackground,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: _isLoading
+              ? _buildLoadingState(theme)
+              : Column(
+                  children: [
+                    // Header con información del técnico y negocio
+                    _buildHeader(theme, userState),
+
+                    // Dashboard de opciones
+                    Expanded(
+                      child: _buildDashboard(theme),
+                    ),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(AppTheme theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SpinKitPulse(
+            color: theme.secondaryColor,
+            size: 50,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Cargando información...',
+            style: theme.bodyText1.copyWith(color: Colors.white70),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(AppTheme theme, UserState userState) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Barra superior con información del usuario
+          Row(
+            children: [
+              // Avatar del usuario
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [theme.primaryColor, theme.secondaryColor],
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.primaryColor.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: _buildDefaultAvatar(),
+              ),
+
+              const SizedBox(width: 16),
+
+              // Información del usuario
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '¡Hola, ${_getUserName()}!',
+                      style: theme.subtitle1.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Técnico NetHive',
+                      style: theme.bodyText2.copyWith(
+                        color: Colors.white60,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Botón de configuración/logout
+              IconButton(
+                onPressed: () => _showOptionsMenu(context, userState),
+                icon: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.more_vert,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          )
+              .animate()
+              .fadeIn(delay: 200.ms, duration: 800.ms)
+              .slideX(begin: -0.3, end: 0),
+
+          const SizedBox(height: 24),
+
+          // Información del negocio actual
+          if (_negocioActual != null) ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_city,
+                        color: theme.secondaryColor,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Ubicación actual',
+                              style: theme.bodyText3.copyWith(
+                                color: Colors.white60,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _negocioActual!.nombre,
+                              style: theme.subtitle2.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => context.go('/empresa-selector'),
+                        child: Text(
+                          'Cambiar',
+                          style: theme.bodyText2.copyWith(
+                            color: theme.tertiaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        color: Colors.white.withOpacity(0.6),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _negocioActual!.direccion,
+                          style: theme.bodyText3.copyWith(
+                            color: Colors.white60,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+                .animate()
+                .fadeIn(delay: 600.ms, duration: 800.ms)
+                .slideY(begin: 0.3, end: 0),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDefaultAvatar() {
+    return const Icon(
+      Icons.person,
+      color: Colors.white,
+      size: 30,
+    );
+  }
+
+  String _getUserName() {
+    final currentUser = supabaseLU.auth.currentUser;
+    if (currentUser?.userMetadata?['full_name'] != null) {
+      return currentUser!.userMetadata!['full_name'];
+    }
+    if (currentUser?.email != null) {
+      return currentUser!.email!.split('@')[0];
+    }
+    return 'Usuario';
+  }
+
+  Widget _buildDashboard(AppTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Panel de Trabajo',
+            style: theme.title2.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ).animate().fadeIn(delay: 800.ms, duration: 600.ms),
+
+          const SizedBox(height: 20),
+
+          // Grid de opciones principales
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
+              children: [
+                _buildDashboardCard(
+                  theme: theme,
+                  icon: Icons.qr_code_scanner,
+                  title: 'Escanear RFID',
+                  subtitle: 'Escanear etiquetas RFID',
+                  onTap: () => context.push('/scanner'),
+                  gradient: [theme.primaryColor, theme.secondaryColor],
+                  delay: 1000,
+                ),
+                _buildDashboardCard(
+                  theme: theme,
+                  icon: Icons.inventory_2,
+                  title: 'Inventario',
+                  subtitle: 'Gestionar componentes',
+                  onTap: () => context.push('/inventario'),
+                  gradient: [theme.secondaryColor, theme.tertiaryColor],
+                  delay: 1100,
+                ),
+                _buildDashboardCard(
+                  theme: theme,
+                  icon: Icons.cable,
+                  title: 'Conexiones',
+                  subtitle: 'Gestionar conectividad',
+                  onTap: () => context.push('/conexiones'),
+                  gradient: [theme.tertiaryColor, theme.primaryColor],
+                  delay: 1200,
+                ),
+                _buildDashboardCard(
+                  theme: theme,
+                  icon: Icons.assignment,
+                  title: 'Mis Trabajos',
+                  subtitle: 'Asignaciones pendientes',
+                  onTap: () {
+                    // TODO: Implementar lista de trabajos
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Próximamente: Lista de trabajos'),
+                      ),
+                    );
+                  },
+                  gradient: [
+                    theme.primaryColor.withOpacity(0.8),
+                    theme.tertiaryColor.withOpacity(0.8)
+                  ],
+                  delay: 1300,
+                ),
+              ],
+            ),
+          ),
+
+          // Estadísticas rápidas
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+            child: Row(
+              children: [
+                _buildStatItem(
+                  icon: Icons.check_circle,
+                  value: '12',
+                  label: 'Completados',
+                  color: Colors.green,
+                ),
+                const SizedBox(width: 32),
+                _buildStatItem(
+                  icon: Icons.pending,
+                  value: '5',
+                  label: 'Pendientes',
+                  color: Colors.orange,
+                ),
+                const SizedBox(width: 32),
+                _buildStatItem(
+                  icon: Icons.schedule,
+                  value: '2',
+                  label: 'En progreso',
+                  color: Colors.blue,
+                ),
+              ],
+            ),
+          )
+              .animate()
+              .fadeIn(delay: 1400.ms, duration: 600.ms)
+              .slideY(begin: 0.3, end: 0),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardCard({
+    required AppTheme theme,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    required List<Color> gradient,
+    required int delay,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: gradient[0].withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: theme.subtitle2.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: theme.bodyText3.copyWith(
+                    color: Colors.white70,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    )
+        .animate()
+        .fadeIn(delay: Duration(milliseconds: delay), duration: 600.ms)
+        .scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1))
+        .shimmer(delay: Duration(milliseconds: delay + 500), duration: 1000.ms);
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 24,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.6),
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showOptionsMenu(BuildContext context, UserState userState) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Perfil'),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Implementar página de perfil
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('Configuración'),
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Implementar configuración
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Cerrar Sesión',
+                  style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                Navigator.pop(context);
+                await supabaseLU.auth.signOut();
+                if (context.mounted) {
+                  context.go('/login');
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}

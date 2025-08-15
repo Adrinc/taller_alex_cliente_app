@@ -6,7 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nethive_neo/helpers/constants.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/providers/providers.dart';
-import 'package:nethive_neo/pages/login_page/login_page.dart';
+import 'package:nethive_neo/router/app_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -23,11 +23,11 @@ void main() async {
   supabaseLU = SupabaseClient(supabaseUrl, anonKey, schema: 'nethive');
   await initGlobals();
 
-  runApp(const NethiveMobileApp());
+  runApp(const NetHiveApp());
 }
 
-class NethiveMobileApp extends StatelessWidget {
-  const NethiveMobileApp({super.key});
+class NetHiveApp extends StatelessWidget {
+  const NetHiveApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +38,9 @@ class NethiveMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ComponentesProvider()),
         ChangeNotifierProvider(create: (_) => ThemeConfigProvider()),
       ],
-      child: MaterialApp(
-        title: 'NETHIVE Mobile',
+      child: MaterialApp.router(
+        title: 'NetHive Mobile',
+        routerConfig: AppRouter.router,
         theme: ThemeData(
           primarySwatch: Colors.green,
           fontFamily: 'Poppins',
@@ -52,7 +53,6 @@ class NethiveMobileApp extends StatelessWidget {
         supportedLocales: const [
           Locale('es', 'ES'),
         ],
-        home: const LoginPage(),
         debugShowCheckedModeBanner: false,
       ),
     );

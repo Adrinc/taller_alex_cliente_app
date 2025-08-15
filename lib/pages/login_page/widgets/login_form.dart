@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:supabase_flutter/supabase_flutter.dart' as sf;
 import 'package:email_validator/email_validator.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -112,22 +113,11 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
           print('🚀 [LoginForm] Recarga de tema completada');
         }
 
-        /* 
-        13: limitado
-        14: ilimitado
-         */
-
-        /* ILIMITADO */
-        print('User Role ID: ${currentUser!.role.roleId}');
-        /*    if (currentUser!.role.roleId == 14 || currentUser!.role.roleId == 13) {
-          context.pushReplacement('/book_page_main');
-          return;
-        } */
-        /* LIMITADO */
-
         if (!mounted) return;
 
-        /*        context.pushReplacement('/'); */
+        // Redirigir a la selección de empresa (inicio del flow móvil)
+        context.go('/empresa-selector');
+        setState(() => _isLoading = false);
       } catch (e) {
         if (e is sf.AuthException) {
           await userState.incrementLoginAttempts(
