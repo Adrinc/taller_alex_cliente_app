@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:nethive_neo/providers/providers.dart';
-import 'package:nethive_neo/widgets/common/custom_app_bar.dart';
 import 'package:nethive_neo/models/nethive/componente_model.dart';
+import 'package:nethive_neo/theme/theme.dart';
 
 class InventarioPage extends StatefulWidget {
   const InventarioPage({super.key});
@@ -14,142 +14,185 @@ class InventarioPage extends StatefulWidget {
   State<InventarioPage> createState() => _InventarioPageState();
 }
 
-class _InventarioPageState extends State<InventarioPage>
-    with TickerProviderStateMixin {
-  final _searchController = TextEditingController();
-  String _selectedFilter = 'todos';
+class _InventarioPageState extends State<InventarioPage> {
+  final TextEditingController _searchController = TextEditingController();
   bool _showFilters = false;
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  String _selectedFilter = 'todos';
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.of(context);
+
     return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Inventario',
-        actions: [
-          IconButton(
-            icon:
-                Icon(_showFilters ? Icons.filter_list_off : Icons.filter_list),
-            onPressed: () {
-              setState(() {
-                _showFilters = !_showFilters;
-              });
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.primaryBackground,
+              theme.secondaryBackground,
+              theme.tertiaryBackground,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Consumer<ComponentesProvider>(
+            builder: (context, componentes, child) {
+              return Column(
+                children: [
+                  // Header personalizado
+                  _buildHeader(theme),
+
+                  // Panel de filtros
+                  if (_showFilters)
+                    _buildFiltersPanel(theme)
+                        .animate()
+                        .slideY(
+                            begin: -1,
+                            duration: const Duration(milliseconds: 300))
+                        .fadeIn(),
+
+                  // Estadísticas rápidas
+                  _buildStatsPanel(componentes, theme),
+
+                  // Lista de componentes
+                  Expanded(
+                    child: _buildComponentsList(componentes),
+                  ),
+                ],
+              );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner),
-            onPressed: () => context.go('/scanner'),
-          ),
-        ],
-      ),
-      body: Consumer<ComponentesProvider>(
-        builder: (context, componentes, child) {
-          return Column(
-            children: [
-              // Barra de búsqueda
-              _buildSearchBar(),
-
-              // Panel de filtros
-              if (_showFilters)
-                _buildFiltersPanel()
-                    .animate()
-                    .slideY(
-                        begin: -1, duration: const Duration(milliseconds: 300))
-                    .fadeIn(),
-
-              // Estadísticas rápidas
-              _buildStatsPanel(componentes),
-
-              // Lista de componentes
-              Expanded(
-                child: _buildComponentsList(componentes),
-              ),
-            ],
-          );
-        },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.go('/componente/crear'),
-        child: const Icon(Icons.add),
+        backgroundColor: theme.primaryColor,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildHeader(AppTheme theme) {
     return Container(
-      padding: const EdgeInsets.all(12), // Reducido de 16 a 12
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Inventario',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: theme.primaryText,
+                  ),
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    _showFilters ? Icons.filter_list_off : Icons.filter_list,
+                    color: theme.primaryColor,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showFilters = !_showFilters;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.qr_code_scanner, color: theme.primaryColor),
+                  onPressed: () => context.go('/scanner'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSearchBar(theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(AppTheme theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: theme.secondaryBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
+      ),
       child: TextField(
         controller: _searchController,
-        style: const TextStyle(fontSize: 14), // Tamaño de texto reducido
         decoration: InputDecoration(
           hintText: 'Buscar componentes...',
-          hintStyle: const TextStyle(fontSize: 14), // Hint text más pequeño
-          prefixIcon: const Icon(Icons.search, size: 20), // Icono más pequeño
+          hintStyle: TextStyle(color: theme.secondaryText, fontSize: 14),
+          border: InputBorder.none,
+          prefixIcon: Icon(Icons.search, color: theme.secondaryText, size: 20),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18), // Icono más pequeño
+                  icon: Icon(Icons.clear, color: theme.secondaryText, size: 18),
                   onPressed: () {
                     _searchController.clear();
                     setState(() {});
                   },
                 )
               : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          filled: true,
-          fillColor: Colors.grey.shade50,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8, // Padding vertical reducido
-          ),
         ),
-        onChanged: (value) {
-          setState(() {});
-          // TODO: Implementar búsqueda en tiempo real
-        },
+        style: TextStyle(color: theme.primaryText, fontSize: 14),
+        onChanged: (value) => setState(() {}),
       ),
     );
   }
 
-  Widget _buildFiltersPanel() {
+  Widget _buildFiltersPanel(AppTheme theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 12, vertical: 6), // Padding reducido
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        border: Border(
-          bottom: BorderSide(color: Colors.blue.shade200),
-        ),
+        color: theme.secondaryBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Filtros',
             style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14, // Tamaño reducido de 16 a 14
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: theme.primaryText,
             ),
           ),
-          const SizedBox(height: 8), // Reducido de 12 a 8
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 6, // Reducido de 8 a 6
-            runSpacing: 4, // Reducido de 8 a 4
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              _buildFilterChip('Todos', 'todos'),
-              _buildFilterChip('Con RFID', 'con_rfid'),
-              _buildFilterChip('Sin RFID', 'sin_rfid'),
-              _buildFilterChip('En Uso', 'en_uso'),
-              _buildFilterChip('Disponible', 'disponible'),
-              _buildFilterChip('Cables', 'cables'),
-              _buildFilterChip('Switches', 'switches'),
-              _buildFilterChip('Racks', 'racks'),
+              _buildFilterChip('Todos', 'todos', theme),
+              _buildFilterChip('Con RFID', 'con_rfid', theme),
+              _buildFilterChip('Sin RFID', 'sin_rfid', theme),
+              _buildFilterChip('En Uso', 'en_uso', theme),
+              _buildFilterChip('Disponible', 'disponible', theme),
+              _buildFilterChip('Cables', 'cables', theme),
+              _buildFilterChip('Switches', 'switches', theme),
+              _buildFilterChip('Racks', 'racks', theme),
             ],
           ),
         ],
@@ -157,36 +200,45 @@ class _InventarioPageState extends State<InventarioPage>
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
+  Widget _buildFilterChip(String label, String value, AppTheme theme) {
     final isSelected = _selectedFilter == value;
-    return FilterChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.blue.shade700,
-          fontSize: 12,
-        ),
-      ),
-      selected: isSelected,
-      onSelected: (selected) {
+    return GestureDetector(
+      onTap: () {
         setState(() {
-          _selectedFilter = selected ? value : 'todos';
+          _selectedFilter = isSelected ? 'todos' : value;
         });
       },
-      backgroundColor: Colors.white,
-      selectedColor: Colors.blue,
-      checkmarkColor: Colors.white,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.primaryColor
+              : theme.primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.primaryColor,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : theme.primaryColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildStatsPanel(ComponentesProvider componentes) {
+  Widget _buildStatsPanel(ComponentesProvider componentes, AppTheme theme) {
     return Container(
-      margin: const EdgeInsets.symmetric(
-          horizontal: 12, vertical: 6), // Margin reducido
-      padding: const EdgeInsets.all(12), // Padding reducido de 16 a 12
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.shade400, Colors.blue.shade600],
+          colors: [theme.primaryColor, theme.secondaryColor],
         ),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -197,10 +249,11 @@ class _InventarioPageState extends State<InventarioPage>
               'Total',
               componentes.componentes.length.toString(),
               Icons.inventory,
+              theme,
             ),
           ),
           Container(
-            height: 32, // Reducido de 40 a 32
+            height: 32,
             width: 1,
             color: Colors.white.withOpacity(0.3),
           ),
@@ -212,10 +265,11 @@ class _InventarioPageState extends State<InventarioPage>
                   .length
                   .toString(),
               Icons.qr_code,
+              theme,
             ),
           ),
           Container(
-            height: 32, // Asegurar consistencia
+            height: 32,
             width: 1,
             color: Colors.white.withOpacity(0.3),
           ),
@@ -224,6 +278,7 @@ class _InventarioPageState extends State<InventarioPage>
               'En Uso',
               componentes.componentes.where((c) => c.enUso).length.toString(),
               Icons.play_circle_filled,
+              theme,
             ),
           ),
         ],
@@ -231,20 +286,21 @@ class _InventarioPageState extends State<InventarioPage>
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
+  Widget _buildStatItem(
+      String label, String value, IconData icon, AppTheme theme) {
     return Column(
       children: [
         Icon(
           icon,
           color: Colors.white,
-          size: 20, // Reducido de 24 a 20
+          size: 20,
         ),
-        const SizedBox(height: 3), // Reducido de 4 a 3
+        const SizedBox(height: 3),
         Text(
           value,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 18, // Reducido de 20 a 18
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -252,7 +308,7 @@ class _InventarioPageState extends State<InventarioPage>
           label,
           style: TextStyle(
             color: Colors.white.withOpacity(0.9),
-            fontSize: 11, // Reducido de 12 a 11
+            fontSize: 11,
           ),
         ),
       ],
@@ -294,42 +350,41 @@ class _InventarioPageState extends State<InventarioPage>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(12), // Padding reducido de 16 a 12
+      padding: const EdgeInsets.all(12),
       itemCount: filteredComponents.length,
       itemBuilder: (context, index) {
-        final component = filteredComponents[index];
-        return _buildComponentCard(component, index);
+        final componente = filteredComponents[index];
+        return _buildComponentCard(componente);
       },
     );
   }
 
-  Widget _buildComponentCard(Componente componente, int index) {
+  Widget _buildComponentCard(Componente componente) {
+    final theme = AppTheme.of(context);
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      margin: const EdgeInsets.only(bottom: 8),
+      color: theme.secondaryBackground,
+      elevation: 2,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
         onTap: () => context.go('/componente/${componente.id}'),
+        borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header con nombre y estado
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _getCategoryColor(componente.categoriaId)
-                          .withOpacity(0.1),
+                      color: theme.primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      _getCategoryIcon(componente.categoriaId),
-                      color: _getCategoryColor(componente.categoriaId),
+                      _getComponentIcon(componente.categoriaId.toString()),
+                      color: theme.primaryColor,
                       size: 20,
                     ),
                   ),
@@ -339,197 +394,192 @@ class _InventarioPageState extends State<InventarioPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          componente.nombre,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                          componente.descripcion ?? componente.nombre,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: theme.primaryText,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Categoría: ${componente.categoriaId}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.secondaryText,
                           ),
                         ),
-                        if (componente.descripcion?.isNotEmpty == true)
-                          Text(
-                            componente.descripcion!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
                       ],
                     ),
                   ),
-                  // Estados
-                  Column(
-                    children: [
-                      if (componente.rfid?.isNotEmpty == true)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                  if (componente.rfid?.isNotEmpty == true)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.qr_code,
+                            size: 12,
+                            color: Colors.green[700],
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
+                          const SizedBox(width: 2),
+                          Text(
                             'RFID',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: componente.enUso ? Colors.orange : Colors.grey,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          componente.enUso ? 'EN USO' : 'LIBRE',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
-
-              const SizedBox(height: 12),
-
-              // Información adicional
+              if (componente.rfid?.isNotEmpty == true) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.tertiaryBackground,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'RFID: ${componente.rfid}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: theme.secondaryText,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  if (componente.ubicacion?.isNotEmpty == true) ...[
-                    Icon(
-                      Icons.location_on,
-                      size: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
+                  _buildStatusChip(
+                    componente.enUso ? 'En Uso' : 'Disponible',
+                    componente.enUso ? Colors.orange : Colors.green,
+                  ),
+                  const SizedBox(width: 8),
+                  if (componente.ubicacion?.isNotEmpty == true)
                     Expanded(
                       child: Text(
-                        componente.ubicacion!,
+                        'Ubicación: ${componente.ubicacion}',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                          fontSize: 11,
+                          color: theme.secondaryText,
                         ),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ],
-                  if (componente.rfid?.isNotEmpty == true) ...[
-                    const SizedBox(width: 16),
-                    Icon(
-                      Icons.qr_code,
-                      size: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      componente.rfid!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey.shade600,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ],
           ),
         ),
       ),
-    )
-        .animate(delay: Duration(milliseconds: index * 50))
-        .slideX(begin: -0.1, duration: const Duration(milliseconds: 300))
-        .fadeIn();
+    );
   }
 
-  List<Componente> _getFilteredComponents(List<Componente> components) {
-    var filtered = components.where((component) {
-      // Filtro de búsqueda
-      if (_searchController.text.isNotEmpty) {
-        final query = _searchController.text.toLowerCase();
-        if (!component.nombre.toLowerCase().contains(query) &&
-            !(component.descripcion?.toLowerCase().contains(query) ?? false) &&
-            !(component.rfid?.toLowerCase().contains(query) ?? false)) {
-          return false;
-        }
-      }
-
-      // Filtros por categoría/estado
-      switch (_selectedFilter) {
-        case 'con_rfid':
-          return component.rfid?.isNotEmpty == true;
-        case 'sin_rfid':
-          return component.rfid?.isEmpty ?? true;
-        case 'en_uso':
-          return component.enUso;
-        case 'disponible':
-          return !component.enUso;
-        case 'cables':
-          return component.categoriaId == 1; // Asumiendo que 1 es cables
-        case 'switches':
-          return component.categoriaId == 2; // Asumiendo que 2 es switches
-        case 'racks':
-          return component.categoriaId == 3; // Asumiendo que 3 es racks
-        default:
-          return true;
-      }
-    }).toList();
-
-    // Ordenar por nombre
-    filtered.sort((a, b) => a.nombre.compareTo(b.nombre));
-
-    return filtered;
+  Widget _buildStatusChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: color.withOpacity(0.8),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
-  IconData _getCategoryIcon(int categoriaId) {
-    switch (categoriaId) {
-      case 1:
-        return Icons.cable;
-      case 2:
+  IconData _getComponentIcon(String? categoria) {
+    switch (categoria?.toLowerCase()) {
+      case '1': // switch
+      case 'switch':
+      case 'switches':
         return Icons.hub;
-      case 3:
-        return Icons.inventory_2;
-      case 4:
-        return Icons.grid_view;
-      case 5:
-        return Icons.power;
-      case 6:
+      case '2': // cable
+      case 'cable':
+      case 'cables':
+        return Icons.cable;
+      case '3': // rack
+      case 'rack':
+      case 'racks':
+        return Icons.developer_board;
+      case '4': // servidor
+      case 'servidor':
+      case 'servidores':
+        return Icons.dns;
+      case '5': // router
+      case 'router':
+      case 'routers':
         return Icons.router;
       default:
         return Icons.memory;
     }
   }
 
-  Color _getCategoryColor(int categoriaId) {
-    switch (categoriaId) {
-      case 1:
-        return Colors.green;
-      case 2:
-        return Colors.blue;
-      case 3:
-        return Colors.orange;
-      case 4:
-        return Colors.purple;
-      case 5:
-        return Colors.red;
-      case 6:
-        return Colors.teal;
-      default:
-        return Colors.grey;
+  List<Componente> _getFilteredComponents(List<Componente> componentes) {
+    List<Componente> filtered = componentes;
+
+    // Filtrar por búsqueda
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
+      filtered = filtered.where((componente) {
+        return (componente.descripcion?.toLowerCase().contains(query) ==
+                true) ||
+            (componente.nombre.toLowerCase().contains(query)) ||
+            (componente.rfid?.toLowerCase().contains(query) == true) ||
+            (componente.ubicacion?.toLowerCase().contains(query) == true);
+      }).toList();
     }
+
+    // Filtrar por categoría/estado
+    switch (_selectedFilter) {
+      case 'con_rfid':
+        filtered = filtered.where((c) => c.rfid?.isNotEmpty == true).toList();
+        break;
+      case 'sin_rfid':
+        filtered = filtered.where((c) => c.rfid?.isEmpty != false).toList();
+        break;
+      case 'en_uso':
+        filtered = filtered.where((c) => c.enUso).toList();
+        break;
+      case 'disponible':
+        filtered = filtered.where((c) => !c.enUso).toList();
+        break;
+      case 'cables':
+        filtered = filtered.where((c) => c.categoriaId == 2).toList();
+        break;
+      case 'switches':
+        filtered = filtered.where((c) => c.categoriaId == 1).toList();
+        break;
+      case 'racks':
+        filtered = filtered.where((c) => c.categoriaId == 3).toList();
+        break;
+      case 'todos':
+      default:
+        break;
+    }
+
+    return filtered;
   }
 }

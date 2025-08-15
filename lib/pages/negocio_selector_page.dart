@@ -307,7 +307,7 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
 
   Widget _buildNegocioCard(Negocio negocio, int index, AppTheme theme) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12), // Reducido de 16 a 12
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -315,15 +315,15 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
             Colors.white.withOpacity(0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
         border: Border.all(
           color: Colors.white.withOpacity(0.2),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 8, // Reducido de 10 a 8
+            offset: const Offset(0, 3), // Reducido de 4 a 3
           ),
         ],
       ),
@@ -334,9 +334,9 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
             // Navegamos al home del técnico con el negocioId
             context.go('/home?negocioId=${negocio.id}');
           },
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(14), // Reducido de 20 a 14
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -344,17 +344,19 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                   children: [
                     // Avatar del negocio
                     Container(
-                      width: 60,
-                      height: 60,
+                      width: 50, // Reducido de 60 a 50
+                      height: 50, // Reducido de 60 a 50
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [theme.tertiaryColor, theme.primaryColor],
                         ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius:
+                            BorderRadius.circular(12), // Reducido de 16 a 12
                       ),
                       child: negocio.logoUrl?.isNotEmpty == true
                           ? ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(
+                                  12), // Reducido de 16 a 12
                               child: Image.network(
                                 negocio.logoUrl!,
                                 fit: BoxFit.cover,
@@ -362,20 +364,20 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                                     const Icon(
                                   Icons.store,
                                   color: Colors.white,
-                                  size: 30,
+                                  size: 24, // Reducido de 30 a 24
                                 ),
                               ),
                             )
                           : const Icon(
                               Icons.store,
                               color: Colors.white,
-                              size: 30,
+                              size: 24, // Reducido de 30 a 24
                             ),
                     ),
 
-                    const SizedBox(width: 16),
-
-                    // Información básica
+                    const SizedBox(
+                        width:
+                            12), // Reducido de 16 a 12                    // Información básica
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,12 +387,13 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                             style: theme.subtitle1.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
+                              fontSize: 16, // Agregado tamaño específico
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 3), // Reducido de 4 a 3
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
+                              horizontal: 6, // Reducido de 8 a 6
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
@@ -402,6 +405,7 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                               style: theme.bodyText3.copyWith(
                                 color: theme.secondaryColor,
                                 fontWeight: FontWeight.w500,
+                                fontSize: 11, // Agregado tamaño específico
                               ),
                             ),
                           ),
@@ -413,12 +417,12 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                     Icon(
                       Icons.arrow_forward_ios,
                       color: Colors.white.withOpacity(0.6),
-                      size: 20,
+                      size: 18, // Reducido de 20 a 18
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12), // Reducido de 16 a 12
 
                 // Dirección con icono
                 Row(
@@ -426,9 +430,9 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                     Icon(
                       Icons.location_on_outlined,
                       color: Colors.white.withOpacity(0.6),
-                      size: 16,
+                      size: 14, // Reducido de 16 a 14
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6), // Reducido de 8 a 6
                     Expanded(
                       child: Text(
                         negocio.direccion.isNotEmpty
@@ -436,6 +440,7 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                             : 'Dirección no especificada',
                         style: theme.bodyText2.copyWith(
                           color: Colors.white60,
+                          fontSize: 13, // Agregado tamaño específico
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -445,19 +450,20 @@ class _NegocioSelectorPageState extends State<NegocioSelectorPage>
                 ),
 
                 // Coordenadas
-                const SizedBox(height: 8),
+                const SizedBox(height: 6), // Reducido de 8 a 6
                 Row(
                   children: [
                     Icon(
                       Icons.gps_fixed,
                       color: theme.primaryColor.withOpacity(0.8),
-                      size: 16,
+                      size: 14, // Reducido de 16 a 14
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6), // Reducido de 8 a 6
                     Text(
                       'Lat: ${negocio.latitud.toStringAsFixed(4)}, Lng: ${negocio.longitud.toStringAsFixed(4)}',
                       style: theme.bodyText3.copyWith(
                         color: theme.primaryColor,
+                        fontSize: 11, // Agregado tamaño específico
                         fontWeight: FontWeight.w500,
                       ),
                     ),

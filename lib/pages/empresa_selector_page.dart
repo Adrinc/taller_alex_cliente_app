@@ -277,7 +277,7 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
 
   Widget _buildEmpresaCard(Empresa empresa, int index, AppTheme theme) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12), // Reducido de 16 a 12
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -285,15 +285,15 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
             Colors.white.withOpacity(0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
         border: Border.all(
           color: Colors.white.withOpacity(0.2),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 8, // Reducido de 10 a 8
+            offset: const Offset(0, 3), // Reducido de 4 a 3
           ),
         ],
       ),
@@ -303,24 +303,26 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
           onTap: () {
             context.go('/negocio-selector?empresaId=${empresa.id}');
           },
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16), // Reducido de 20 a 16
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(14), // Reducido de 20 a 14
             child: Row(
               children: [
                 // Avatar de empresa
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 50, // Reducido de 60 a 50
+                  height: 50, // Reducido de 60 a 50
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [theme.primaryColor, theme.secondaryColor],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius:
+                        BorderRadius.circular(12), // Reducido de 16 a 12
                   ),
                   child: empresa.logoUrl?.isNotEmpty == true
                       ? ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius:
+                              BorderRadius.circular(12), // Reducido de 16 a 12
                           child: Image.network(
                             empresa.logoUrl!,
                             fit: BoxFit.cover,
@@ -328,18 +330,18 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
                                 const Icon(
                               Icons.business,
                               color: Colors.white,
-                              size: 30,
+                              size: 24, // Reducido de 30 a 24
                             ),
                           ),
                         )
                       : const Icon(
                           Icons.business,
                           color: Colors.white,
-                          size: 30,
+                          size: 24, // Reducido de 30 a 24
                         ),
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: 12), // Reducido de 16 a 12
 
                 // Información de empresa
                 Expanded(
@@ -351,23 +353,25 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
                         style: theme.subtitle1.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
+                          fontSize: 16, // Agregado tamaño específico
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3), // Reducido de 4 a 3
                       if (empresa.direccion.isNotEmpty)
                         Text(
                           empresa.direccion,
                           style: theme.bodyText2.copyWith(
                             color: Colors.white60,
+                            fontSize: 13, // Agregado tamaño específico
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6), // Reducido de 8 a 6
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
+                          horizontal: 10, // Reducido de 12 a 10
+                          vertical: 3, // Reducido de 4 a 3
                         ),
                         decoration: BoxDecoration(
                           color: theme.primaryColor.withOpacity(0.2),
@@ -378,6 +382,7 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
                           style: theme.bodyText3.copyWith(
                             color: theme.primaryColor,
                             fontWeight: FontWeight.w500,
+                            fontSize: 11, // Agregado tamaño específico
                           ),
                         ),
                       ),
