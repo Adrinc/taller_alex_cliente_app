@@ -23,8 +23,12 @@ imagen_url (text),
 en_uso (bool),
 activo (bool),
 fecha_registro (timestamp),
-distribucion_id (uuid) (FK) REFERENCES nethive.distribucion.id
-
+distribucion_id (uuid) (FK) REFERENCES nethive.distribucion.id,
+rol_logico_id (int4) (FK) REFERENCES nethive.rol_logico_componente.id,
+rfid (text),
+tecnico_registro_id (uuid) REFERENCES public.user_profile.user_profile_id,
+evidencia_fotos (text[]),
+fecha_ultimo_escaneo (timestamptz)
 
 -- conexion_componente --
 

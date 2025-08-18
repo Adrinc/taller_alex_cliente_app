@@ -113,7 +113,11 @@ class AppRouter {
         name: 'componente-selector',
         builder: (context, state) {
           final rfidCode = state.uri.queryParameters['rfid'];
-          return ComponenteSelectorPage(rfidCode: rfidCode);
+          final negocioId = state.uri.queryParameters['negocioId'];
+          return ComponenteSelectorPage(
+            rfidCode: rfidCode,
+            negocioId: negocioId,
+          );
         },
       ),
 

@@ -50,6 +50,12 @@ class ComponentesProvider extends ChangeNotifier {
   bool isLoadingRacks = false;
   List<String> problemasTopologia = [];
 
+  // Variables para el selector de componentes RFID
+  List<Componente> componentesSinRfid = [];
+  bool isLoadingComponentesSinRfid = false;
+  String? errorComponentesSinRfid;
+  bool isAssigningRfid = false;
+
   // Variable para controlar si el provider está activo
   bool _isDisposed = false;
 
@@ -77,7 +83,7 @@ class ComponentesProvider extends ChangeNotifier {
   Future<void> getCategorias() async {
     try {
       print('ComponentesProvider: Obteniendo categorías...');
-      
+
       final response = await supabaseLU
           .from('categoria_componente')
           .select('*')
@@ -85,7 +91,8 @@ class ComponentesProvider extends ChangeNotifier {
 
       if (response.isNotEmpty) {
         categorias = response
-            .map<CategoriaComponente>((json) => CategoriaComponente.fromJson(json))
+            .map<CategoriaComponente>(
+                (json) => CategoriaComponente.fromJson(json))
             .toList();
         _notifyListeners();
         print('ComponentesProvider: ${categorias.length} categorías obtenidas');
@@ -99,7 +106,7 @@ class ComponentesProvider extends ChangeNotifier {
   Future<void> getRolesLogicos() async {
     try {
       print('ComponentesProvider: Obteniendo roles lógicos...');
-      
+
       final response = await supabaseLU
           .from('rol_logico_componente')
           .select('*')
@@ -107,10 +114,12 @@ class ComponentesProvider extends ChangeNotifier {
 
       if (response.isNotEmpty) {
         rolesLogicos = response
-            .map<RolLogicoComponente>((json) => RolLogicoComponente.fromMap(json))
+            .map<RolLogicoComponente>(
+                (json) => RolLogicoComponente.fromMap(json))
             .toList();
         _notifyListeners();
-        print('ComponentesProvider: ${rolesLogicos.length} roles lógicos obtenidos');
+        print(
+            'ComponentesProvider: ${rolesLogicos.length} roles lógicos obtenidos');
       }
     } catch (e) {
       print('ComponentesProvider: Error obteniendo roles lógicos: $e');
@@ -121,7 +130,7 @@ class ComponentesProvider extends ChangeNotifier {
   Future<void> getTiposDistribucion() async {
     try {
       print('ComponentesProvider: Obteniendo tipos de distribución...');
-      
+
       final response = await supabaseLU
           .from('tipo_distribucion')
           .select('*')
@@ -132,7 +141,8 @@ class ComponentesProvider extends ChangeNotifier {
             .map<TipoDistribucion>((json) => TipoDistribucion.fromMap(json))
             .toList();
         _notifyListeners();
-        print('ComponentesProvider: ${tiposDistribucion.length} tipos de distribución obtenidos');
+        print(
+            'ComponentesProvider: ${tiposDistribucion.length} tipos de distribución obtenidos');
       }
     } catch (e) {
       print('ComponentesProvider: Error obteniendo tipos de distribución: $e');
@@ -142,26 +152,24 @@ class ComponentesProvider extends ChangeNotifier {
   // COMPONENTES
   Future<void> getComponentes({String? negocioId}) async {
     if (negocioId == null) return;
-    
+
     try {
-      print('ComponentesProvider: Obteniendo componentes para negocio $negocioId...');
-      
-      final response = await supabaseLU
-          .from('componente')
-          .select('''
+      print(
+          'ComponentesProvider: Obteniendo componentes para negocio $negocioId...');
+
+      final response = await supabaseLU.from('componente').select('''
             *,
             categoria_componente!inner(*),
             distribucion(*)
-          ''')
-          .eq('negocio_id', negocioId)
-          .order('nombre');
+          ''').eq('negocio_id', negocioId).order('nombre');
 
       if (response.isNotEmpty) {
         componentes = response
             .map<Componente>((json) => Componente.fromJson(json))
             .toList();
         _notifyListeners();
-        print('ComponentesProvider: ${componentes.length} componentes obtenidos');
+        print(
+            'ComponentesProvider: ${componentes.length} componentes obtenidos');
       } else {
         componentes = [];
         _notifyListeners();
@@ -183,11 +191,9 @@ class ComponentesProvider extends ChangeNotifier {
   Future<bool> createComponente(Map<String, dynamic> componenteData) async {
     try {
       print('ComponentesProvider: Creando componente...');
-      
-      final response = await supabaseLU
-          .from('componente')
-          .insert(componenteData)
-          .select();
+
+      final response =
+          await supabaseLU.from('componente').insert(componenteData).select();
 
       if (response.isNotEmpty) {
         // Actualizar lista local
@@ -203,10 +209,11 @@ class ComponentesProvider extends ChangeNotifier {
   }
 
   // ACTUALIZAR COMPONENTE
-  Future<bool> updateComponente(String componenteId, Map<String, dynamic> componenteData) async {
+  Future<bool> updateComponente(
+      String componenteId, Map<String, dynamic> componenteData) async {
     try {
       print('ComponentesProvider: Actualizando componente $componenteId...');
-      
+
       final response = await supabaseLU
           .from('componente')
           .update(componenteData)
@@ -230,11 +237,8 @@ class ComponentesProvider extends ChangeNotifier {
   Future<bool> deleteComponente(String componenteId) async {
     try {
       print('ComponentesProvider: Eliminando componente $componenteId...');
-      
-      await supabaseLU
-          .from('componente')
-          .delete()
-          .eq('id', componenteId);
+
+      await supabaseLU.from('componente').delete().eq('id', componenteId);
 
       // Actualizar lista local
       await getComponentes(negocioId: negocioSeleccionadoId);
@@ -268,15 +272,14 @@ class ComponentesProvider extends ChangeNotifier {
     if (imagenToUpload == null || imagenFileName == null) return null;
 
     try {
-      final fileName = '${componenteId}_${DateTime.now().millisecondsSinceEpoch}_$imagenFileName';
-      
+      final fileName =
+          '${componenteId}_${DateTime.now().millisecondsSinceEpoch}_$imagenFileName';
+
       await supabaseLU.storage
           .from('componentes')
           .uploadBinary(fileName, imagenToUpload!);
 
-      final url = supabaseLU.storage
-          .from('componentes')
-          .getPublicUrl(fileName);
+      final url = supabaseLU.storage.from('componentes').getPublicUrl(fileName);
 
       return url;
     } catch (e) {
@@ -312,6 +315,128 @@ class ComponentesProvider extends ChangeNotifier {
   void setCategoriaSeleccionada(int? categoriaId) {
     categoriaSeleccionadaId = categoriaId;
     showDetallesEspecificos = categoriaId != null;
+    _notifyListeners();
+  }
+
+  // MÉTODOS PARA COMPONENTES SIN RFID
+
+  /// Obtener componentes sin RFID asignado desde la vista de Supabase
+  Future<void> getComponentesSinRfid({String? negocioId}) async {
+    try {
+      isLoadingComponentesSinRfid = true;
+      errorComponentesSinRfid = null;
+      _notifyListeners();
+
+      print('ComponentesProvider: Obteniendo componentes sin RFID...');
+
+      // Usar la vista vista_componentes_sin_rfid
+      var query = supabaseLU.from('vista_componentes_sin_rfid').select('*');
+
+      // Filtrar por negocio si se proporciona
+      if (negocioId != null) {
+        query = query.eq('negocio_id', negocioId);
+      }
+
+      final response = await query.order('nombre');
+
+      if (response.isNotEmpty) {
+        componentesSinRfid = response
+            .map<Componente>((json) => Componente.fromMap(json))
+            .toList();
+        print(
+            'ComponentesProvider: ${componentesSinRfid.length} componentes sin RFID obtenidos');
+      } else {
+        componentesSinRfid = [];
+        print('ComponentesProvider: No hay componentes sin RFID');
+      }
+
+      isLoadingComponentesSinRfid = false;
+      _notifyListeners();
+    } catch (e) {
+      errorComponentesSinRfid = 'Error al cargar componentes: $e';
+      isLoadingComponentesSinRfid = false;
+      componentesSinRfid = [];
+      print('ComponentesProvider: Error obteniendo componentes sin RFID: $e');
+      _notifyListeners();
+    }
+  }
+
+  /// Asignar RFID a un componente específico
+  Future<bool> asignarRfidAComponente(
+      String componenteId, String rfidCode) async {
+    try {
+      isAssigningRfid = true;
+      _notifyListeners();
+
+      print(
+          'ComponentesProvider: Asignando RFID $rfidCode a componente $componenteId...');
+
+      // Verificar que el RFID no esté ya asignado
+      final existingComponent = await supabaseLU
+          .from('componente')
+          .select('id')
+          .eq('rfid', rfidCode)
+          .maybeSingle();
+
+      if (existingComponent != null) {
+        errorComponentesSinRfid =
+            'Este código RFID ya está asignado a otro componente';
+        isAssigningRfid = false;
+        _notifyListeners();
+        return false;
+      }
+
+      // Asignar el RFID al componente
+      final response = await supabaseLU
+          .from('componente')
+          .update({
+            'rfid': rfidCode,
+            'tecnico_registro_id': currentUser?.id,
+            'fecha_ultimo_escaneo': DateTime.now().toIso8601String(),
+          })
+          .eq('id', componenteId)
+          .select();
+
+      if (response.isNotEmpty) {
+        print('ComponentesProvider: RFID asignado exitosamente');
+
+        // Actualizar la lista local removiendo el componente asignado
+        componentesSinRfid.removeWhere((comp) => comp.id == componenteId);
+
+        isAssigningRfid = false;
+        _notifyListeners();
+        return true;
+      }
+
+      isAssigningRfid = false;
+      _notifyListeners();
+      return false;
+    } catch (e) {
+      errorComponentesSinRfid = 'Error al asignar RFID: $e';
+      isAssigningRfid = false;
+      print('ComponentesProvider: Error asignando RFID: $e');
+      _notifyListeners();
+      return false;
+    }
+  }
+
+  /// Buscar componentes sin RFID por nombre/descripción
+  List<Componente> buscarComponentesSinRfid(String query) {
+    if (query.isEmpty) return componentesSinRfid;
+
+    final queryLower = query.toLowerCase();
+    return componentesSinRfid.where((componente) {
+      return componente.nombre.toLowerCase().contains(queryLower) ||
+          (componente.descripcion?.toLowerCase().contains(queryLower) ?? false);
+    }).toList();
+  }
+
+  /// Limpiar datos de componentes sin RFID
+  void clearComponentesSinRfid() {
+    componentesSinRfid.clear();
+    errorComponentesSinRfid = null;
+    isLoadingComponentesSinRfid = false;
+    isAssigningRfid = false;
     _notifyListeners();
   }
 }

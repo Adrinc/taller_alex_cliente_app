@@ -6,6 +6,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import 'package:nethive_neo/providers/user_provider.dart';
 import 'package:nethive_neo/providers/nethive/empresas_negocios_provider.dart';
+import 'package:nethive_neo/providers/nethive/componentes_provider.dart';
 import 'package:nethive_neo/models/nethive/negocio_model.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/helpers/globals.dart';
@@ -61,6 +62,14 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
         (n) => n.id == widget.negocioId,
         orElse: () => throw Exception('Negocio no encontrado'),
       );
+
+      // Configurar el ComponentesProvider con el negocio seleccionado
+      final componentesProvider =
+          Provider.of<ComponentesProvider>(context, listen: false);
+      componentesProvider.setNegocioSeleccionado(negocio.id, negocio.nombre);
+
+      print(
+          'HomeTecnicoPage: Negocio configurado - ID: ${negocio.id}, Nombre: ${negocio.nombre}');
 
       setState(() {
         _negocioActual = negocio;

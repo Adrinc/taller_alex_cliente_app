@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:nethive_neo/providers/providers.dart';
-import 'package:nethive_neo/models/nethive/componente_model.dart';
 
 class RfidResultBottomSheet extends StatelessWidget {
   final RfidScanResult result;
@@ -264,7 +263,19 @@ class RfidResultBottomSheet extends StatelessWidget {
           color: Colors.blue,
           onTap: () {
             Navigator.pop(context);
-            context.go('/componente/selector?rfid=${result.rfidCode}');
+
+            // Obtener el negocioId del ComponentesProvider
+            final componentesProvider =
+                Provider.of<ComponentesProvider>(context, listen: false);
+            final negocioId = componentesProvider.negocioSeleccionadoId;
+
+            // Construir la URL con ambos parámetros
+            String url = '/componente/selector?rfid=${result.rfidCode}';
+            if (negocioId != null) {
+              url += '&negocioId=$negocioId';
+            }
+
+            context.go(url);
           },
         ),
       ],
@@ -407,7 +418,19 @@ class RfidResultBottomSheet extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              context.go('/componente/selector?rfid=$rfidCode');
+
+              // Obtener el negocioId del ComponentesProvider
+              final componentesProvider =
+                  Provider.of<ComponentesProvider>(context, listen: false);
+              final negocioId = componentesProvider.negocioSeleccionadoId;
+
+              // Construir la URL con ambos parámetros
+              String url = '/componente/selector?rfid=$rfidCode';
+              if (negocioId != null) {
+                url += '&negocioId=$negocioId';
+              }
+
+              context.go(url);
             },
             child: const Text('Continuar'),
           ),
