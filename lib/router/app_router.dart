@@ -104,7 +104,11 @@ class AppRouter {
         name: 'componente-crear',
         builder: (context, state) {
           final rfidCode = state.uri.queryParameters['rfid'];
-          return CrearComponentePage(rfidCode: rfidCode);
+          final negocioId = state.uri.queryParameters['negocioId'];
+          return CrearComponentePage(
+            rfidCode: rfidCode,
+            negocioId: negocioId,
+          );
         },
       ),
 

@@ -4,10 +4,12 @@ import 'package:nethive_neo/theme/theme.dart';
 
 class EmptyComponentsWidget extends StatelessWidget {
   final String? rfidCode;
+  final String? negocioId;
 
   const EmptyComponentsWidget({
     super.key,
     this.rfidCode,
+    this.negocioId,
   });
 
   @override
@@ -73,7 +75,10 @@ class EmptyComponentsWidget extends StatelessWidget {
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: () {
-              context.go('/componente/crear?rfid=${rfidCode ?? ''}');
+              final rfidParam = 'rfid=${rfidCode ?? ''}';
+              final negocioParam =
+                  negocioId != null ? '&negocioId=$negocioId' : '';
+              context.go('/componente/crear?$rfidParam$negocioParam');
             },
             icon: const Icon(Icons.add, color: Colors.white),
             label: const Text(

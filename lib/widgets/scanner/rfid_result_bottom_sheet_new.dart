@@ -249,7 +249,12 @@ class RfidResultBottomSheet extends StatelessWidget {
           color: Colors.green,
           onTap: () {
             Navigator.pop(context);
-            context.go('/componente/crear?rfid=${result.rfidCode}');
+            final componentesProvider = context.read<ComponentesProvider>();
+            final negocioId = componentesProvider.negocioSeleccionadoId;
+            final rfidParam = 'rfid=${result.rfidCode}';
+            final negocioParam =
+                negocioId != null ? '&negocioId=$negocioId' : '';
+            context.go('/componente/crear?$rfidParam$negocioParam');
           },
         ),
 

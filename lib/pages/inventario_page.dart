@@ -67,7 +67,12 @@ class _InventarioPageState extends State<InventarioPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/componente/crear'),
+        onPressed: () {
+          final componentesProvider = context.read<ComponentesProvider>();
+          final negocioId = componentesProvider.negocioSeleccionadoId;
+          final negocioParam = negocioId != null ? '?negocioId=$negocioId' : '';
+          context.go('/componente/crear$negocioParam');
+        },
         backgroundColor: theme.primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
       ),

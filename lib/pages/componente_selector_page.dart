@@ -343,7 +343,10 @@ class _ComponenteSelectorPageState extends State<ComponenteSelectorPage> {
                 }
 
                 if (provider.componentesSinRfid.isEmpty) {
-                  return const EmptyComponentsWidget();
+                  return EmptyComponentsWidget(
+                    rfidCode: widget.rfidCode,
+                    negocioId: widget.negocioId,
+                  );
                 }
 
                 return ListView.builder(

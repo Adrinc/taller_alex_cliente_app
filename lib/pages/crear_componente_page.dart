@@ -9,10 +9,12 @@ import 'package:nethive_neo/theme/theme.dart';
 
 class CrearComponentePage extends StatefulWidget {
   final String? rfidCode;
+  final String? negocioId;
 
   const CrearComponentePage({
     super.key,
     this.rfidCode,
+    this.negocioId,
   });
 
   @override
@@ -35,11 +37,14 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   @override
   void initState() {
     super.initState();
-    // Configurar el RFID si viene como parámetro
+    // Configurar el RFID y negocio si vienen como parámetros
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<ComponenteCreationProvider>();
       if (widget.rfidCode != null) {
         provider.setRfidCode(widget.rfidCode!);
+      }
+      if (widget.negocioId != null) {
+        provider.setNegocioId(widget.negocioId!);
       }
       provider.cargarCategorias();
     });
