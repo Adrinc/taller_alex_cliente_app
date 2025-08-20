@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nethive_neo/helpers/globals.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -324,7 +325,7 @@ class _EmpresaSelectorPageState extends State<EmpresaSelectorPage>
                           borderRadius:
                               BorderRadius.circular(12), // Reducido de 16 a 12
                           child: Image.network(
-                            empresa.logoUrl!,
+                            "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/logos/${empresa.logoUrl}",
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
                                 const Icon(

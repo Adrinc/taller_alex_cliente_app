@@ -50,18 +50,16 @@ class EmpresasNegociosProvider extends ChangeNotifier {
   Future<void> getEmpresas() async {
     try {
       print('EmpresasNegociosProvider: Obteniendo empresas...');
-      
-      final response = await supabaseLU
-          .from('empresa')
-          .select('*')
-          .order('nombre');
+
+      final response =
+          await supabaseLU.from('empresa').select('*').order('nombre');
 
       if (response.isNotEmpty) {
-        empresas = response
-            .map<Empresa>((json) => Empresa.fromMap(json))
-            .toList();
+        empresas =
+            response.map<Empresa>((json) => Empresa.fromMap(json)).toList();
         _notifyListeners();
-        print('EmpresasNegociosProvider: ${empresas.length} empresas obtenidas');
+        print(
+            'EmpresasNegociosProvider: ${empresas.length} empresas obtenidas');
       }
     } catch (e) {
       print('EmpresasNegociosProvider: Error obteniendo empresas: $e');
@@ -72,7 +70,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
   Future<void> getNegocios({String? empresaId}) async {
     try {
       print('EmpresasNegociosProvider: Obteniendo negocios...');
-      
+
       final response = empresaId != null
           ? await supabaseLU
               .from('negocio')
@@ -85,11 +83,11 @@ class EmpresasNegociosProvider extends ChangeNotifier {
               .order('nombre');
 
       if (response.isNotEmpty) {
-        negocios = response
-            .map<Negocio>((json) => Negocio.fromMap(json))
-            .toList();
+        negocios =
+            response.map<Negocio>((json) => Negocio.fromMap(json)).toList();
         _notifyListeners();
-        print('EmpresasNegociosProvider: ${negocios.length} negocios obtenidos');
+        print(
+            'EmpresasNegociosProvider: ${negocios.length} negocios obtenidos');
       } else {
         negocios = [];
         _notifyListeners();
@@ -111,96 +109,6 @@ class EmpresasNegociosProvider extends ChangeNotifier {
   void buscarNegocios(String query) {
     // Implementar lógica de búsqueda local
     _notifyListeners();
-  }
-
-  // CREAR EMPRESA
-  Future<bool> createEmpresa(Map<String, dynamic> empresaData) async {
-    try {
-      print('EmpresasNegociosProvider: Creando empresa...');
-      
-      final response = await supabaseLU
-          .from('empresa')
-          .insert(empresaData)
-          .select();
-
-      if (response.isNotEmpty) {
-        await getEmpresas();
-        print('EmpresasNegociosProvider: Empresa creada exitosamente');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('EmpresasNegociosProvider: Error creando empresa: $e');
-      return false;
-    }
-  }
-
-  // CREAR NEGOCIO
-  Future<bool> createNegocio(Map<String, dynamic> negocioData) async {
-    try {
-      print('EmpresasNegociosProvider: Creando negocio...');
-      
-      final response = await supabaseLU
-          .from('negocio')
-          .insert(negocioData)
-          .select();
-
-      if (response.isNotEmpty) {
-        await getNegocios(empresaId: empresaSeleccionadaId);
-        print('EmpresasNegociosProvider: Negocio creado exitosamente');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('EmpresasNegociosProvider: Error creando negocio: $e');
-      return false;
-    }
-  }
-
-  // ACTUALIZAR EMPRESA
-  Future<bool> updateEmpresa(String empresaId, Map<String, dynamic> empresaData) async {
-    try {
-      print('EmpresasNegociosProvider: Actualizando empresa $empresaId...');
-      
-      final response = await supabaseLU
-          .from('empresa')
-          .update(empresaData)
-          .eq('id', empresaId)
-          .select();
-
-      if (response.isNotEmpty) {
-        await getEmpresas();
-        print('EmpresasNegociosProvider: Empresa actualizada exitosamente');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('EmpresasNegociosProvider: Error actualizando empresa: $e');
-      return false;
-    }
-  }
-
-  // ACTUALIZAR NEGOCIO
-  Future<bool> updateNegocio(String negocioId, Map<String, dynamic> negocioData) async {
-    try {
-      print('EmpresasNegociosProvider: Actualizando negocio $negocioId...');
-      
-      final response = await supabaseLU
-          .from('negocio')
-          .update(negocioData)
-          .eq('id', negocioId)
-          .select();
-
-      if (response.isNotEmpty) {
-        await getNegocios(empresaId: empresaSeleccionadaId);
-        print('EmpresasNegociosProvider: Negocio actualizado exitosamente');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('EmpresasNegociosProvider: Error actualizando negocio: $e');
-      return false;
-    }
   }
 
   // GESTIÓN DE IMÁGENES
@@ -242,15 +150,14 @@ class EmpresasNegociosProvider extends ChangeNotifier {
     if (logoToUpload == null || logoFileName == null) return null;
 
     try {
-      final fileName = 'logo_${empresaId}_${DateTime.now().millisecondsSinceEpoch}_$logoFileName';
-      
+      final fileName =
+          'logo_${empresaId}_${DateTime.now().millisecondsSinceEpoch}_$logoFileName';
+
       await supabaseLU.storage
           .from('empresas')
           .uploadBinary(fileName, logoToUpload!);
 
-      final url = supabaseLU.storage
-          .from('empresas')
-          .getPublicUrl(fileName);
+      final url = supabaseLU.storage.from('empresas').getPublicUrl(fileName);
 
       return url;
     } catch (e) {
@@ -263,15 +170,14 @@ class EmpresasNegociosProvider extends ChangeNotifier {
     if (imagenToUpload == null || imagenFileName == null) return null;
 
     try {
-      final fileName = 'imagen_${negocioId}_${DateTime.now().millisecondsSinceEpoch}_$imagenFileName';
-      
+      final fileName =
+          'imagen_${negocioId}_${DateTime.now().millisecondsSinceEpoch}_$imagenFileName';
+
       await supabaseLU.storage
           .from('negocios')
           .uploadBinary(fileName, imagenToUpload!);
 
-      final url = supabaseLU.storage
-          .from('negocios')
-          .getPublicUrl(fileName);
+      final url = supabaseLU.storage.from('negocios').getPublicUrl(fileName);
 
       return url;
     } catch (e) {
@@ -308,7 +214,7 @@ class EmpresasNegociosProvider extends ChangeNotifier {
         fechaCreacion: DateTime.now(),
       ),
     );
-    
+
     if (empresaId != null) {
       getNegocios(empresaId: empresaId);
     }
