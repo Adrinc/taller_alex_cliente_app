@@ -149,6 +149,59 @@ class ComponentesProvider extends ChangeNotifier {
     }
   }
 
+  // COMPONENTES FILTRADOS POR TÉCNICO Y NEGOCIO
+  Future<void> getComponentesByTecnicoAndNegocio(
+      String tecnicoId, String negocioId) async {
+    try {
+      print(
+          'ComponentesProvider: Obteniendo componentes para técnico $tecnicoId y negocio $negocioId...');
+
+      // Consulta simplificada sin relaciones anidadas para evitar errores de parsing
+      final response = await supabaseLU
+          .from('componente')
+          .select('*')
+          .eq('tecnico_registro_id', tecnicoId)
+          .eq('negocio_id', negocioId)
+          .eq('activo', true)
+          .order('nombre');
+
+      print(
+          'ComponentesProvider: Respuesta recibida - ${response.length} registros');
+
+      if (response.isNotEmpty) {
+        print(
+            'ComponentesProvider: Primer registro de ejemplo: ${response.first}');
+
+        componentes = response.map<Componente>((json) {
+          try {
+            print(
+                'ComponentesProvider: Procesando registro con ID: ${json['id']}');
+            return Componente.fromMap(json);
+          } catch (e) {
+            print('Error parsing componente: $json');
+            print('Error details: $e');
+            print('Error stack trace: ${StackTrace.current}');
+            rethrow;
+          }
+        }).toList();
+        _notifyListeners();
+        print(
+            'ComponentesProvider: ${componentes.length} componentes procesados exitosamente');
+      } else {
+        componentes = [];
+        _notifyListeners();
+        print(
+            'ComponentesProvider: No se encontraron componentes para este técnico y negocio');
+      }
+    } catch (e, stackTrace) {
+      print(
+          'ComponentesProvider: Error obteniendo componentes por técnico: $e');
+      print('Stack trace: $stackTrace');
+      componentes = [];
+      _notifyListeners();
+    }
+  }
+
   // COMPONENTES
   Future<void> getComponentes({String? negocioId}) async {
     if (negocioId == null) return;

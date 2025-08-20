@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:nethive_neo/providers/providers.dart';
 import 'package:nethive_neo/models/nethive/componente_model.dart';
 import 'package:nethive_neo/theme/theme.dart';
+import 'package:nethive_neo/helpers/globals.dart';
+import 'package:nethive_neo/widgets/inventario_page/componente_detail_popup.dart';
 
 class InventarioPage extends StatefulWidget {
   const InventarioPage({super.key});
@@ -18,6 +20,86 @@ class _InventarioPageState extends State<InventarioPage> {
   final TextEditingController _searchController = TextEditingController();
   bool _showFilters = false;
   String _selectedFilter = 'todos';
+  String? _negocioId;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComponentes();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadComponentes() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Obtener el ID del usuario actual
+
+      // Intentar obtener el negocio ID desde la URL o del storage local
+      final uri = Uri.base;
+      String? negocioIdFromUrl = uri.queryParameters['negocioId'];
+
+      if (negocioIdFromUrl != null) {
+        _negocioId = negocioIdFromUrl;
+      } else {
+        // Si no viene en la URL, intentar obtenerlo del provider de empresas
+        final empresasProvider = context.read<EmpresasNegociosProvider>();
+
+        // Si no hay negocios cargados, cargarlos primero
+        if (empresasProvider.negocios.isEmpty) {
+          await empresasProvider.getNegocios();
+        }
+
+        if (empresasProvider.negocios.isNotEmpty) {
+          _negocioId = empresasProvider.negocios.first.id;
+        } else {
+          throw Exception('No se encontraron negocios disponibles');
+        }
+      }
+
+      if (_negocioId != null) {
+        final componentesProvider = context.read<ComponentesProvider>();
+
+        // Cargar componentes filtrados por técnico y negocio
+        await componentesProvider.getComponentesByTecnicoAndNegocio(
+            currentUser!.id, _negocioId!);
+
+        print(
+            'Inventario cargado: ${componentesProvider.componentes.length} componentes encontrados');
+      } else {
+        throw Exception('No se pudo determinar el negocio');
+      }
+    } catch (e) {
+      print('Error cargando componentes: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar el inventario: $e'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Reintentar',
+              onPressed: _loadComponentes,
+              textColor: Colors.white,
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,44 +119,77 @@ class _InventarioPageState extends State<InventarioPage> {
           ),
         ),
         child: SafeArea(
-          child: Consumer<ComponentesProvider>(
-            builder: (context, componentes, child) {
-              return Column(
-                children: [
-                  // Header personalizado
-                  _buildHeader(theme),
+          child: _isLoading
+              ? _buildLoadingState(theme)
+              : Consumer<ComponentesProvider>(
+                  builder: (context, componentes, child) {
+                    return Column(
+                      children: [
+                        // Header personalizado
+                        _buildHeader(theme),
 
-                  // Panel de filtros
-                  if (_showFilters)
-                    _buildFiltersPanel(theme)
-                        .animate()
-                        .slideY(
-                            begin: -1,
-                            duration: const Duration(milliseconds: 300))
-                        .fadeIn(),
+                        // Panel de filtros
+                        if (_showFilters)
+                          _buildFiltersPanel(theme)
+                              .animate()
+                              .slideY(
+                                  begin: -1,
+                                  duration: const Duration(milliseconds: 300))
+                              .fadeIn(),
 
-                  // Estadísticas rápidas
-                  _buildStatsPanel(componentes, theme),
+                        // Estadísticas rápidas
+                        _buildStatsPanel(componentes, theme),
 
-                  // Lista de componentes
-                  Expanded(
-                    child: _buildComponentsList(componentes),
-                  ),
-                ],
-              );
-            },
-          ),
+                        // Lista de componentes
+                        Expanded(
+                          child: _buildComponentsList(componentes),
+                        ),
+                      ],
+                    );
+                  },
+                ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final componentesProvider = context.read<ComponentesProvider>();
-          final negocioId = componentesProvider.negocioSeleccionadoId;
-          final negocioParam = negocioId != null ? '?negocioId=$negocioId' : '';
-          context.go('/componente/crear$negocioParam');
-        },
-        backgroundColor: theme.primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: _isLoading
+          ? null
+          : FloatingActionButton(
+              onPressed: () {
+                final negocioParam =
+                    _negocioId != null ? '?negocioId=$_negocioId' : '';
+                context.go('/componente/crear$negocioParam');
+              },
+              backgroundColor: theme.primaryColor,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+    );
+  }
+
+  Widget _buildLoadingState(AppTheme theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: theme.primaryColor,
+            strokeWidth: 3,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Cargando inventario...',
+            style: TextStyle(
+              color: theme.primaryText,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Obteniendo componentes del negocio',
+            style: TextStyle(
+              color: theme.secondaryText,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -87,15 +202,41 @@ class _InventarioPageState extends State<InventarioPage> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  'Inventario',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: theme.primaryText,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Inventario',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryText,
+                      ),
+                    ),
+                    if (_negocioId != null)
+                      Text(
+                        'Mis componentes registrados',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: theme.secondaryText,
+                        ),
+                      ),
+                  ],
                 ),
               ),
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.refresh, color: theme.primaryColor),
+                  onPressed: _isLoading ? null : _loadComponentes,
+                  tooltip: 'Actualizar inventario',
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 margin: const EdgeInsets.only(left: 8),
                 decoration: BoxDecoration(
@@ -122,7 +263,11 @@ class _InventarioPageState extends State<InventarioPage> {
                 ),
                 child: IconButton(
                   icon: Icon(Icons.qr_code_scanner, color: theme.primaryColor),
-                  onPressed: () => context.go('/scanner'),
+                  onPressed: () {
+                    final negocioParam =
+                        _negocioId != null ? '?negocioId=$_negocioId' : '';
+                    context.go('/scanner$negocioParam');
+                  },
                 ),
               ),
             ],
@@ -197,7 +342,9 @@ class _InventarioPageState extends State<InventarioPage> {
               _buildFilterChip('Disponible', 'disponible', theme),
               _buildFilterChip('Cables', 'cables', theme),
               _buildFilterChip('Switches', 'switches', theme),
+              _buildFilterChip('Patch Panels', 'patch_panels', theme),
               _buildFilterChip('Racks', 'racks', theme),
+              _buildFilterChip('UPS', 'ups', theme),
             ],
           ),
         ],
@@ -335,7 +482,9 @@ class _InventarioPageState extends State<InventarioPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No se encontraron componentes',
+              _searchController.text.isNotEmpty
+                  ? 'No se encontraron componentes que coincidan'
+                  : 'No tienes componentes registrados',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey.shade600,
@@ -343,12 +492,32 @@ class _InventarioPageState extends State<InventarioPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Intenta cambiar los filtros o agregar componentes',
+              _searchController.text.isNotEmpty
+                  ? 'Intenta cambiar el término de búsqueda'
+                  : 'Escanea un código RFID para agregar tu primer componente',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey.shade500,
               ),
             ),
+            if (_searchController.text.isEmpty) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () {
+                  final negocioParam =
+                      _negocioId != null ? '?negocioId=$_negocioId' : '';
+                  context.go('/scanner$negocioParam');
+                },
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Escanear RFID'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -366,133 +535,250 @@ class _InventarioPageState extends State<InventarioPage> {
 
   Widget _buildComponentCard(Componente componente) {
     final theme = AppTheme.of(context);
+    final categoryColor = _getCategoryColor(componente.categoriaId);
+    final categoryIcon = _getCategoryIcon(componente.categoriaId);
+    final categoryName = _getCategoryName(componente.categoriaId);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       color: theme.secondaryBackground,
-      elevation: 2,
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: InkWell(
-        onTap: () => context.go('/componente/${componente.id}'),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _getComponentIcon(componente.categoriaId.toString()),
-                      color: theme.primaryColor,
-                      size: 20,
-                    ),
+        onTap: () {
+          showDialog(
+            context: context,
+            barrierDismissible: true,
+            barrierColor: Colors.black.withOpacity(0.5),
+            builder: (context) => ComponenteDetailPopup(componente: componente),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          constraints: const BoxConstraints(
+            minHeight: 120,
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              children: [
+                // Imagen del componente
+                Container(
+                  width: 100,
+                  constraints: const BoxConstraints(
+                    minHeight: 120,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      bottomLeft: Radius.circular(12),
+                    ),
+                    color: categoryColor.withOpacity(0.1),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      bottomLeft: Radius.circular(12),
+                    ),
+                    child: componente.imagenUrl?.isNotEmpty == true
+                        ? Image.network(
+                            "${supabaseLU.supabaseUrl}/storage/v1/object/public/nethive/componentes/${componente.imagenUrl!}",
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildImagePlaceholder(
+                                  categoryIcon, categoryColor);
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return _buildImagePlaceholder(
+                                  categoryIcon, categoryColor);
+                            },
+                          )
+                        : _buildImagePlaceholder(categoryIcon, categoryColor),
+                  ),
+                ),
+
+                // Contenido principal
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Header con icono y categoría
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: categoryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                categoryIcon,
+                                color: categoryColor,
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                categoryName,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: categoryColor,
+                                ),
+                              ),
+                            ),
+                            if (componente.rfid?.isNotEmpty == true)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.qr_code,
+                                      size: 10,
+                                      color: Colors.green[700],
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      'RFID',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 6),
+
+                        // Nombre del componente
                         Text(
-                          componente.descripcion ?? componente.nombre,
+                          componente.nombre,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                             color: theme.primaryText,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Categoría: ${componente.categoriaId}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.secondaryText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (componente.rfid?.isNotEmpty == true)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.qr_code,
-                            size: 12,
-                            color: Colors.green[700],
-                          ),
-                          const SizedBox(width: 2),
+
+                        // Descripción si existe
+                        if (componente.descripcion?.isNotEmpty == true) ...[
+                          const SizedBox(height: 2),
                           Text(
-                            'RFID',
+                            componente.descripcion!,
                             style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                              color: theme.secondaryText,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+
+                        const SizedBox(height: 6),
+
+                        // Status y ubicación
+                        Row(
+                          children: [
+                            _buildStatusChip(
+                              componente.enUso ? 'En Uso' : 'Disponible',
+                              componente.enUso ? Colors.orange : Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            if (componente.ubicacion?.isNotEmpty == true)
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on,
+                                      size: 12,
+                                      color: theme.secondaryText,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Expanded(
+                                      child: Text(
+                                        componente.ubicacion!,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: theme.secondaryText,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        // RFID info si existe
+                        if (componente.rfid?.isNotEmpty == true) ...[
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: theme.tertiaryBackground,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'RFID: ${componente.rfid}',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: theme.secondaryText,
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                ],
-              ),
-              if (componente.rfid?.isNotEmpty == true) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: theme.tertiaryBackground,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'RFID: ${componente.rfid}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.secondaryText,
-                      fontFamily: 'monospace',
+                      ],
                     ),
                   ),
                 ),
               ],
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _buildStatusChip(
-                    componente.enUso ? 'En Uso' : 'Disponible',
-                    componente.enUso ? Colors.orange : Colors.green,
-                  ),
-                  const SizedBox(width: 8),
-                  if (componente.ubicacion?.isNotEmpty == true)
-                    Expanded(
-                      child: Text(
-                        'Ubicación: ${componente.ubicacion}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: theme.secondaryText,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildImagePlaceholder(IconData icon, Color color) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withOpacity(0.1),
+            color.withOpacity(0.2),
+          ],
+        ),
+      ),
+      child: Icon(
+        icon,
+        color: color.withOpacity(0.6),
+        size: 40,
       ),
     );
   }
@@ -515,30 +801,54 @@ class _InventarioPageState extends State<InventarioPage> {
     );
   }
 
-  IconData _getComponentIcon(String? categoria) {
-    switch (categoria?.toLowerCase()) {
-      case '1': // switch
-      case 'switch':
-      case 'switches':
-        return Icons.hub;
-      case '2': // cable
-      case 'cable':
-      case 'cables':
+  String _getCategoryName(int categoriaId) {
+    switch (categoriaId) {
+      case 1:
+        return 'Cable';
+      case 2:
+        return 'Switch';
+      case 3:
+        return 'Patch Panel';
+      case 4:
+        return 'Rack';
+      case 5:
+        return 'UPS';
+      default:
+        return 'Componente';
+    }
+  }
+
+  IconData _getCategoryIcon(int categoriaId) {
+    switch (categoriaId) {
+      case 1:
         return Icons.cable;
-      case '3': // rack
-      case 'rack':
-      case 'racks':
+      case 2:
+        return Icons.hub;
+      case 3:
+        return Icons.dashboard;
+      case 4:
         return Icons.developer_board;
-      case '4': // servidor
-      case 'servidor':
-      case 'servidores':
-        return Icons.dns;
-      case '5': // router
-      case 'router':
-      case 'routers':
-        return Icons.router;
+      case 5:
+        return Icons.battery_charging_full;
       default:
         return Icons.memory;
+    }
+  }
+
+  Color _getCategoryColor(int categoriaId) {
+    switch (categoriaId) {
+      case 1:
+        return Colors.orange;
+      case 2:
+        return Colors.blue;
+      case 3:
+        return Colors.purple;
+      case 4:
+        return Colors.green;
+      case 5:
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -572,13 +882,20 @@ class _InventarioPageState extends State<InventarioPage> {
         filtered = filtered.where((c) => !c.enUso).toList();
         break;
       case 'cables':
-        filtered = filtered.where((c) => c.categoriaId == 2).toList();
+        filtered = filtered.where((c) => c.categoriaId == 1).toList(); // Cable
         break;
       case 'switches':
-        filtered = filtered.where((c) => c.categoriaId == 1).toList();
+        filtered = filtered.where((c) => c.categoriaId == 2).toList(); // Switch
         break;
       case 'racks':
-        filtered = filtered.where((c) => c.categoriaId == 3).toList();
+        filtered = filtered.where((c) => c.categoriaId == 4).toList(); // Rack
+        break;
+      case 'patch_panels':
+        filtered =
+            filtered.where((c) => c.categoriaId == 3).toList(); // Patch Panel
+        break;
+      case 'ups':
+        filtered = filtered.where((c) => c.categoriaId == 5).toList(); // UPS
         break;
       case 'todos':
       default:

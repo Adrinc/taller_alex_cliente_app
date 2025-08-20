@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -423,9 +424,16 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
             label: 'Nombre del Componente *',
             icon: Icons.inventory,
             theme: theme,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\-_/]')),
+              LengthLimitingTextInputFormatter(100),
+            ],
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'El nombre es obligatorio';
+                return 'El nombre es requerido';
+              }
+              if (value.trim().length < 3) {
+                return 'El nombre debe tener al menos 3 caracteres';
               }
               return null;
             },
@@ -440,6 +448,9 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
             icon: Icons.description,
             theme: theme,
             maxLines: 3,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(500),
+            ],
             onChanged: (value) => provider.setDescripcion(value),
           ),
           const SizedBox(height: 16),
@@ -450,6 +461,9 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
             label: 'Ubicación',
             icon: Icons.location_on,
             theme: theme,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(200),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -462,7 +476,7 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
             readOnly: true,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'El código RFID es obligatorio';
+                return 'El código RFID es requerido';
               }
               return null;
             },
@@ -481,7 +495,18 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
     void Function(String)? onChanged,
     int maxLines = 1,
     bool readOnly = false,
+    bool isNumeric = false,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
+    List<TextInputFormatter> formatters = inputFormatters ?? [];
+
+    // Si es numérico, agregar filtros para solo números
+    if (isNumeric) {
+      formatters.add(FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')));
+      formatters.add(FilteringTextInputFormatter.deny(RegExp(r'^\..*')));
+    }
+
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
@@ -506,6 +531,9 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       style: TextStyle(color: theme.primaryText),
       maxLines: maxLines,
       readOnly: readOnly,
+      keyboardType: keyboardType ??
+          (isNumeric ? TextInputType.number : TextInputType.text),
+      inputFormatters: formatters,
       validator: validator,
       onChanged: onChanged,
     );
@@ -567,13 +595,14 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       AppTheme theme, ComponenteCreationProvider provider) {
     return [
       _buildDynamicTextField(
-          'tipo_cable', 'Tipo de Cable', Icons.cable, theme, provider),
+          'tipo_cable', 'Tipo de Cable', Icons.cable, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField('color', 'Color', Icons.palette, theme, provider),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'tamaño', 'Tamaño (metros)', Icons.straighten, theme, provider,
-          isNumeric: true),
+          isNumeric: true, isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField('tipo_conector', 'Tipo de Conector',
           Icons.settings_input_component, theme, provider),
@@ -583,16 +612,18 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   List<Widget> _buildCamposSwitch(
       AppTheme theme, ComponenteCreationProvider provider) {
     return [
-      _buildDynamicTextField('marca', 'Marca', Icons.business, theme, provider),
+      _buildDynamicTextField('marca', 'Marca', Icons.business, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
-      _buildDynamicTextField('modelo', 'Modelo', Icons.memory, theme, provider),
+      _buildDynamicTextField('modelo', 'Modelo', Icons.memory, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'numero_serie', 'Número de Serie', Icons.qr_code, theme, provider),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'cantidad_puertos', 'Cantidad de Puertos', Icons.hub, theme, provider,
-          isNumeric: true),
+          isNumeric: true, isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField('velocidad_puertos', 'Velocidad de Puertos',
           Icons.speed, theme, provider),
@@ -616,11 +647,12 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       AppTheme theme, ComponenteCreationProvider provider) {
     return [
       _buildDynamicTextField('tipo_conector', 'Tipo de Conector',
-          Icons.electrical_services, theme, provider),
+          Icons.electrical_services, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'numero_puertos', 'Número de Puertos', Icons.hub, theme, provider,
-          isNumeric: true),
+          isNumeric: true, isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'categoria', 'Categoría', Icons.category, theme, provider),
@@ -638,19 +670,20 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   List<Widget> _buildCamposRack(
       AppTheme theme, ComponenteCreationProvider provider) {
     return [
-      _buildDynamicTextField('tipo', 'Tipo', Icons.category, theme, provider),
+      _buildDynamicTextField('tipo', 'Tipo', Icons.category, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'altura_u', 'Altura (U)', Icons.height, theme, provider,
-          isNumeric: true),
+          isNumeric: true, isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField('profundidad_cm', 'Profundidad (cm)',
           Icons.straighten, theme, provider,
-          isNumeric: true),
+          isNumeric: true, isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'ancho_cm', 'Ancho (cm)', Icons.straighten, theme, provider,
-          isNumeric: true),
+          isNumeric: true, isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField('color', 'Color', Icons.palette, theme, provider),
       const SizedBox(height: 16),
@@ -667,11 +700,14 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   List<Widget> _buildCamposUPS(
       AppTheme theme, ComponenteCreationProvider provider) {
     return [
-      _buildDynamicTextField('tipo', 'Tipo', Icons.category, theme, provider),
+      _buildDynamicTextField('tipo', 'Tipo', Icons.category, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
-      _buildDynamicTextField('marca', 'Marca', Icons.business, theme, provider),
+      _buildDynamicTextField('marca', 'Marca', Icons.business, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
-      _buildDynamicTextField('modelo', 'Modelo', Icons.memory, theme, provider),
+      _buildDynamicTextField('modelo', 'Modelo', Icons.memory, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField('voltaje_entrada', 'Voltaje de Entrada',
           Icons.electric_bolt, theme, provider),
@@ -681,7 +717,7 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       const SizedBox(height: 16),
       _buildDynamicTextField('capacidad_va', 'Capacidad (VA)',
           Icons.battery_charging_full, theme, provider,
-          isNumeric: true),
+          isNumeric: true, isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField('autonomia_minutos', 'Autonomía (minutos)',
           Icons.timer, theme, provider,
@@ -698,11 +734,14 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   List<Widget> _buildCamposRouterFirewall(
       AppTheme theme, ComponenteCreationProvider provider) {
     return [
-      _buildDynamicTextField('tipo', 'Tipo', Icons.category, theme, provider),
+      _buildDynamicTextField('tipo', 'Tipo', Icons.category, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
-      _buildDynamicTextField('marca', 'Marca', Icons.business, theme, provider),
+      _buildDynamicTextField('marca', 'Marca', Icons.business, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
-      _buildDynamicTextField('modelo', 'Modelo', Icons.memory, theme, provider),
+      _buildDynamicTextField('modelo', 'Modelo', Icons.memory, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'numero_serie', 'Número de Serie', Icons.qr_code, theme, provider),
@@ -728,11 +767,14 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   List<Widget> _buildCamposEquipoActivo(
       AppTheme theme, ComponenteCreationProvider provider) {
     return [
-      _buildDynamicTextField('tipo', 'Tipo', Icons.category, theme, provider),
+      _buildDynamicTextField('tipo', 'Tipo', Icons.category, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
-      _buildDynamicTextField('marca', 'Marca', Icons.business, theme, provider),
+      _buildDynamicTextField('marca', 'Marca', Icons.business, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
-      _buildDynamicTextField('modelo', 'Modelo', Icons.memory, theme, provider),
+      _buildDynamicTextField('modelo', 'Modelo', Icons.memory, theme, provider,
+          isRequired: true),
       const SizedBox(height: 16),
       _buildDynamicTextField(
           'numero_serie', 'Número de Serie', Icons.qr_code, theme, provider),
@@ -757,15 +799,48 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
     ComponenteCreationProvider provider, {
     bool isNumeric = false,
     int maxLines = 1,
+    bool isRequired = false,
   }) {
     if (!_controllers.containsKey(key)) {
       _controllers[key] = TextEditingController();
     }
 
+    List<TextInputFormatter> formatters = [];
+
+    // Configurar validaciones específicas según el tipo de campo
+    if (isNumeric) {
+      // Solo permitir números y punto decimal
+      formatters.add(FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')));
+      // Evitar que empiece con punto
+      formatters.add(FilteringTextInputFormatter.deny(RegExp(r'^\..*')));
+      // Evitar múltiples puntos decimales
+      formatters.add(TextInputFormatter.withFunction((oldValue, newValue) {
+        if (newValue.text.split('.').length > 2) {
+          return oldValue;
+        }
+        return newValue;
+      }));
+    } else if (key == 'direccion_ip') {
+      // Formato específico para direcciones IP
+      formatters.add(FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')));
+      formatters.add(LengthLimitingTextInputFormatter(15));
+    } else if (key == 'numero_serie' || key == 'firmware') {
+      // Solo alfanuméricos para números de serie y firmware
+      formatters
+          .add(FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9.\-_]')));
+    } else if (key == 'tipo_cable' ||
+        key == 'color' ||
+        key == 'marca' ||
+        key == 'modelo') {
+      // Solo letras, números y algunos caracteres especiales para campos de texto
+      formatters
+          .add(FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\-_/]')));
+    }
+
     return TextFormField(
       controller: _controllers[key],
       decoration: InputDecoration(
-        labelText: label,
+        labelText: label + (isRequired ? ' *' : ''),
         prefixIcon: Icon(icon, color: theme.primaryColor),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -779,6 +854,14 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: theme.primaryColor, width: 2),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
+        ),
         filled: true,
         fillColor: theme.tertiaryBackground,
         labelStyle: TextStyle(color: theme.secondaryText),
@@ -786,9 +869,40 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       style: TextStyle(color: theme.primaryText),
       keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
       maxLines: maxLines,
+      inputFormatters: formatters,
+      validator: (value) {
+        if (isRequired && (value == null || value.trim().isEmpty)) {
+          return 'Este campo es requerido';
+        }
+
+        if (isNumeric && value != null && value.isNotEmpty) {
+          final numValue = double.tryParse(value);
+          if (numValue == null) {
+            return 'Debe ser un número válido';
+          }
+          if (numValue <= 0) {
+            return 'Debe ser un número mayor a 0';
+          }
+        }
+
+        if (key == 'direccion_ip' && value != null && value.isNotEmpty) {
+          if (!_isValidIP(value)) {
+            return 'Dirección IP inválida (ej: 192.168.1.1)';
+          }
+        }
+
+        return null;
+      },
       onChanged: (value) {
-        provider.setDetalleEspecifico(
-            key, isNumeric ? (double.tryParse(value) ?? 0) : value);
+        // Validación en tiempo real para números
+        if (isNumeric && value.isNotEmpty) {
+          final numValue = double.tryParse(value);
+          if (numValue != null) {
+            provider.setDetalleEspecifico(key, numValue);
+          }
+        } else {
+          provider.setDetalleEspecifico(key, value);
+        }
       },
     );
   }
@@ -971,6 +1085,18 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       controller.dispose();
     }
     _controllers.clear();
+  }
+
+  bool _isValidIP(String ip) {
+    final parts = ip.split('.');
+    if (parts.length != 4) return false;
+
+    for (String part in parts) {
+      final num = int.tryParse(part);
+      if (num == null || num < 0 || num > 255) return false;
+    }
+
+    return true;
   }
 
   Future<void> _tomarFoto(ImageSource source) async {

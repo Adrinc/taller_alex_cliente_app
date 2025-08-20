@@ -32,21 +32,58 @@ class Componente {
   });
 
   factory Componente.fromMap(Map<String, dynamic> map) {
-    return Componente(
-      id: map['id'],
-      negocioId: map['negocio_id'],
-      categoriaId: map['categoria_id'],
-      nombre: map['nombre'],
-      descripcion: map['descripcion'],
-      enUso: map['en_uso'],
-      activo: map['activo'],
-      ubicacion: map['ubicacion'],
-      imagenUrl: map['imagen_url'],
-      fechaRegistro: DateTime.parse(map['fecha_registro']),
-      distribucionId: map['distribucion_id'],
-      rolLogicoId: map['rol_logico_id'],
-      rfid: map['rfid'], // ← NUEVO mapeo
-    );
+    try {
+      return Componente(
+        id: _getStringValue(map['id']) ?? '',
+        negocioId: _getStringValue(map['negocio_id']) ?? '',
+        categoriaId: _getIntValue(map['categoria_id']) ?? 0,
+        nombre: _getStringValue(map['nombre']) ?? '',
+        descripcion: _getStringValue(map['descripcion']),
+        enUso: _getBoolValue(map['en_uso']) ?? false,
+        activo: _getBoolValue(map['activo']) ?? true,
+        ubicacion: _getStringValue(map['ubicacion']),
+        imagenUrl: _getStringValue(map['imagen_url']),
+        fechaRegistro:
+            _getDateTimeValue(map['fecha_registro']) ?? DateTime.now(),
+        distribucionId: _getStringValue(map['distribucion_id']),
+        rolLogicoId: _getStringValue(map['rol_logico_id']),
+        rfid: _getStringValue(map['rfid']),
+      );
+    } catch (e) {
+      print('Error en Componente.fromMap: $e');
+      print('Data received: $map');
+      rethrow;
+    }
+  }
+
+  // Métodos auxiliares para manejar tipos de datos de forma segura
+  static String? _getStringValue(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) return null; // Ignorar objetos JSON anidados
+    return value.toString();
+  }
+
+  static int? _getIntValue(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static bool? _getBoolValue(dynamic value) {
+    if (value == null) return null;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    return null;
+  }
+
+  static DateTime? _getDateTimeValue(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   Map<String, dynamic> toMap() {
