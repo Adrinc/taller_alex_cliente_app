@@ -41,6 +41,14 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   Distribucion? _distribucionSeleccionada;
   bool _isLoadingDistribuciones = false;
 
+  // Variables para navegación por pasos
+  int _currentStep = 0;
+  PageController _pageController = PageController();
+
+  // Pasos del formulario
+  static const int STEP_CATEGORIA = 0;
+  static const int STEP_FORMULARIO = 1;
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +72,7 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
     _nombreController.dispose();
     _descripcionController.dispose();
     _ubicacionController.dispose();
+    _pageController.dispose();
 
     // Limpiar todos los controladores dinámicos
     for (var controller in _controllers.values) {
@@ -73,16 +82,24 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   }
 
   Future<void> _cargarDistribuciones(String negocioId) async {
+    print('DEBUG: Iniciando carga de distribuciones para negocio: $negocioId');
     setState(() => _isLoadingDistribuciones = true);
 
     try {
       final distribucionesProvider = context.read<DistribucionesProvider>();
-      await Future.wait([
-        distribucionesProvider.loadTiposDistribucion(),
-        distribucionesProvider.loadDistribucionesByNegocio(negocioId),
-      ]);
+
+      // Cargar tipos PRIMERO, luego distribuciones
+      print('DEBUG: Cargando tipos de distribución...');
+      await distribucionesProvider.loadTiposDistribucion();
+      print(
+          'DEBUG: Tipos cargados: ${distribucionesProvider.tiposDistribucion.length}');
+
+      print('DEBUG: Cargando distribuciones...');
+      await distribucionesProvider.loadDistribucionesByNegocio(negocioId);
+      print(
+          'DEBUG: Distribuciones cargadas: ${distribucionesProvider.distribuciones.length}');
     } catch (e) {
-      print('Error cargando distribuciones: $e');
+      print('ERROR: Error cargando distribuciones: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -93,6 +110,7 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       }
     } finally {
       if (mounted) {
+        print('DEBUG: Finalizando carga de distribuciones');
         setState(() => _isLoadingDistribuciones = false);
       }
     }
@@ -118,51 +136,32 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
         child: SafeArea(
           child: Consumer<ComponenteCreationProvider>(
             builder: (context, provider, child) {
-              return Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Header personalizado
-                    _buildHeader(theme, provider),
+              return Column(
+                children: [
+                  // Header con indicador de pasos
+                  _buildStepHeader(theme, provider),
 
-                    // Contenido principal
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Información del RFID
-                            if (provider.rfidCode != null)
-                              _buildRfidInfo(theme, provider),
+                  // Contenido principal con PageView
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics:
+                          const NeverScrollableScrollPhysics(), // Deshabilitamos el swipe
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentStep = index;
+                        });
+                      },
+                      children: [
+                        // Paso 1: Selección de categoría
+                        _buildCategoriaStep(theme, provider),
 
-                            // Selección de categoría
-                            _buildCategoriaSection(theme, provider),
-
-                            // Formulario de datos básicos
-                            if (provider.categoriaSeleccionada != null) ...[
-                              const SizedBox(height: 24),
-                              _buildDatosBasicos(theme, provider),
-
-                              const SizedBox(height: 24),
-                              _buildSeccionDistribucion(theme, provider),
-
-                              const SizedBox(height: 24),
-                              _buildCamposEspecificos(theme, provider),
-
-                              const SizedBox(height: 24),
-                              _buildSeccionImagenes(theme),
-
-                              const SizedBox(
-                                  height:
-                                      100), // Espacio para el botón flotante
-                            ],
-                          ],
-                        ),
-                      ),
+                        // Paso 2: Formulario completo
+                        _buildFormularioStep(theme, provider),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               );
             },
           ),
@@ -170,76 +169,279 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       ),
       floatingActionButton: Consumer<ComponenteCreationProvider>(
         builder: (context, provider, child) {
-          if (provider.categoriaSeleccionada == null)
-            return const SizedBox.shrink();
-
-          return FloatingActionButton.extended(
-            onPressed:
-                provider.isLoading ? null : () => _guardarComponente(provider),
-            backgroundColor: theme.primaryColor,
-            icon: provider.isLoading
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Icon(Icons.save, color: Colors.white),
-            label: Text(
-              provider.isLoading ? 'Guardando...' : 'Crear Componente',
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          );
+          return _buildFloatingActionButton(theme, provider);
         },
       ),
     );
   }
 
-  Widget _buildHeader(AppTheme theme, ComponenteCreationProvider provider) {
+  Widget _buildStepHeader(AppTheme theme, ComponenteCreationProvider provider) {
     return Container(
       padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: theme.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.arrow_back, color: theme.primaryColor),
-              onPressed: () => context.pop(),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Crear Componente',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: theme.primaryText,
-                  ),
-                ),
-                if (provider.categoriaSeleccionada != null)
-                  Text(
-                    provider.categoriaSeleccionada!.nombre,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: theme.secondaryText,
-                    ),
-                  ),
-              ],
-            ),
+      decoration: BoxDecoration(
+        color: theme.secondaryBackground,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
+      child: Column(
+        children: [
+          // Header principal con botón de retroceso
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    _currentStep == STEP_CATEGORIA
+                        ? Icons.arrow_back
+                        : Icons.arrow_back,
+                    color: theme.primaryColor,
+                  ),
+                  onPressed: () {
+                    if (_currentStep == STEP_CATEGORIA) {
+                      context.pop();
+                    } else {
+                      _previousStep();
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Crear Componente',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryText,
+                      ),
+                    ),
+                    Text(
+                      _getStepTitle(),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: theme.secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // RFID Info siempre visible
+          if (provider.rfidCode != null) _buildRfidInfo(theme, provider),
+
+          const SizedBox(height: 16),
+
+          // Indicador de progreso
+          _buildProgressIndicator(theme),
+        ],
+      ),
     );
+  }
+
+  String _getStepTitle() {
+    switch (_currentStep) {
+      case STEP_CATEGORIA:
+        return 'Seleccionar categoría del componente';
+      case STEP_FORMULARIO:
+        return 'Completar información del componente';
+      default:
+        return '';
+    }
+  }
+
+  Widget _buildProgressIndicator(AppTheme theme) {
+    return Row(
+      children: [
+        // Paso 1
+        Expanded(
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: _currentStep >= STEP_CATEGORIA
+                  ? theme.primaryColor
+                  : theme.primaryColor.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // Paso 2
+        Expanded(
+          child: Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: _currentStep >= STEP_FORMULARIO
+                  ? theme.primaryColor
+                  : theme.primaryColor.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoriaStep(
+      AppTheme theme, ComponenteCreationProvider provider) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Selecciona la categoría del componente',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.primaryText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Esto determinará qué información específica necesitaremos recopilar.',
+            style: TextStyle(
+              fontSize: 14,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (provider.isLoadingCategorias)
+            _buildLoadingCard(theme)
+          else if (provider.error != null)
+            _buildErrorCard(theme, provider)
+          else
+            _buildCategoriasList(theme, provider),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormularioStep(
+      AppTheme theme, ComponenteCreationProvider provider) {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Información del ${provider.categoriaSeleccionada?.nombre ?? 'Componente'}',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: theme.primaryText,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Completa todos los campos requeridos para registrar el componente.',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.secondaryText,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Formulario completo
+            _buildDatosBasicos(theme, provider),
+            const SizedBox(height: 24),
+            _buildSeccionDistribucion(theme, provider),
+            const SizedBox(height: 24),
+            _buildCamposEspecificos(theme, provider),
+            const SizedBox(height: 24),
+            _buildSeccionImagenes(theme),
+            const SizedBox(height: 100), // Espacio para el botón flotante
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFloatingActionButton(
+      AppTheme theme, ComponenteCreationProvider provider) {
+    if (_currentStep == STEP_CATEGORIA) {
+      // En el paso de categoría, mostrar botón de continuar
+      if (provider.categoriaSeleccionada == null) {
+        return const SizedBox.shrink();
+      }
+
+      return FloatingActionButton.extended(
+        onPressed: () => _nextStep(),
+        backgroundColor: theme.primaryColor,
+        icon: const Icon(Icons.arrow_forward, color: Colors.white),
+        label: const Text(
+          'Continuar',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      );
+    } else {
+      // En el paso de formulario, mostrar botón de guardar
+      return FloatingActionButton.extended(
+        onPressed:
+            provider.isLoading ? null : () => _guardarComponente(provider),
+        backgroundColor: theme.primaryColor,
+        icon: provider.isLoading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.save, color: Colors.white),
+        label: Text(
+          provider.isLoading ? 'Guardando...' : 'Crear Componente',
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+  }
+
+  void _nextStep() {
+    if (_currentStep < STEP_FORMULARIO) {
+      setState(() {
+        _currentStep++;
+      });
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _previousStep() {
+    if (_currentStep > STEP_CATEGORIA) {
+      setState(() {
+        _currentStep--;
+      });
+      _pageController.animateToPage(
+        _currentStep,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   Widget _buildRfidInfo(AppTheme theme, ComponenteCreationProvider provider) {
@@ -293,30 +495,6 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCategoriaSection(
-      AppTheme theme, ComponenteCreationProvider provider) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Categoría del Componente',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: theme.primaryText,
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (provider.isLoadingCategorias)
-          _buildLoadingCard(theme)
-        else if (provider.error != null)
-          _buildErrorCard(theme, provider)
-        else
-          _buildCategoriasList(theme, provider),
-      ],
     );
   }
 
@@ -426,6 +604,13 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
             onTap: () {
               provider.setCategoriaSeleccionada(categoria);
               _initializeControllers(categoria.nombre);
+
+              // Automáticamente avanzar al siguiente paso después de un pequeño delay
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (mounted) {
+                  _nextStep();
+                }
+              });
             },
           ),
         );
@@ -665,6 +850,37 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
 
   Widget _buildDistribucionSelector(
       AppTheme theme, DistribucionesProvider distribucionesProvider) {
+    print('DEBUG: Construyendo selector de distribuciones');
+    print(
+        'DEBUG: Distribuciones: ${distribucionesProvider.distribuciones.length}');
+    print('DEBUG: Tipos: ${distribucionesProvider.tiposDistribucion.length}');
+
+    // Verificar que tanto las distribuciones como los tipos estén cargados
+    if (distribucionesProvider.distribuciones.isEmpty ||
+        distribucionesProvider.tiposDistribucion.isEmpty) {
+      print('DEBUG: Mostrando loading porque faltan datos');
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        decoration: BoxDecoration(
+          color: theme.tertiaryBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.primaryColor.withOpacity(0.3),
+          ),
+        ),
+        child: Center(
+          child: Text(
+            'Cargando distribuciones...',
+            style: TextStyle(
+              color: theme.secondaryText,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      );
+    }
+
+    print('DEBUG: Construyendo dropdown con datos completos');
     return Column(
       children: [
         // Dropdown para seleccionar distribución existente
@@ -687,7 +903,60 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
             ),
             style: TextStyle(color: theme.primaryText),
             dropdownColor: theme.secondaryBackground,
-            items: distribucionesProvider.distribuciones.map((distribucion) {
+            items: _buildSafeDropdownItems(distribucionesProvider, theme),
+            onChanged: (Distribucion? value) {
+              setState(() {
+                _distribucionSeleccionada = value;
+              });
+              // Actualizar el provider inmediatamente
+              if (value != null) {
+                context
+                    .read<ComponenteCreationProvider>()
+                    .setDistribucionId(value.id);
+              }
+            },
+            validator: (value) {
+              if (value == null) {
+                return 'Debe seleccionar una distribución';
+              }
+              return null;
+            },
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Botón para crear nueva distribución
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: () =>
+                _showCreateDistribucionDialog(distribucionesProvider),
+            icon: Icon(Icons.add, color: theme.primaryColor),
+            label: Text(
+              'Crear nueva distribución',
+              style: TextStyle(color: theme.primaryColor),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: theme.primaryColor.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<DropdownMenuItem<Distribucion>> _buildSafeDropdownItems(
+      DistribucionesProvider distribucionesProvider, AppTheme theme) {
+    try {
+      return distribucionesProvider.distribuciones
+          .where((distribucion) =>
+              distribucion.nombre.isNotEmpty && distribucion.tipoId > 0)
+          .map((distribucion) {
+            try {
               final tipoNombre =
                   distribucionesProvider.getTipoNombre(distribucion.tipoId) ??
                       'Desconocido';
@@ -725,44 +994,19 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
                   ],
                 ),
               );
-            }).toList(),
-            onChanged: (Distribucion? value) {
-              setState(() {
-                _distribucionSeleccionada = value;
-              });
-            },
-            validator: (value) {
-              if (value == null) {
-                return 'Debe seleccionar una distribución';
-              }
+            } catch (e) {
+              print(
+                  'ERROR: Error construyendo item para distribución ${distribucion.id}: $e');
               return null;
-            },
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Botón para crear nueva distribución
-        SizedBox(
-          width: double.infinity,
-          child: TextButton.icon(
-            onPressed: () =>
-                _showCreateDistribucionDialog(distribucionesProvider),
-            icon: Icon(Icons.add, color: theme.primaryColor),
-            label: Text(
-              'Crear nueva distribución',
-              style: TextStyle(color: theme.primaryColor),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: theme.primaryColor.withOpacity(0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+            }
+          })
+          .where((item) => item != null)
+          .cast<DropdownMenuItem<Distribucion>>()
+          .toList();
+    } catch (e) {
+      print('ERROR: Error construyendo items del dropdown: $e');
+      return [];
+    }
   }
 
   Color _getDistribucionColor(String tipo) {
@@ -835,6 +1079,11 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
 
   Widget _buildCamposEspecificos(
       AppTheme theme, ComponenteCreationProvider provider) {
+    // Verificar que hay una categoría seleccionada
+    if (provider.categoriaSeleccionada == null) {
+      return const SizedBox.shrink();
+    }
+
     final categoria = provider.categoriaSeleccionada!.nombre.toLowerCase();
 
     return Container(
@@ -1565,10 +1814,15 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
 
                   // Actualizar la distribución seleccionada a la recién creada
                   if (distribucionesProvider.distribuciones.isNotEmpty) {
+                    final nuevaDistribucion =
+                        distribucionesProvider.distribuciones.last;
                     setState(() {
-                      _distribucionSeleccionada =
-                          distribucionesProvider.distribuciones.last;
+                      _distribucionSeleccionada = nuevaDistribucion;
                     });
+                    // Actualizar también el provider
+                    context
+                        .read<ComponenteCreationProvider>()
+                        .setDistribucionId(nuevaDistribucion.id);
                   }
                 } else if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1613,9 +1867,6 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
     provider.setDescripcion(_descripcionController.text);
     provider.setUbicacion(_ubicacionController.text);
 
-    // Establecer la distribución seleccionada
-    provider.setDistribucionId(_distribucionSeleccionada!.id);
-
     try {
       final success = await provider.crearComponente();
 
@@ -1625,19 +1876,23 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
             content: Text(
                 'Componente "${_nombreController.text}" creado exitosamente'),
             backgroundColor: Colors.green,
-            action: SnackBarAction(
-              label: 'Ver',
-              textColor: Colors.white,
-              onPressed: () {
-                // TODO: Navegar a la vista del componente
-              },
-            ),
+            duration: const Duration(seconds: 2),
           ),
         );
 
-        // Limpiar el provider y regresar
+        // Limpiar el provider
         provider.reset();
-        context.pop();
+
+        // Navegar de vuelta al home del técnico
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          // Navegar al home del técnico con el negocio actual
+          if (widget.negocioId != null) {
+            context.go('/home?negocioId=${widget.negocioId}');
+          } else {
+            context.go('/home');
+          }
+        }
       } else if (provider.error != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
