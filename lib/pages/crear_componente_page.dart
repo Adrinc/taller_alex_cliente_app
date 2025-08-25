@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import 'package:nethive_neo/providers/nethive/componente_creation_provider.dart';
+import 'package:nethive_neo/providers/nethive/distribuciones_provider.dart';
+import 'package:nethive_neo/models/nethive/distribucion_model.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class CrearComponentePage extends StatefulWidget {
@@ -35,17 +37,23 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
   final List<File> _imagenes = [];
   final ImagePicker _picker = ImagePicker();
 
+  // Variables para distribución
+  Distribucion? _distribucionSeleccionada;
+  bool _isLoadingDistribuciones = false;
+
   @override
   void initState() {
     super.initState();
     // Configurar el RFID y negocio si vienen como parámetros
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<ComponenteCreationProvider>();
+
       if (widget.rfidCode != null) {
         provider.setRfidCode(widget.rfidCode!);
       }
       if (widget.negocioId != null) {
         provider.setNegocioId(widget.negocioId!);
+        _cargarDistribuciones(widget.negocioId!);
       }
       provider.cargarCategorias();
     });
@@ -62,6 +70,32 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _cargarDistribuciones(String negocioId) async {
+    setState(() => _isLoadingDistribuciones = true);
+
+    try {
+      final distribucionesProvider = context.read<DistribucionesProvider>();
+      await Future.wait([
+        distribucionesProvider.loadTiposDistribucion(),
+        distribucionesProvider.loadDistribucionesByNegocio(negocioId),
+      ]);
+    } catch (e) {
+      print('Error cargando distribuciones: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar distribuciones: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingDistribuciones = false);
+      }
+    }
   }
 
   @override
@@ -109,6 +143,9 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
                             if (provider.categoriaSeleccionada != null) ...[
                               const SizedBox(height: 24),
                               _buildDatosBasicos(theme, provider),
+
+                              const SizedBox(height: 24),
+                              _buildSeccionDistribucion(theme, provider),
 
                               const SizedBox(height: 24),
                               _buildCamposEspecificos(theme, provider),
@@ -484,6 +521,263 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
         ],
       ),
     );
+  }
+
+  Widget _buildSeccionDistribucion(
+      AppTheme theme, ComponenteCreationProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.secondaryBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.account_tree,
+                color: theme.primaryColor,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Distribución *',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: theme.primaryText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Selecciona la distribución donde se ubicará este componente',
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Consumer<DistribucionesProvider>(
+            builder: (context, distribucionesProvider, child) {
+              if (_isLoadingDistribuciones) {
+                return _buildDistribucionLoading(theme);
+              }
+
+              if (distribucionesProvider.distribuciones.isEmpty) {
+                return _buildDistribucionEmpty(theme, distribucionesProvider);
+              }
+
+              return _buildDistribucionSelector(theme, distribucionesProvider);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistribucionLoading(AppTheme theme) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: theme.tertiaryBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Cargando distribuciones...',
+              style: TextStyle(
+                color: theme.secondaryText,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDistribucionEmpty(
+      AppTheme theme, DistribucionesProvider distribucionesProvider) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.warning_amber,
+            color: Colors.orange,
+            size: 32,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No hay distribuciones disponibles',
+            style: TextStyle(
+              color: Colors.orange.shade700,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Necesitas crear al menos una distribución (MDF/IDF) antes de poder registrar componentes.',
+            style: TextStyle(
+              color: Colors.orange.shade600,
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () =>
+                _showCreateDistribucionDialog(distribucionesProvider),
+            icon: const Icon(Icons.add),
+            label: const Text('Crear Distribución'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistribucionSelector(
+      AppTheme theme, DistribucionesProvider distribucionesProvider) {
+    return Column(
+      children: [
+        // Dropdown para seleccionar distribución existente
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: theme.tertiaryBackground,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _distribucionSeleccionada == null
+                  ? Colors.red.withOpacity(0.5)
+                  : theme.primaryColor.withOpacity(0.3),
+            ),
+          ),
+          child: DropdownButtonFormField<Distribucion>(
+            value: _distribucionSeleccionada,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              hintText: 'Seleccionar distribución',
+            ),
+            style: TextStyle(color: theme.primaryText),
+            dropdownColor: theme.secondaryBackground,
+            items: distribucionesProvider.distribuciones.map((distribucion) {
+              final tipoNombre =
+                  distribucionesProvider.getTipoNombre(distribucion.tipoId) ??
+                      'Desconocido';
+              Color chipColor = _getDistribucionColor(tipoNombre);
+
+              return DropdownMenuItem<Distribucion>(
+                value: distribucion,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: chipColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        tipoNombre,
+                        style: TextStyle(
+                          color: chipColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        distribucion.nombre,
+                        style: TextStyle(color: theme.primaryText),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+            onChanged: (Distribucion? value) {
+              setState(() {
+                _distribucionSeleccionada = value;
+              });
+            },
+            validator: (value) {
+              if (value == null) {
+                return 'Debe seleccionar una distribución';
+              }
+              return null;
+            },
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Botón para crear nueva distribución
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: () =>
+                _showCreateDistribucionDialog(distribucionesProvider),
+            icon: Icon(Icons.add, color: theme.primaryColor),
+            label: Text(
+              'Crear nueva distribución',
+              style: TextStyle(color: theme.primaryColor),
+            ),
+            style: TextButton.styleFrom(
+              backgroundColor: theme.primaryColor.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getDistribucionColor(String tipo) {
+    switch (tipo.toUpperCase()) {
+      case 'MDF':
+        return Colors.deepPurple;
+      case 'IDF':
+        return Colors.indigo;
+      case 'RACK':
+        return Colors.orange;
+      case 'STANDALONE':
+        return Colors.teal;
+      default:
+        return Colors.blueGrey;
+    }
   }
 
   Widget _buildTextField({
@@ -1165,14 +1459,162 @@ class _CrearComponentePageState extends State<CrearComponentePage> {
     }
   }
 
+  void _showCreateDistribucionDialog(
+      DistribucionesProvider distribucionesProvider) {
+    final formKey = GlobalKey<FormState>();
+    final nombreController = TextEditingController();
+    final descripcionController = TextEditingController();
+    int? selectedTipoId;
+
+    // Cargar tipos de distribución si no están cargados
+    if (distribucionesProvider.tiposDistribucion.isEmpty) {
+      distribucionesProvider.loadTiposDistribucion();
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Crear Nueva Distribución'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Selector de tipo de distribución
+              Consumer<DistribucionesProvider>(
+                builder: (context, provider, child) {
+                  if (provider.tiposDistribucion.isEmpty) {
+                    return const CircularProgressIndicator();
+                  }
+
+                  return DropdownButtonFormField<int>(
+                    value: selectedTipoId,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo de Distribución',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: provider.tiposDistribucion
+                        .map((tipo) => DropdownMenuItem(
+                              value: tipo.id,
+                              child: Text(tipo.nombre),
+                            ))
+                        .toList(),
+                    onChanged: (value) => selectedTipoId = value,
+                    validator: (value) =>
+                        value == null ? 'Selecciona un tipo' : null,
+                  );
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Campo de nombre
+              TextFormField(
+                controller: nombreController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre *',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value?.trim().isEmpty == true) {
+                    return 'El nombre es obligatorio';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Campo de descripción
+              TextFormField(
+                controller: descripcionController,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate() && selectedTipoId != null) {
+                final success = await distribucionesProvider.createDistribucion(
+                  negocioId: widget.negocioId!,
+                  tipoId: selectedTipoId!,
+                  nombre: nombreController.text.trim(),
+                  descripcion: descripcionController.text.trim().isEmpty
+                      ? null
+                      : descripcionController.text.trim(),
+                );
+
+                if (success && mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Distribución creada exitosamente'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+
+                  // Actualizar la distribución seleccionada a la recién creada
+                  if (distribucionesProvider.distribuciones.isNotEmpty) {
+                    setState(() {
+                      _distribucionSeleccionada =
+                          distribucionesProvider.distribuciones.last;
+                    });
+                  }
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(distribucionesProvider.error ??
+                          'Error al crear distribución'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _guardarComponente(ComponenteCreationProvider provider) async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Validar que se haya seleccionado una distribución
+    if (_distribucionSeleccionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debe seleccionar una distribución para el componente'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
     // Actualizar datos del provider
     provider.setNombre(_nombreController.text);
     provider.setDescripcion(_descripcionController.text);
+    provider.setUbicacion(_ubicacionController.text);
+
+    // Establecer la distribución seleccionada
+    provider.setDistribucionId(_distribucionSeleccionada!.id);
 
     try {
       final success = await provider.crearComponente();

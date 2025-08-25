@@ -367,7 +367,10 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                   title: 'Escanear RFID',
                   subtitle: 'Escanear etiquetas',
                   onTap: () => context.push('/scanner'),
-                  gradient: [theme.primaryColor, theme.secondaryColor],
+                  gradient: [
+                    const Color(0xFF6366F1), // Indigo vibrante
+                    const Color(0xFF8B5CF6), // Violet
+                  ],
                   delay: 1000,
                 ),
                 _buildDashboardCard(
@@ -376,7 +379,10 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                   title: 'Inventario',
                   subtitle: 'Gestionar componentes',
                   onTap: () => context.push('/inventario'),
-                  gradient: [theme.secondaryColor, theme.tertiaryColor],
+                  gradient: [
+                    const Color(0xFF10B981), // Emerald
+                    const Color(0xFF059669), // Emerald dark
+                  ],
                   delay: 1100,
                 ),
                 _buildDashboardCard(
@@ -385,7 +391,10 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                   title: 'Conexiones',
                   subtitle: 'Gestionar conectividad',
                   onTap: () => context.push('/conexiones'),
-                  gradient: [theme.tertiaryColor, theme.primaryColor],
+                  gradient: [
+                    const Color(0xFFF59E0B), // Amber
+                    const Color(0xFFEF4444), // Red
+                  ],
                   delay: 1200,
                 ),
                 _buildDashboardCard(
@@ -400,8 +409,8 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                     context.push('/distribuciones$negocioParam');
                   },
                   gradient: [
-                    Colors.deepPurple.withOpacity(0.8),
-                    Colors.indigo.withOpacity(0.8)
+                    const Color(0xFF7C3AED), // Purple
+                    const Color(0xFF3B82F6), // Blue
                   ],
                   delay: 1250,
                 ),
@@ -419,8 +428,8 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                     );
                   },
                   gradient: [
-                    theme.primaryColor.withOpacity(0.8),
-                    theme.tertiaryColor.withOpacity(0.8)
+                    const Color(0xFF06B6D4), // Cyan
+                    const Color(0xFF3B82F6), // Blue
                   ],
                   delay: 1300,
                 ),

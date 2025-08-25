@@ -11,6 +11,7 @@ class ComponenteCreationProvider extends ChangeNotifier {
   // Datos del formulario
   String? _rfidCode;
   String? _negocioId; // AGREGADO: ID del negocio seleccionado
+  String? _distribucionId; // AGREGADO: ID de la distribución seleccionada
   CategoriaComponente? _categoriaSeleccionada;
   String _nombre = '';
   String _descripcion = '';
@@ -26,6 +27,7 @@ class ComponenteCreationProvider extends ChangeNotifier {
   String? get error => _error;
   String? get rfidCode => _rfidCode;
   String? get negocioId => _negocioId;
+  String? get distribucionId => _distribucionId;
   CategoriaComponente? get categoriaSeleccionada => _categoriaSeleccionada;
   String get nombre => _nombre;
   String get descripcion => _descripcion;
@@ -41,6 +43,11 @@ class ComponenteCreationProvider extends ChangeNotifier {
 
   void setNegocioId(String? negocioId) {
     _negocioId = negocioId;
+    notifyListeners();
+  }
+
+  void setDistribucionId(String? distribucionId) {
+    _distribucionId = distribucionId;
     notifyListeners();
   }
 
@@ -80,6 +87,7 @@ class ComponenteCreationProvider extends ChangeNotifier {
     _error = null;
     _rfidCode = null;
     _negocioId = null;
+    _distribucionId = null;
     _categoriaSeleccionada = null;
     _nombre = '';
     _descripcion = '';
@@ -127,6 +135,10 @@ class ComponenteCreationProvider extends ChangeNotifier {
       return 'Debe seleccionar una categoría';
     }
 
+    if (_distribucionId == null || _distribucionId!.trim().isEmpty) {
+      return 'Debe seleccionar una distribución';
+    }
+
     if (_nombre.trim().isEmpty) {
       return 'El nombre del componente es obligatorio';
     }
@@ -170,6 +182,7 @@ class ComponenteCreationProvider extends ChangeNotifier {
         'rfid': _rfidCode,
         'negocio_id': _negocioId,
         'categoria_id': _categoriaSeleccionada!.id,
+        'distribucion_id': _distribucionId, // AGREGADO: ID de la distribución
         'fecha_registro': DateTime.now().toIso8601String(),
         'fecha_ultimo_escaneo': DateTime.now().toIso8601String(),
         'tecnico_registro_id': currentUser?.id,

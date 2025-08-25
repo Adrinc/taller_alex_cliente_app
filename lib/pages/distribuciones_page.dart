@@ -25,10 +25,23 @@ class _DistribucionesPageState extends State<DistribucionesPage> {
   String? _negocioNombre;
   bool _isLoading = true;
 
+  // Filtros y búsqueda
+  final TextEditingController _searchController = TextEditingController();
+  int? _selectedTipoFiltro;
+  List<Distribucion> _distribucionesFiltradas = [];
+
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_applyFilters);
     _initializeData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_applyFilters);
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeData() async {
@@ -74,6 +87,9 @@ class _DistribucionesPageState extends State<DistribucionesPage> {
           distribucionesProvider.loadTiposDistribucion(),
           distribucionesProvider.loadDistribucionesByNegocio(_negocioId!),
         ]);
+
+        // Aplicar filtros iniciales
+        _applyFilters();
       }
     } catch (e) {
       print('Error inicializando distribuciones: $e');
@@ -90,6 +106,45 @@ class _DistribucionesPageState extends State<DistribucionesPage> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _applyFilters() {
+    final provider = context.read<DistribucionesProvider>();
+    List<Distribucion> filtered = List.from(provider.distribuciones);
+
+    // Filtrar por texto de búsqueda
+    if (_searchController.text.isNotEmpty) {
+      final searchText = _searchController.text.toLowerCase();
+      filtered = filtered.where((distribucion) {
+        return distribucion.nombre.toLowerCase().contains(searchText) ||
+            (distribucion.descripcion?.toLowerCase().contains(searchText) ??
+                false) ||
+            provider
+                    .getTipoNombre(distribucion.tipoId)
+                    ?.toLowerCase()
+                    .contains(searchText) ==
+                true;
+      }).toList();
+    }
+
+    // Filtrar por tipo
+    if (_selectedTipoFiltro != null) {
+      filtered = filtered.where((distribucion) {
+        return distribucion.tipoId == _selectedTipoFiltro;
+      }).toList();
+    }
+
+    setState(() {
+      _distribucionesFiltradas = filtered;
+    });
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _selectedTipoFiltro = null;
+      _searchController.clear();
+    });
+    _applyFilters();
   }
 
   @override
@@ -155,6 +210,7 @@ class _DistribucionesPageState extends State<DistribucionesPage> {
               return Column(
                 children: [
                   _buildHeader(theme),
+                  _buildSearchAndFilters(distribucionesProvider, theme),
                   _buildStatsPanel(distribucionesProvider, theme),
                   Expanded(
                     child:
@@ -229,14 +285,188 @@ class _DistribucionesPageState extends State<DistribucionesPage> {
     );
   }
 
+  Widget _buildSearchAndFilters(
+      DistribucionesProvider provider, AppTheme theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          // Barra de búsqueda
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Buscar distribuciones...',
+                prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear, color: Colors.grey.shade600),
+                        onPressed: () {
+                          _searchController.clear();
+                          _applyFilters();
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Filtros por tipo
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                // Botón "Todos"
+                _buildFilterChip(
+                  label: 'Todos',
+                  isSelected: _selectedTipoFiltro == null,
+                  count: provider.distribuciones.length,
+                  onTap: () {
+                    setState(() => _selectedTipoFiltro = null);
+                    _applyFilters();
+                  },
+                  color: Colors.grey.shade600,
+                ),
+
+                const SizedBox(width: 8),
+
+                // Chips dinámicos por tipo
+                ...provider.tiposDistribucion.map((tipo) {
+                  final count = provider.distribuciones
+                      .where((d) => d.tipoId == tipo.id)
+                      .length;
+
+                  Color chipColor;
+                  switch (tipo.nombre.toUpperCase()) {
+                    case 'MDF':
+                      chipColor = Colors.deepPurple;
+                      break;
+                    case 'IDF':
+                      chipColor = Colors.indigo;
+                      break;
+                    case 'RACK':
+                      chipColor = Colors.orange;
+                      break;
+                    case 'STANDALONE':
+                      chipColor = Colors.teal;
+                      break;
+                    default:
+                      chipColor = Colors.blueGrey;
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _buildFilterChip(
+                      label: tipo.nombre,
+                      isSelected: _selectedTipoFiltro == tipo.id,
+                      count: count,
+                      onTap: () {
+                        setState(() {
+                          _selectedTipoFiltro =
+                              _selectedTipoFiltro == tipo.id ? null : tipo.id;
+                        });
+                        _applyFilters();
+                      },
+                      color: chipColor,
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required int count,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color : color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: color.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : color,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.white.withOpacity(0.2)
+                    : color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  color: isSelected ? Colors.white : color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatsPanel(DistribucionesProvider provider, AppTheme theme) {
-    final totalDistribuciones = provider.distribuciones.length;
+    // Usar la lista filtrada para mostrar estadísticas contextuales
+    final distribucionesParaStats = _distribucionesFiltradas.isNotEmpty ||
+            _searchController.text.isNotEmpty ||
+            _selectedTipoFiltro != null
+        ? _distribucionesFiltradas
+        : provider.distribuciones;
+
+    final totalDistribuciones = distribucionesParaStats.length;
 
     // Contar por tipo dinámicamente
     int tiposMDF = 0;
     int tiposIDF = 0;
 
-    for (final distribucion in provider.distribuciones) {
+    for (final distribucion in distribucionesParaStats) {
       final tipoNombre = provider.getTipoNombre(distribucion.tipoId);
       if (tipoNombre == 'MDF') {
         tiposMDF++;
@@ -346,11 +576,52 @@ class _DistribucionesPageState extends State<DistribucionesPage> {
       );
     }
 
+    // Mostrar lista filtrada o mensaje de "sin resultados"
+    if (_distribucionesFiltradas.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No se encontraron distribuciones',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Intenta con otros filtros o términos de búsqueda',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextButton.icon(
+              onPressed: _clearFilters,
+              icon: const Icon(Icons.clear_all),
+              label: const Text('Limpiar filtros'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.deepPurple,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: provider.distribuciones.length,
+      itemCount: _distribucionesFiltradas.length,
       itemBuilder: (context, index) {
-        final distribucion = provider.distribuciones[index];
+        final distribucion = _distribucionesFiltradas[index];
         return _buildDistribucionCard(distribucion, provider, theme)
             .animate(delay: (index * 100).ms)
             .slideX(begin: 0.3, end: 0)
@@ -363,85 +634,182 @@ class _DistribucionesPageState extends State<DistribucionesPage> {
       DistribucionesProvider provider, AppTheme theme) {
     final tipoNombre =
         provider.getTipoNombre(distribucion.tipoId) ?? 'Desconocido';
-    final isMDF = tipoNombre == 'MDF';
-    final cardColor = isMDF ? Colors.deepPurple : Colors.indigo;
-    final iconData = isMDF ? Icons.home_work : Icons.business;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cardColor.withOpacity(0.3)),
+    // Colores más atractivos y diferenciados por tipo
+    Color cardColor;
+    Color gradientStart;
+    Color gradientEnd;
+    IconData iconData;
+
+    switch (tipoNombre.toUpperCase()) {
+      case 'MDF':
+        cardColor = const Color(0xFF7C3AED); // Purple
+        gradientStart = const Color(0xFF7C3AED);
+        gradientEnd = const Color(0xFF3B82F6);
+        iconData = Icons.home_work;
+        break;
+      case 'IDF':
+        cardColor = const Color(0xFF3B82F6); // Blue
+        gradientStart = const Color(0xFF3B82F6);
+        gradientEnd = const Color(0xFF06B6D4);
+        iconData = Icons.business;
+        break;
+      case 'RACK':
+        cardColor = const Color(0xFFF59E0B); // Orange
+        gradientStart = const Color(0xFFF59E0B);
+        gradientEnd = const Color(0xFFEF4444);
+        iconData = Icons.view_module;
+        break;
+      case 'STANDALONE':
+        cardColor = const Color(0xFF10B981); // Emerald
+        gradientStart = const Color(0xFF10B981);
+        gradientEnd = const Color(0xFF059669);
+        iconData = Icons.computer;
+        break;
+      default:
+        cardColor = const Color(0xFF6B7280); // Gray
+        gradientStart = const Color(0xFF6B7280);
+        gradientEnd = const Color(0xFF4B5563);
+        iconData = Icons.device_unknown;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [gradientStart, gradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(16),
-          leading: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: cardColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(iconData, color: cardColor, size: 24),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: cardColor.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          title: Text(
-            distribucion.nombre,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: theme.primaryText,
-            ),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: cardColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showEditDistribucionDialog(distribucion),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // Icono principal
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        iconData,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    // Información principal
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            distribucion.nombre,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              tipoNombre,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Botones de acción
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () =>
+                                _showEditDistribucionDialog(distribucion),
+                            icon: const Icon(Icons.edit,
+                                color: Colors.white, size: 20),
+                            tooltip: 'Editar',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () => _showDeleteDistribucionDialog(
+                                distribucion, provider),
+                            icon: const Icon(Icons.delete,
+                                color: Colors.white, size: 20),
+                            tooltip: 'Eliminar',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                child: Text(
-                  tipoNombre,
-                  style: TextStyle(
-                    color: cardColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+
+                // Descripción (si existe)
+                if (distribucion.descripcion?.isNotEmpty == true) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      distribucion.descripcion!,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ),
-              if (distribucion.descripcion?.isNotEmpty == true) ...[
-                const SizedBox(height: 6),
-                Text(
-                  distribucion.descripcion!,
-                  style: TextStyle(
-                    color: theme.secondaryText,
-                    fontSize: 13,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
               ],
-            ],
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                onPressed: () => _showEditDistribucionDialog(distribucion),
-                icon: Icon(Icons.edit, color: theme.secondaryText),
-                tooltip: 'Editar',
-              ),
-              IconButton(
-                onPressed: () =>
-                    _showDeleteDistribucionDialog(distribucion, provider),
-                icon: Icon(Icons.delete, color: Colors.red.shade400),
-                tooltip: 'Eliminar',
-              ),
-            ],
+            ),
           ),
         ),
       ),
