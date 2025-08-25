@@ -161,7 +161,7 @@ imagen_url (text)
 -- distribucion --
 id (PK) (uuid),
 negocio_id (uuid) (FK de nethive.negocio.id)
-tipo (text),
+tipo_id (int4),
 nombre (text),
 descripcion (text),
 

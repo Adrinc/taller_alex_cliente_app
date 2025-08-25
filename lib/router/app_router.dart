@@ -8,6 +8,7 @@ import 'package:nethive_neo/pages/negocio_selector_page.dart';
 import 'package:nethive_neo/pages/home_tecnico_page.dart';
 import 'package:nethive_neo/pages/scanner_page_new.dart' as new_scanner;
 import 'package:nethive_neo/pages/inventario_page.dart';
+import 'package:nethive_neo/pages/distribuciones_page.dart';
 import 'package:nethive_neo/pages/crear_componente_page.dart';
 import 'package:nethive_neo/pages/componente_selector_page.dart';
 import 'package:nethive_neo/helpers/globals.dart';
@@ -96,6 +97,16 @@ class AppRouter {
             child: Text('Página de Conexiones\n(En desarrollo)'),
           ),
         ),
+      ),
+
+      // Distribuciones
+      GoRoute(
+        path: '/distribuciones',
+        name: 'distribuciones',
+        builder: (context, state) {
+          final negocioId = state.uri.queryParameters['negocioId'];
+          return DistribucionesPage(negocioId: negocioId);
+        },
       ),
 
       // Componente Form (para agregar/editar componentes)

@@ -3,14 +3,14 @@ import 'dart:convert';
 class Distribucion {
   final String id;
   final String negocioId;
-  final String tipo; // 'MDF' o 'IDF'
+  final int tipoId;
   final String nombre;
   final String? descripcion;
 
   Distribucion({
     required this.id,
     required this.negocioId,
-    required this.tipo,
+    required this.tipoId,
     required this.nombre,
     this.descripcion,
   });
@@ -19,7 +19,7 @@ class Distribucion {
     return Distribucion(
       id: map['id'],
       negocioId: map['negocio_id'],
-      tipo: map['tipo'],
+      tipoId: map['tipo_id'],
       nombre: map['nombre'],
       descripcion: map['descripcion'],
     );
@@ -29,7 +29,7 @@ class Distribucion {
     return {
       'id': id,
       'negocio_id': negocioId,
-      'tipo': tipo,
+      'tipo_id': tipoId,
       'nombre': nombre,
       'descripcion': descripcion,
     };

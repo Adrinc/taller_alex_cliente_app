@@ -390,6 +390,23 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                 ),
                 _buildDashboardCard(
                   theme: theme,
+                  icon: Icons.account_tree,
+                  title: 'Distribuciones',
+                  subtitle: 'MDF, IDF y ubicaciones técnicas',
+                  onTap: () {
+                    final negocioParam = _negocioActual?.id != null
+                        ? '?negocioId=${_negocioActual!.id}'
+                        : '';
+                    context.push('/distribuciones$negocioParam');
+                  },
+                  gradient: [
+                    Colors.deepPurple.withOpacity(0.8),
+                    Colors.indigo.withOpacity(0.8)
+                  ],
+                  delay: 1250,
+                ),
+                _buildDashboardCard(
+                  theme: theme,
                   icon: Icons.assignment,
                   title: 'Mis Trabajos',
                   subtitle: 'Asignaciones pendientes',
