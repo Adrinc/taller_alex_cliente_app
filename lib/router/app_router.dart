@@ -11,6 +11,7 @@ import 'package:nethive_neo/pages/inventario_page.dart';
 import 'package:nethive_neo/pages/distribuciones_page.dart';
 import 'package:nethive_neo/pages/crear_componente_page.dart';
 import 'package:nethive_neo/pages/componente_selector_page.dart';
+import 'package:nethive_neo/pages/conexiones_page.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 
 class AppRouter {
@@ -98,11 +99,10 @@ class AppRouter {
       GoRoute(
         path: '/conexiones',
         name: 'conexiones',
-        builder: (context, state) => const Scaffold(
-          body: Center(
-            child: Text('Página de Conexiones\n(En desarrollo)'),
-          ),
-        ),
+        builder: (context, state) {
+          final negocioId = state.uri.queryParameters['negocioId'];
+          return ConexionesPage(negocioId: negocioId ?? '');
+        },
       ),
 
       // Distribuciones

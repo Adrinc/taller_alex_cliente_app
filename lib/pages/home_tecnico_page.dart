@@ -400,7 +400,12 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                   icon: Icons.cable,
                   title: 'Conexiones',
                   subtitle: 'Gestionar conectividad',
-                  onTap: () => context.push('/conexiones'),
+                  onTap: () {
+                    final negocioParam = _negocioActual?.id != null
+                        ? '?negocioId=${_negocioActual!.id}'
+                        : '';
+                    context.push('/conexiones$negocioParam');
+                  },
                   gradient: [
                     const Color(0xFFF59E0B), // Amber
                     const Color(0xFFEF4444), // Red

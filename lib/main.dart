@@ -37,7 +37,7 @@ class NetHiveApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => EmpresasNegociosProvider()),
         ChangeNotifierProvider(create: (_) => ComponentesProvider()),
         ChangeNotifierProvider(create: (_) => RfidScannerProvider()),
-        ChangeNotifierProvider(create: (_) => ConexionesProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectionsProvider()),
         ChangeNotifierProvider(create: (_) => SyncProvider()),
         ChangeNotifierProvider(create: (_) => ThemeConfigProvider()),
         ChangeNotifierProvider(create: (_) => ComponenteCreationProvider()),

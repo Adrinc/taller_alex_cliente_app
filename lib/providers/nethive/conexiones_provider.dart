@@ -1,363 +1,355 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/models/nethive/componente_model.dart';
 import 'package:nethive_neo/models/nethive/conexion_componente_model.dart';
+import 'package:nethive_neo/models/nethive/conexion_alimentacion_model.dart';
+import 'package:nethive_neo/models/nethive/vista_conexiones_con_cables_y_rfid_model.dart';
 
-/// Provider para gestionar conexiones entre componentes
 class ConexionesProvider extends ChangeNotifier {
-  // Listas de conexiones
-  List<ConexionComponente> conexionesDatos = [];
-  List<ConexionComponente> conexionesEnergia = [];
+  // Estado
+  bool _isLoading = false;
+  String? _error;
+  String? _negocioId;
 
-  // Variables para crear conexión
-  Componente? componenteOrigen;
-  Componente? componenteDestino;
-  Componente? cableSeleccionado;
-  String? puertoOrigen;
-  String? puertoDestino;
-  ConexionType tipoConexion = ConexionType.datos;
+  // Listas de datos
+  List<VistaConexionesConCablesYRfid> _conexionesDatos = [];
+  List<ConexionAlimentacion> _conexionesEnergia = [];
+  List<Componente> _componentesDisponibles = [];
+  List<Componente> _cablesDisponibles = [];
 
-  // Variables de búsqueda y filtros
-  final busquedaOrigenController = TextEditingController();
-  final busquedaDestinoController = TextEditingController();
-  final busquedaCableController = TextEditingController();
+  // Filtros
+  String _filtroTipo = 'todos'; // todos, datos, energia
+  String _filtroEstado = 'activas'; // todas, activas, inactivas
+  String _filtroTecnico = 'todos'; // todos, mis_conexiones
+  String _busqueda = '';
 
-  String? negocioSeleccionadoId;
-  bool _isDisposed = false;
+  // Getters
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  String? get negocioId => _negocioId;
+  String get filtroTipo => _filtroTipo;
+  String get filtroEstado => _filtroEstado;
+  String get filtroTecnico => _filtroTecnico;
+  String get busqueda => _busqueda;
 
-  ConexionesProvider();
+  List<VistaConexionesConCablesYRfid> get conexionesDatos => _conexionesDatos;
+  List<ConexionAlimentacion> get conexionesEnergia => _conexionesEnergia;
+  List<Componente> get componentesDisponibles => _componentesDisponibles;
+  List<Componente> get cablesDisponibles => _cablesDisponibles;
 
-  @override
-  void dispose() {
-    _isDisposed = true;
-    busquedaOrigenController.dispose();
-    busquedaDestinoController.dispose();
-    busquedaCableController.dispose();
-    super.dispose();
-  }
+  // Conexiones filtradas
+  List<dynamic> get conexionesFiltradas {
+    List<dynamic> todas = [];
 
-  void _notifyListeners() {
-    if (!_isDisposed) {
-      notifyListeners();
+    if (_filtroTipo == 'todos' || _filtroTipo == 'datos') {
+      todas.addAll(_conexionesDatos);
     }
+    if (_filtroTipo == 'todos' || _filtroTipo == 'energia') {
+      todas.addAll(_conexionesEnergia);
+    }
+
+    if (_busqueda.isNotEmpty) {
+      todas = todas.where((conexion) {
+        if (conexion is VistaConexionesConCablesYRfid) {
+          return conexion.componenteOrigen
+                  .toLowerCase()
+                  .contains(_busqueda.toLowerCase()) ||
+              conexion.componenteDestino
+                  .toLowerCase()
+                  .contains(_busqueda.toLowerCase()) ||
+              (conexion.descripcion
+                      ?.toLowerCase()
+                      .contains(_busqueda.toLowerCase()) ??
+                  false);
+        } else if (conexion is ConexionAlimentacion) {
+          return conexion.descripcion
+                  ?.toLowerCase()
+                  .contains(_busqueda.toLowerCase()) ??
+              false;
+        }
+        return false;
+      }).toList();
+    }
+
+    if (_filtroEstado == 'activas') {
+      todas = todas.where((conexion) {
+        if (conexion is VistaConexionesConCablesYRfid) {
+          return conexion.activo;
+        } else if (conexion is ConexionAlimentacion) {
+          return conexion.activo;
+        }
+        return false;
+      }).toList();
+    } else if (_filtroEstado == 'inactivas') {
+      todas = todas.where((conexion) {
+        if (conexion is VistaConexionesConCablesYRfid) {
+          return !conexion.activo;
+        } else if (conexion is ConexionAlimentacion) {
+          return !conexion.activo;
+        }
+        return false;
+      }).toList();
+    }
+
+    return todas;
   }
 
-  /// Obtener conexiones de datos
-  Future<void> getConexionesDatos({String? negocioId}) async {
-    if (negocioId == null) return;
+  // Estadísticas
+  int get totalConexiones =>
+      _conexionesDatos.length + _conexionesEnergia.length;
+  int get conexionesActivasDatos =>
+      _conexionesDatos.where((c) => c.activo).length;
+  int get conexionesActivasEnergia =>
+      _conexionesEnergia.where((c) => c.activo).length;
+  int get cablesEnUso => _cablesDisponibles
+      .where((c) =>
+          _conexionesDatos.any((con) => con.cableId == c.id) ||
+          _conexionesEnergia.any((con) => con.cableId == c.id))
+      .length;
 
+  // Métodos principales
+  Future<void> loadData(String negocioId) async {
+    _negocioId = negocioId;
+    await Future.wait([
+      _loadConexionesDatos(),
+      _loadConexionesEnergia(),
+      _loadComponentes(),
+      _loadCables(),
+    ]);
+  }
+
+  Future<void> _loadConexionesDatos() async {
     try {
-      print('ConexionesProvider: Obteniendo conexiones de datos...');
+      print('ConexionesProvider: Cargando conexiones de datos...');
 
       final response = await supabaseLU
-          .from('conexion_componente')
-          .select('''
-            *,
-            componente_origen:componente_origen_id(*),
-            componente_destino:componente_destino_id(*),
-            cable:cable_id(*)
-          ''')
-          .eq('tipo_conexion', 'datos')
-          .eq('negocio_id', negocioId)
-          .order('fecha_creacion', ascending: false);
+          .from('vista_conexiones_con_cables_y_rfid')
+          .select('*')
+          .order('conexion_id');
 
-      if (response.isNotEmpty) {
-        conexionesDatos = response
-            .map<ConexionComponente>(
-                (json) => ConexionComponente.fromJson(json))
-            .toList();
-        _notifyListeners();
-        print(
-            'ConexionesProvider: ${conexionesDatos.length} conexiones de datos obtenidas');
-      } else {
-        conexionesDatos = [];
-        _notifyListeners();
-      }
+      _conexionesDatos = response
+          .map<VistaConexionesConCablesYRfid>(
+              (json) => VistaConexionesConCablesYRfid.fromMap(json))
+          .toList();
+
+      print(
+          'ConexionesProvider: ${_conexionesDatos.length} conexiones de datos cargadas');
     } catch (e) {
-      print('ConexionesProvider: Error obteniendo conexiones de datos: $e');
-      conexionesDatos = [];
-      _notifyListeners();
+      _error = 'Error cargando conexiones de datos: $e';
+      print('ConexionesProvider: $_error');
     }
   }
 
-  /// Obtener conexiones de energía
-  Future<void> getConexionesEnergia({String? negocioId}) async {
-    if (negocioId == null) return;
-
+  Future<void> _loadConexionesEnergia() async {
     try {
-      print('ConexionesProvider: Obteniendo conexiones de energía...');
+      print('ConexionesProvider: Cargando conexiones de energía...');
 
       final response = await supabaseLU
-          .from('conexion_componente')
-          .select('''
-            *,
-            componente_origen:componente_origen_id(*),
-            componente_destino:componente_destino_id(*),
-            cable:cable_id(*)
-          ''')
-          .eq('tipo_conexion', 'energia')
-          .eq('negocio_id', negocioId)
-          .order('fecha_creacion', ascending: false);
+          .from('conexion_alimentacion')
+          .select('*')
+          .order('id');
 
-      if (response.isNotEmpty) {
-        conexionesEnergia = response
-            .map<ConexionComponente>(
-                (json) => ConexionComponente.fromJson(json))
-            .toList();
-        _notifyListeners();
-        print(
-            'ConexionesProvider: ${conexionesEnergia.length} conexiones de energía obtenidas');
-      } else {
-        conexionesEnergia = [];
-        _notifyListeners();
-      }
+      _conexionesEnergia = response
+          .map<ConexionAlimentacion>(
+              (json) => ConexionAlimentacion.fromMap(json))
+          .toList();
+
+      print(
+          'ConexionesProvider: ${_conexionesEnergia.length} conexiones de energía cargadas');
     } catch (e) {
-      print('ConexionesProvider: Error obteniendo conexiones de energía: $e');
-      conexionesEnergia = [];
-      _notifyListeners();
+      _error = 'Error cargando conexiones de energía: $e';
+      print('ConexionesProvider: $_error');
     }
   }
 
-  /// Crear nueva conexión
-  Future<bool> createConexion({
-    required String componenteOrigenId,
-    required String componenteDestinoId,
+  Future<void> _loadComponentes() async {
+    try {
+      if (_negocioId == null) return;
+
+      final response = await supabaseLU
+          .from('componente')
+          .select('*, categoria_componente(*)')
+          .eq('negocio_id', _negocioId!)
+          .eq('activo', true)
+          .order('nombre');
+
+      _componentesDisponibles =
+          response.map<Componente>((json) => Componente.fromMap(json)).toList();
+
+      print(
+          'ConexionesProvider: ${_componentesDisponibles.length} componentes cargados');
+    } catch (e) {
+      print('ConexionesProvider: Error cargando componentes: $e');
+    }
+  }
+
+  Future<void> _loadCables() async {
+    try {
+      if (_negocioId == null) return;
+
+      final response = await supabaseLU
+          .from('componente')
+          .select('*, categoria_componente(*)')
+          .eq('negocio_id', _negocioId!)
+          .eq('categoria_id', 1) // Categoria 1 = Cable
+          .eq('activo', true)
+          .order('nombre');
+
+      _cablesDisponibles =
+          response.map<Componente>((json) => Componente.fromMap(json)).toList();
+
+      print('ConexionesProvider: ${_cablesDisponibles.length} cables cargados');
+    } catch (e) {
+      print('ConexionesProvider: Error cargando cables: $e');
+    }
+  }
+
+  // Crear conexión de datos
+  Future<bool> crearConexionDatos({
+    required String origenId,
+    required String destinoId,
     String? cableId,
-    String? puertoOrigen,
-    String? puertoDestino,
-    required ConexionType tipo,
     String? descripcion,
   }) async {
     try {
-      print('ConexionesProvider: Creando conexión ${tipo.name}...');
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
-      // Validar que los puertos no estén ocupados
-      final validacion = await validarPuertos(componenteOrigenId,
-          componenteDestinoId, puertoOrigen, puertoDestino, tipo);
-
-      if (!validacion.isValid) {
-        print(
-            'ConexionesProvider: Error de validación: ${validacion.errorMessage}');
+      final currentUserId = supabaseLU.auth.currentUser?.id;
+      if (currentUserId == null) {
+        _error = 'Usuario no autenticado';
         return false;
       }
 
       final conexionData = {
-        'componente_origen_id': componenteOrigenId,
-        'componente_destino_id': componenteDestinoId,
+        'componente_origen_id': origenId,
+        'componente_destino_id': destinoId,
         'cable_id': cableId,
-        'puerto_origen': puertoOrigen,
-        'puerto_destino': puertoDestino,
-        'tipo_conexion': tipo.name,
         'descripcion': descripcion,
-        'negocio_id': negocioSeleccionadoId,
         'activo': true,
-        'fecha_creacion': DateTime.now().toIso8601String(),
       };
 
-      final response = await supabaseLU
-          .from('conexion_componente')
-          .insert(conexionData)
-          .select();
+      await supabaseLU.from('conexion_componente').insert(conexionData);
 
-      if (response.isNotEmpty) {
-        // Actualizar listas locales
-        if (tipo == ConexionType.datos) {
-          await getConexionesDatos(negocioId: negocioSeleccionadoId);
-        } else {
-          await getConexionesEnergia(negocioId: negocioSeleccionadoId);
-        }
-
-        clearForm();
-        print('ConexionesProvider: Conexión creada exitosamente');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      print('ConexionesProvider: Error creando conexión: $e');
-      return false;
-    }
-  }
-
-  /// Validar que los puertos no estén ocupados
-  Future<ValidationResult> validarPuertos(
-    String componenteOrigenId,
-    String componenteDestinoId,
-    String? puertoOrigen,
-    String? puertoDestino,
-    ConexionType tipo,
-  ) async {
-    try {
-      // Validar puerto origen
-      if (puertoOrigen != null) {
-        final origenOcupado = await supabaseLU
-            .from('conexion_componente')
-            .select('id')
-            .eq('componente_origen_id', componenteOrigenId)
-            .eq('puerto_origen', puertoOrigen)
-            .eq('tipo_conexion', tipo.name)
-            .eq('activo', true)
-            .maybeSingle();
-
-        if (origenOcupado != null) {
-          return ValidationResult.invalid(
-              'Puerto origen $puertoOrigen ya está ocupado');
-        }
-      }
-
-      // Validar puerto destino
-      if (puertoDestino != null) {
-        final destinoOcupado = await supabaseLU
-            .from('conexion_componente')
-            .select('id')
-            .eq('componente_destino_id', componenteDestinoId)
-            .eq('puerto_destino', puertoDestino)
-            .eq('tipo_conexion', tipo.name)
-            .eq('activo', true)
-            .maybeSingle();
-
-        if (destinoOcupado != null) {
-          return ValidationResult.invalid(
-              'Puerto destino $puertoDestino ya está ocupado');
-        }
-      }
-
-      return ValidationResult.valid();
-    } catch (e) {
-      return ValidationResult.invalid('Error validando puertos: $e');
-    }
-  }
-
-  /// Eliminar conexión
-  Future<bool> deleteConexion(String conexionId, ConexionType tipo) async {
-    try {
-      print('ConexionesProvider: Eliminando conexión $conexionId...');
-
-      await supabaseLU
-          .from('conexion_componente')
-          .update({'activo': false}).eq('id', conexionId);
-
-      // Actualizar listas locales
-      if (tipo == ConexionType.datos) {
-        await getConexionesDatos(negocioId: negocioSeleccionadoId);
-      } else {
-        await getConexionesEnergia(negocioId: negocioSeleccionadoId);
-      }
-
-      print('ConexionesProvider: Conexión eliminada exitosamente');
+      await _loadConexionesDatos();
+      print('ConexionesProvider: Conexión de datos creada exitosamente');
       return true;
     } catch (e) {
-      print('ConexionesProvider: Error eliminando conexión: $e');
+      _error = 'Error creando conexión: $e';
+      print('ConexionesProvider: $_error');
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  /// Buscar componentes para origen/destino
-  Future<List<Componente>> buscarComponentes(String query, String tipo) async {
+  // Crear conexión de energía
+  Future<bool> crearConexionEnergia({
+    required String origenId,
+    required String destinoId,
+    String? cableId,
+    String? descripcion,
+  }) async {
     try {
-      final response = await supabaseLU
-          .from('componente')
-          .select('*, categoria_componente(*)')
-          .eq('negocio_id', negocioSeleccionadoId)
-          .or('nombre.ilike.%$query%,descripcion.ilike.%$query%')
-          .eq('activo', true)
-          .limit(20);
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
 
-      if (response.isNotEmpty) {
-        return response
-            .map<Componente>((json) => Componente.fromJson(json))
-            .toList();
+      final currentUserId = supabaseLU.auth.currentUser?.id;
+      if (currentUserId == null) {
+        _error = 'Usuario no autenticado';
+        return false;
       }
-      return [];
+
+      final uuid = const Uuid();
+      final conexionData = {
+        'id': uuid.v4(),
+        'origen_id': origenId,
+        'destino_id': destinoId,
+        'cable_id': cableId,
+        'descripcion': descripcion,
+        'activo': true,
+        'tecnico_id': currentUserId,
+      };
+
+      await supabaseLU.from('conexion_alimentacion').insert(conexionData);
+
+      await _loadConexionesEnergia();
+      print('ConexionesProvider: Conexión de energía creada exitosamente');
+      return true;
     } catch (e) {
-      print('ConexionesProvider: Error buscando componentes: $e');
-      return [];
+      _error = 'Error creando conexión de energía: $e';
+      print('ConexionesProvider: $_error');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  /// Obtener puertos disponibles de un componente
-  Future<List<String>> getPuertosDisponibles(
-      String componenteId, ConexionType tipo) async {
+  // Eliminar conexión
+  Future<bool> eliminarConexion(String conexionId, bool esDatos) async {
     try {
-      // TODO: Implementar lógica para obtener puertos según el tipo de componente
-      // Por ahora retornamos puertos genéricos
-      return List.generate(24, (index) => 'Puerto ${index + 1}');
+      _isLoading = true;
+      notifyListeners();
+
+      if (esDatos) {
+        await supabaseLU
+            .from('conexion_componente')
+            .update({'activo': false}).eq('id', conexionId);
+        await _loadConexionesDatos();
+      } else {
+        await supabaseLU
+            .from('conexion_alimentacion')
+            .update({'activo': false}).eq('id', conexionId);
+        await _loadConexionesEnergia();
+      }
+
+      return true;
     } catch (e) {
-      print('ConexionesProvider: Error obteniendo puertos: $e');
-      return [];
+      _error = 'Error eliminando conexión: $e';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  /// Limpiar formulario
-  void clearForm() {
-    componenteOrigen = null;
-    componenteDestino = null;
-    cableSeleccionado = null;
-    puertoOrigen = null;
-    puertoDestino = null;
-    busquedaOrigenController.clear();
-    busquedaDestinoController.clear();
-    busquedaCableController.clear();
-    _notifyListeners();
+  // Métodos de filtrado
+  void setFiltroTipo(String tipo) {
+    _filtroTipo = tipo;
+    notifyListeners();
   }
 
-  /// Setters
-  void setNegocioSeleccionado(String? negocioId) {
-    negocioSeleccionadoId = negocioId;
-    if (negocioId != null) {
-      getConexionesDatos(negocioId: negocioId);
-      getConexionesEnergia(negocioId: negocioId);
+  void setFiltroEstado(String estado) {
+    _filtroEstado = estado;
+    notifyListeners();
+  }
+
+  void setFiltroTecnico(String tecnico) {
+    _filtroTecnico = tecnico;
+    notifyListeners();
+  }
+
+  void setBusqueda(String busqueda) {
+    _busqueda = busqueda;
+    notifyListeners();
+  }
+
+  void limpiarFiltros() {
+    _filtroTipo = 'todos';
+    _filtroEstado = 'activas';
+    _filtroTecnico = 'todos';
+    _busqueda = '';
+    notifyListeners();
+  }
+
+  void refresh() {
+    if (_negocioId != null) {
+      loadData(_negocioId!);
     }
-    _notifyListeners();
-  }
-
-  void setTipoConexion(ConexionType tipo) {
-    tipoConexion = tipo;
-    _notifyListeners();
-  }
-
-  void setComponenteOrigen(Componente componente) {
-    componenteOrigen = componente;
-    puertoOrigen = null; // Reset puerto cuando cambia componente
-    _notifyListeners();
-  }
-
-  void setComponenteDestino(Componente componente) {
-    componenteDestino = componente;
-    puertoDestino = null; // Reset puerto cuando cambia componente
-    _notifyListeners();
-  }
-
-  void setCableSeleccionado(Componente cable) {
-    cableSeleccionado = cable;
-    _notifyListeners();
-  }
-
-  void setPuertoOrigen(String puerto) {
-    puertoOrigen = puerto;
-    _notifyListeners();
-  }
-
-  void setPuertoDestino(String puerto) {
-    puertoDestino = puerto;
-    _notifyListeners();
-  }
-}
-
-/// Tipos de conexión
-enum ConexionType { datos, energia }
-
-/// Resultado de validación
-class ValidationResult {
-  final bool isValid;
-  final String? errorMessage;
-
-  ValidationResult._(this.isValid, this.errorMessage);
-
-  factory ValidationResult.valid() {
-    return ValidationResult._(true, null);
-  }
-
-  factory ValidationResult.invalid(String message) {
-    return ValidationResult._(false, message);
   }
 }

@@ -5,6 +5,8 @@ class ConexionAlimentacion {
   final String? cableId;
   final String? descripcion;
   final bool activo;
+  final DateTime? fechaCreacion;
+  final String? tecnicoId;
 
   ConexionAlimentacion({
     required this.id,
@@ -13,6 +15,8 @@ class ConexionAlimentacion {
     this.cableId,
     this.descripcion,
     required this.activo,
+    this.fechaCreacion,
+    this.tecnicoId,
   });
 
   factory ConexionAlimentacion.fromMap(Map<String, dynamic> map) {
@@ -22,7 +26,11 @@ class ConexionAlimentacion {
       destinoId: map['destino_id'] ?? '',
       cableId: map['cable_id'],
       descripcion: map['descripcion'],
-      activo: map['activo'] ?? false,
+      activo: map['activo'] ?? true,
+      fechaCreacion: map['fecha_creacion'] != null
+          ? DateTime.parse(map['fecha_creacion'])
+          : null,
+      tecnicoId: map['tecnico_id'],
     );
   }
 
@@ -34,6 +42,8 @@ class ConexionAlimentacion {
       'cable_id': cableId,
       'descripcion': descripcion,
       'activo': activo,
+      'fecha_creacion': fechaCreacion?.toIso8601String(),
+      'tecnico_id': tecnicoId,
     };
   }
 }
