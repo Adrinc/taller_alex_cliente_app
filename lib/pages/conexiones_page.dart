@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/nethive/connections_provider.dart';
-import '../models/nethive/vista_conexiones_con_cables_model.dart';
+import '../models/nethive/vista_conexiones_por_negocio_model.dart';
+import '../widgets/conexiones/connection_form_dialog.dart';
+import '../widgets/conexiones/connection_details_dialog.dart';
+import '../widgets/conexiones/connection_card.dart';
 import '../theme/theme.dart';
 
 class ConexionesPage extends StatefulWidget {
@@ -356,170 +359,11 @@ class _ConexionesPageState extends State<ConexionesPage>
     );
   }
 
-  Widget _buildConnectionCard(VistaConexionesConCables conexion) {
-    final isCompleted = conexion.rfidCable != null;
-    final statusColor = !conexion.activo
-        ? Colors.grey
-        : isCompleted
-            ? Colors.green
-            : Colors.orange;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showConnectionDetails(conexion),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header con estado
-              Row(
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: statusColor.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          !conexion.activo
-                              ? Icons.cancel
-                              : isCompleted
-                                  ? Icons.check_circle
-                                  : Icons.pending,
-                          size: 14,
-                          color: statusColor,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          !conexion.activo
-                              ? 'Inactiva'
-                              : isCompleted
-                                  ? 'Completada'
-                                  : 'Pendiente',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: statusColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.more_vert),
-                    onPressed: () => _showConnectionMenu(conexion),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Conexión visual
-              Row(
-                children: [
-                  // Componente origen
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          conexion.componenteOrigen,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        if (conexion.rfidOrigen != null)
-                          Text(
-                            'RFID: ${conexion.rfidOrigen}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  // Flecha y cable
-                  Column(
-                    children: [
-                      Icon(
-                        Icons.arrow_forward,
-                        color: statusColor,
-                        size: 20,
-                      ),
-                      if (conexion.cableUsado != null)
-                        Container(
-                          margin: const EdgeInsets.only(top: 4),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            conexion.cableUsado!,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  // Componente destino
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          conexion.componenteDestino,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.end,
-                        ),
-                        if (conexion.rfidDestino != null)
-                          Text(
-                            'RFID: ${conexion.rfidDestino}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              // Descripción si existe
-              if (conexion.descripcion != null &&
-                  conexion.descripcion!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    conexion.descripcion!,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[700],
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+  Widget _buildConnectionCard(VistaConexionesPorNegocio conexion) {
+    return ConnectionCard(
+      conexion: conexion,
+      onTap: () => _showConnectionDetails(conexion),
+      onMenu: () => _showConnectionMenu(conexion),
     );
   }
 
@@ -559,77 +403,28 @@ class _ConexionesPageState extends State<ConexionesPage>
   void _showCreateConnectionDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nueva Conexión'),
-        content: const Text(
-          'Funcionalidad en desarrollo.\n\n'
-          'Próximamente podrás crear conexiones desde esta pantalla.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cerrar'),
-          ),
-        ],
+      builder: (context) => ConnectionFormDialog(
+        negocioId: widget.negocioId,
       ),
-    );
+    ).then((result) {
+      if (result == true) {
+        // La conexión fue creada exitosamente, recargar datos
+        context.read<ConnectionsProvider>().cargarConexiones(widget.negocioId);
+      }
+    });
   }
 
-  void _showConnectionDetails(VistaConexionesConCables conexion) {
+  void _showConnectionDetails(VistaConexionesPorNegocio conexion) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Detalles de Conexión'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('Origen', conexion.componenteOrigen),
-            _buildDetailRow('Destino', conexion.componenteDestino),
-            if (conexion.cableUsado != null)
-              _buildDetailRow('Cable', conexion.cableUsado!),
-            if (conexion.rfidOrigen != null)
-              _buildDetailRow('RFID Origen', conexion.rfidOrigen!),
-            if (conexion.rfidDestino != null)
-              _buildDetailRow('RFID Destino', conexion.rfidDestino!),
-            if (conexion.rfidCable != null)
-              _buildDetailRow('RFID Cable', conexion.rfidCable!),
-            if (conexion.descripcion != null)
-              _buildDetailRow('Descripción', conexion.descripcion!),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cerrar'),
-          ),
-        ],
+      builder: (context) => ConnectionDetailsDialog(
+        conexion: conexion,
+        negocioId: widget.negocioId,
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showConnectionMenu(VistaConexionesConCables conexion) {
+  void _showConnectionMenu(VistaConexionesPorNegocio conexion) {
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(

@@ -37,7 +37,8 @@ componente_origen_id (uuid) (FK) REFERENCES nethive.componente.id,
 componente_destino_id (uuid) (FK) REFERENCES nethive.componente.id,
 descripcion (text),
 activo (bool),
-cable_id (uuid) (FK) REFERENCES nethive.componente.id
+cable_id (uuid) (FK) REFERENCES nethive.componente.id,
+tecnico_id (uuid) (FK) REFERENCES public.user_profile.user_profile_id
 
 -- detalle_cable --
 
@@ -172,7 +173,8 @@ origen_id (uuid) (FK de nethive.componente.id),
 destino_id (uuid) (FK de nethive.componente.id),
 cable_id (uuid) (FK de nethive.componente.id, opcional),
 descripcion (text),
-activo (bool)
+activo (bool),
+tecnico_id (uuid) (FK) REFERENCES public.user_profile.user_profile_id
 
 -- rol_logico_componente --
 
@@ -306,6 +308,9 @@ color (text),
 tamaño (numeric),
 tipo_conector (text),
 conexion_id (uuid),
+tecnico_id (uuid),
+negocio_id (uuid),
+empresa_id (uuid)
 
 -- vista_conexiones_por_negocio --
 
@@ -314,6 +319,10 @@ componente_origen_id (uuid),
 componente_destino_id (uuid),
 descripcion (text),
 activo (bool),
+tecnico_id (uuid),
+negocio_id (uuid),
+empresa_id (uuid)
+
 
 -- vista_detalle_cables -- 
 
@@ -388,7 +397,10 @@ nombre_cable (text),
 categoria_cable (int4),
 
 descripcion (text),
-activo (bool)
+activo (bool),
+tecnico_id (uuid),
+negocio_id (uuid),
+empresa_id (uuid)
 
 
 -- vista_plano_componentes --
@@ -445,6 +457,9 @@ tipo_conector (text),
 rfid_origen_legacy (text),
 rfid_destino_legacy (text),
 rfid_cable_legacy (text),
+tecnico_id (uuid),
+negocio_id (uuid),
+empresa_id (uuid)
 
 -- vista_rfid_actual_por_componente --
 
@@ -497,24 +512,6 @@ nombre_negocio (text),
 fecha_inicio (timestamp),
 estado (text),
 
--- vista_conexiones_con_cables_y_rfid --
-
-conexion_id (uuid),
-descripcion (text),
-activo (bool),
-origen_id (uuid),
-componente_origen (text),
-rfid_origen (text),
-destino_id (uuid),
-componente_destino (text),
-rfid_destino (text),
-cable_id (uuid),
-cable_usado (text),
-rfid_cable (text),
-tipo_cable (text),
-color (text),
-tamaño (numeric),
-tipo_conector (text),
 
 -- vista_inventario_por_negocio_con_rfid --
 

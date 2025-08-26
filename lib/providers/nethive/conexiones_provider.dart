@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/models/nethive/componente_model.dart';
-import 'package:nethive_neo/models/nethive/conexion_componente_model.dart';
 import 'package:nethive_neo/models/nethive/conexion_alimentacion_model.dart';
-import 'package:nethive_neo/models/nethive/vista_conexiones_con_cables_y_rfid_model.dart';
+import 'package:nethive_neo/models/nethive/vista_conexiones_con_cables_model.dart';
 
 class ConexionesProvider extends ChangeNotifier {
   // Estado
@@ -13,7 +12,7 @@ class ConexionesProvider extends ChangeNotifier {
   String? _negocioId;
 
   // Listas de datos
-  List<VistaConexionesConCablesYRfid> _conexionesDatos = [];
+  List<VistaConexionesConCables> _conexionesDatos = [];
   List<ConexionAlimentacion> _conexionesEnergia = [];
   List<Componente> _componentesDisponibles = [];
   List<Componente> _cablesDisponibles = [];
@@ -33,7 +32,7 @@ class ConexionesProvider extends ChangeNotifier {
   String get filtroTecnico => _filtroTecnico;
   String get busqueda => _busqueda;
 
-  List<VistaConexionesConCablesYRfid> get conexionesDatos => _conexionesDatos;
+  List<VistaConexionesConCables> get conexionesDatos => _conexionesDatos;
   List<ConexionAlimentacion> get conexionesEnergia => _conexionesEnergia;
   List<Componente> get componentesDisponibles => _componentesDisponibles;
   List<Componente> get cablesDisponibles => _cablesDisponibles;
@@ -51,7 +50,7 @@ class ConexionesProvider extends ChangeNotifier {
 
     if (_busqueda.isNotEmpty) {
       todas = todas.where((conexion) {
-        if (conexion is VistaConexionesConCablesYRfid) {
+        if (conexion is VistaConexionesConCables) {
           return conexion.componenteOrigen
                   .toLowerCase()
                   .contains(_busqueda.toLowerCase()) ||
@@ -74,7 +73,7 @@ class ConexionesProvider extends ChangeNotifier {
 
     if (_filtroEstado == 'activas') {
       todas = todas.where((conexion) {
-        if (conexion is VistaConexionesConCablesYRfid) {
+        if (conexion is VistaConexionesConCables) {
           return conexion.activo;
         } else if (conexion is ConexionAlimentacion) {
           return conexion.activo;
@@ -83,7 +82,7 @@ class ConexionesProvider extends ChangeNotifier {
       }).toList();
     } else if (_filtroEstado == 'inactivas') {
       todas = todas.where((conexion) {
-        if (conexion is VistaConexionesConCablesYRfid) {
+        if (conexion is VistaConexionesConCables) {
           return !conexion.activo;
         } else if (conexion is ConexionAlimentacion) {
           return !conexion.activo;
@@ -124,13 +123,13 @@ class ConexionesProvider extends ChangeNotifier {
       print('ConexionesProvider: Cargando conexiones de datos...');
 
       final response = await supabaseLU
-          .from('vista_conexiones_con_cables_y_rfid')
+          .from('vista_conexiones_con_cables')
           .select('*')
           .order('conexion_id');
 
       _conexionesDatos = response
-          .map<VistaConexionesConCablesYRfid>(
-              (json) => VistaConexionesConCablesYRfid.fromMap(json))
+          .map<VistaConexionesConCables>(
+              (json) => VistaConexionesConCables.fromMap(json))
           .toList();
 
       print(

@@ -1,19 +1,21 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../helpers/globals.dart';
 import '../../models/nethive/conexion_alimentacion_model.dart';
 import '../../models/nethive/conexion_componente_model.dart';
-import '../../models/nethive/vista_conexiones_con_cables_model.dart';
+import '../../models/nethive/vista_conexiones_por_negocio_model.dart';
+import '../../models/nethive/vista_alimentacion_componentes_model.dart';
+import '../../models/nethive/vista_cables_en_uso_model.dart';
 
 enum TipoConexion { alimentacion, componente }
 
 enum FiltroConexiones { todas, completadas, pendientes, inactivas }
 
 class ConnectionsProvider extends ChangeNotifier {
-  final SupabaseClient _supabase = Supabase.instance.client;
-
-  List<VistaConexionesConCables> _conexiones = [];
+  List<VistaConexionesPorNegocio> _conexiones = [];
   List<ConexionAlimentacion> _conexionesAlimentacion = [];
   List<ConexionComponente> _conexionesComponente = [];
+  List<VistaAlimentacionComponentes> _alimentacionComponentes = [];
+  List<VistaCablesEnUso> _cablesEnUso = [];
 
   bool _isLoading = false;
   String? _error;
@@ -22,10 +24,13 @@ class ConnectionsProvider extends ChangeNotifier {
   String _searchQuery = '';
 
   // Getters
-  List<VistaConexionesConCables> get conexiones => _aplicarFiltros();
+  List<VistaConexionesPorNegocio> get conexiones => _aplicarFiltros();
   List<ConexionAlimentacion> get conexionesAlimentacion =>
       _conexionesAlimentacion;
   List<ConexionComponente> get conexionesComponente => _conexionesComponente;
+  List<VistaAlimentacionComponentes> get alimentacionComponentes =>
+      _alimentacionComponentes;
+  List<VistaCablesEnUso> get cablesEnUso => _cablesEnUso;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get currentNegocioId => _currentNegocioId;
@@ -35,9 +40,9 @@ class ConnectionsProvider extends ChangeNotifier {
   // Estadísticas de conexiones
   int get totalConexiones => _conexiones.length;
   int get conexionesCompletadas =>
-      _conexiones.where((c) => c.rfidCable != null && c.activo).length;
+      _conexiones.where((c) => c.tieneRfid && c.activo).length;
   int get conexionesPendientes =>
-      _conexiones.where((c) => c.rfidCable == null && c.activo).length;
+      _conexiones.where((c) => !c.tieneRfid && c.activo).length;
   int get conexionesInactivas => _conexiones.where((c) => !c.activo).length;
 
   // Cargar todas las conexiones para un negocio específico
@@ -48,23 +53,24 @@ class ConnectionsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Cargar vista completa de conexiones - sin filtrar por negocio_id aquí
-      // porque la vista puede no tener ese campo directamente
-      final response = await _supabase
-          .from('vista_conexiones_con_cables')
-          .select()
-          .order('conexion_id', ascending: false);
+      // Cargar conexiones usando la nueva vista que filtra por negocio
+      final response = await supabaseLU
+          .from('vista_conexiones_por_negocio')
+          .select('*')
+          .eq('negocio_id', negocioId)
+          .order('fecha_creacion', ascending: false);
 
-      // Filtrar las conexiones por negocio después de cargarlas
-      // Esto se puede hacer mediante una consulta más específica si la vista lo permite
       _conexiones = (response as List)
-          .map((item) => VistaConexionesConCables.fromMap(item))
+          .map((item) => VistaConexionesPorNegocio.fromMap(item))
           .toList();
 
-      // Cargar conexiones de alimentación
-      await _cargarConexionesAlimentacion(negocioId);
+      debugPrint(
+          'ConnectionsProvider: ${_conexiones.length} conexiones cargadas para negocio $negocioId');
 
-      // Cargar conexiones de componente
+      // Cargar vistas adicionales específicas del negocio
+      await _cargarAlimentacionComponentes(negocioId);
+      await _cargarCablesEnUso(negocioId);
+      await _cargarConexionesAlimentacion(negocioId);
       await _cargarConexionesComponente(negocioId);
     } catch (e) {
       _error = 'Error al cargar conexiones: $e';
@@ -75,10 +81,42 @@ class ConnectionsProvider extends ChangeNotifier {
     }
   }
 
+  // Cargar información de alimentación de componentes
+  Future<void> _cargarAlimentacionComponentes(String negocioId) async {
+    try {
+      final response = await supabaseLU
+          .from('vista_alimentacion_componentes')
+          .select('*')
+          .eq('negocio_id', negocioId);
+
+      _alimentacionComponentes = (response as List)
+          .map((item) => VistaAlimentacionComponentes.fromMap(item))
+          .toList();
+    } catch (e) {
+      debugPrint('Error al cargar alimentación de componentes: $e');
+    }
+  }
+
+  // Cargar información de cables en uso
+  Future<void> _cargarCablesEnUso(String negocioId) async {
+    try {
+      final response = await supabaseLU
+          .from('vista_cables_en_uso')
+          .select('*')
+          .eq('negocio_id', negocioId);
+
+      _cablesEnUso = (response as List)
+          .map((item) => VistaCablesEnUso.fromMap(item))
+          .toList();
+    } catch (e) {
+      debugPrint('Error al cargar cables en uso: $e');
+    }
+  }
+
   // Cargar conexiones de alimentación específicas
   Future<void> _cargarConexionesAlimentacion(String negocioId) async {
     try {
-      final response = await _supabase.from('conexion_alimentacion').select('''
+      final response = await supabaseLU.from('conexion_alimentacion').select('''
             *,
             origen:componentes!conexion_alimentacion_origen_id_fkey(negocio_id),
             destino:componentes!conexion_alimentacion_destino_id_fkey(negocio_id)
@@ -95,7 +133,7 @@ class ConnectionsProvider extends ChangeNotifier {
   // Cargar conexiones de componente específicas
   Future<void> _cargarConexionesComponente(String negocioId) async {
     try {
-      final response = await _supabase.from('conexion_componente').select('''
+      final response = await supabaseLU.from('conexion_componente').select('''
             *,
             origen:componentes!conexion_componente_componente_origen_id_fkey(negocio_id),
             destino:componentes!conexion_componente_componente_destino_id_fkey(negocio_id)
@@ -129,7 +167,7 @@ class ConnectionsProvider extends ChangeNotifier {
         tecnicoId: tecnicoId,
       );
 
-      await _supabase
+      await supabaseLU
           .from('conexion_alimentacion')
           .insert(nuevaConexion.toMap());
 
@@ -150,18 +188,25 @@ class ConnectionsProvider extends ChangeNotifier {
   Future<bool> crearConexionComponente({
     required String origenId,
     required String destinoId,
+    String? cableId,
     String? descripcion,
+    String? tecnicoId,
   }) async {
     try {
       final nuevaConexion = ConexionComponente(
         id: '', // Se generará automáticamente
         componenteOrigenId: origenId,
         componenteDestinoId: destinoId,
+        cableId: cableId,
         descripcion: descripcion,
         activo: true,
+        fechaCreacion: DateTime.now(),
+        tecnicoId: tecnicoId,
       );
 
-      await _supabase.from('conexion_componente').insert(nuevaConexion.toMap());
+      await supabaseLU
+          .from('conexion_componente')
+          .insert(nuevaConexion.toMap());
 
       // Recargar conexiones
       if (_currentNegocioId != null) {
@@ -188,7 +233,7 @@ class ConnectionsProvider extends ChangeNotifier {
           ? 'conexion_alimentacion'
           : 'conexion_componente';
 
-      await _supabase.from(tabla).update({
+      await supabaseLU.from(tabla).update({
         'cable_id': cableId,
         if (descripcion != null) 'descripcion': descripcion,
       }).eq('id', conexionId);
@@ -216,7 +261,7 @@ class ConnectionsProvider extends ChangeNotifier {
           ? 'conexion_alimentacion'
           : 'conexion_componente';
 
-      await _supabase
+      await supabaseLU
           .from(tabla)
           .update({'activo': false}).eq('id', conexionId);
 
@@ -234,21 +279,19 @@ class ConnectionsProvider extends ChangeNotifier {
   }
 
   // Aplicar filtros a las conexiones
-  List<VistaConexionesConCables> _aplicarFiltros() {
-    List<VistaConexionesConCables> conexionesFiltradas =
+  List<VistaConexionesPorNegocio> _aplicarFiltros() {
+    List<VistaConexionesPorNegocio> conexionesFiltradas =
         List.from(_conexiones);
 
     // Aplicar filtro por estado
     switch (_filtroActual) {
       case FiltroConexiones.completadas:
-        conexionesFiltradas = conexionesFiltradas
-            .where((c) => c.rfidCable != null && c.activo)
-            .toList();
+        conexionesFiltradas =
+            conexionesFiltradas.where((c) => c.tieneRfid && c.activo).toList();
         break;
       case FiltroConexiones.pendientes:
-        conexionesFiltradas = conexionesFiltradas
-            .where((c) => c.rfidCable == null && c.activo)
-            .toList();
+        conexionesFiltradas =
+            conexionesFiltradas.where((c) => !c.tieneRfid && c.activo).toList();
         break;
       case FiltroConexiones.inactivas:
         conexionesFiltradas =
@@ -263,11 +306,10 @@ class ConnectionsProvider extends ChangeNotifier {
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       conexionesFiltradas = conexionesFiltradas.where((conexion) {
-        return conexion.componenteOrigen.toLowerCase().contains(query) ||
-            conexion.componenteDestino.toLowerCase().contains(query) ||
-            (conexion.descripcion?.toLowerCase().contains(query) ?? false) ||
-            (conexion.rfidOrigen?.toLowerCase().contains(query) ?? false) ||
-            (conexion.rfidDestino?.toLowerCase().contains(query) ?? false) ||
+        return conexion.origenNombre.toLowerCase().contains(query) ||
+            conexion.destinoNombre.toLowerCase().contains(query) ||
+            (conexion.notas?.toLowerCase().contains(query) ?? false) ||
+            (conexion.cableNombre?.toLowerCase().contains(query) ?? false) ||
             (conexion.rfidCable?.toLowerCase().contains(query) ?? false);
       }).toList();
     }
@@ -294,7 +336,7 @@ class ConnectionsProvider extends ChangeNotifier {
   }
 
   // Buscar conexiones por componente específico
-  List<VistaConexionesConCables> obtenerConexionesPorComponente(
+  List<VistaConexionesPorNegocio> obtenerConexionesPorComponente(
       String componenteId) {
     return _conexiones
         .where((conexion) =>
