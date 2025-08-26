@@ -10,7 +10,9 @@ import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/widgets/inventario_page/componente_detail_popup.dart';
 
 class InventarioPage extends StatefulWidget {
-  const InventarioPage({super.key});
+  final String? negocioId;
+
+  const InventarioPage({super.key, this.negocioId});
 
   @override
   State<InventarioPage> createState() => _InventarioPageState();
@@ -41,42 +43,29 @@ class _InventarioPageState extends State<InventarioPage> {
     });
 
     try {
-      // Obtener el ID del usuario actual
+      // Usar el negocioId del constructor directamente
+      _negocioId = widget.negocioId;
 
-      // Intentar obtener el negocio ID desde la URL o del storage local
-      final uri = Uri.base;
-      String? negocioIdFromUrl = uri.queryParameters['negocioId'];
-
-      if (negocioIdFromUrl != null) {
-        _negocioId = negocioIdFromUrl;
-      } else {
-        // Si no viene en la URL, intentar obtenerlo del provider de empresas
-        final empresasProvider = context.read<EmpresasNegociosProvider>();
-
-        // Si no hay negocios cargados, cargarlos primero
-        if (empresasProvider.negocios.isEmpty) {
-          await empresasProvider.getNegocios();
-        }
-
-        if (empresasProvider.negocios.isNotEmpty) {
-          _negocioId = empresasProvider.negocios.first.id;
-        } else {
-          throw Exception('No se encontraron negocios disponibles');
-        }
+      if (_negocioId == null) {
+        // Si no se proporciona negocioId, intentar obtenerlo desde URL como fallback
+        final uri = Uri.base;
+        _negocioId = uri.queryParameters['negocioId'];
       }
 
-      if (_negocioId != null) {
-        final componentesProvider = context.read<ComponentesProvider>();
-
-        // Cargar componentes filtrados por técnico y negocio
-        await componentesProvider.getComponentesByTecnicoAndNegocio(
-            currentUser!.id, _negocioId!);
-
-        print(
-            'Inventario cargado: ${componentesProvider.componentes.length} componentes encontrados');
-      } else {
-        throw Exception('No se pudo determinar el negocio');
+      if (_negocioId == null) {
+        throw Exception('No se proporcionó un ID de negocio válido');
       }
+
+      final componentesProvider = context.read<ComponentesProvider>();
+
+      print('InventarioPage: Cargando componentes para negocio: $_negocioId');
+
+      // Cargar componentes filtrados por técnico y negocio específico
+      await componentesProvider.getComponentesByTecnicoAndNegocio(
+          currentUser!.id, _negocioId!);
+
+      print(
+          'Inventario cargado: ${componentesProvider.componentes.length} componentes encontrados para negocio $_negocioId');
     } catch (e) {
       print('Error cargando componentes: $e');
       if (mounted) {
@@ -201,6 +190,25 @@ class _InventarioPageState extends State<InventarioPage> {
         children: [
           Row(
             children: [
+              // Botón de regreso al home del técnico
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back, color: theme.primaryColor),
+                  onPressed: () {
+                    if (_negocioId != null) {
+                      context.go('/home?negocioId=$_negocioId');
+                    } else {
+                      context.go('/home');
+                    }
+                  },
+                  tooltip: 'Volver al home',
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -366,7 +366,12 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                   icon: Icons.qr_code_scanner,
                   title: 'Escanear RFID',
                   subtitle: 'Escanear etiquetas',
-                  onTap: () => context.push('/scanner'),
+                  onTap: () {
+                    final negocioParam = _negocioActual?.id != null
+                        ? '?negocioId=${_negocioActual!.id}'
+                        : '';
+                    context.push('/scanner$negocioParam');
+                  },
                   gradient: [
                     const Color(0xFF6366F1), // Indigo vibrante
                     const Color(0xFF8B5CF6), // Violet
@@ -378,7 +383,12 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                   icon: Icons.inventory_2,
                   title: 'Inventario',
                   subtitle: 'Gestionar componentes',
-                  onTap: () => context.push('/inventario'),
+                  onTap: () {
+                    final negocioParam = _negocioActual?.id != null
+                        ? '?negocioId=${_negocioActual!.id}'
+                        : '';
+                    context.push('/inventario$negocioParam');
+                  },
                   gradient: [
                     const Color(0xFF10B981), // Emerald
                     const Color(0xFF059669), // Emerald dark

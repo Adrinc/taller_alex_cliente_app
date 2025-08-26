@@ -11,7 +11,9 @@ import 'package:nethive_neo/widgets/scanner/batch_mode_panel.dart';
 import 'package:nethive_neo/theme/theme.dart';
 
 class ScannerPage extends StatefulWidget {
-  const ScannerPage({super.key});
+  final String? negocioId;
+
+  const ScannerPage({super.key, this.negocioId});
 
   @override
   State<ScannerPage> createState() => _ScannerPageState();
@@ -422,7 +424,12 @@ class _ScannerPageState extends State<ScannerPage>
 
           // Botón de inventario
           OutlinedButton.icon(
-            onPressed: () => context.go('/inventario'),
+            onPressed: () {
+              final negocioParam = widget.negocioId != null
+                  ? '?negocioId=${widget.negocioId}'
+                  : '';
+              context.go('/inventario$negocioParam');
+            },
             icon: const Icon(Icons.inventory, color: Colors.white),
             label:
                 const Text('Inventario', style: TextStyle(color: Colors.white)),
@@ -453,6 +460,12 @@ class _ScannerPageState extends State<ScannerPage>
 
   void _handleRfidScanned(String rfidCode) async {
     final scanner = context.read<RfidScannerProvider>();
+
+    // Detener el escáner automáticamente después de un escaneo exitoso
+    if (scanner.isScanning) {
+      scanner.stopScanning();
+    }
+
     final result = await scanner.processScannedRfid(rfidCode);
 
     // Mostrar resultado en bottom sheet

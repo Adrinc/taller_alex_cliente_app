@@ -78,14 +78,20 @@ class AppRouter {
       GoRoute(
         path: '/scanner',
         name: 'scanner',
-        builder: (context, state) => const new_scanner.ScannerPage(),
+        builder: (context, state) {
+          final negocioId = state.uri.queryParameters['negocioId'];
+          return new_scanner.ScannerPage(negocioId: negocioId);
+        },
       ),
 
       // Inventario
       GoRoute(
         path: '/inventario',
         name: 'inventario',
-        builder: (context, state) => const InventarioPage(),
+        builder: (context, state) {
+          final negocioId = state.uri.queryParameters['negocioId'];
+          return InventarioPage(negocioId: negocioId);
+        },
       ),
 
       // Conexiones
