@@ -373,8 +373,8 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                     context.push('/scanner$negocioParam');
                   },
                   gradient: [
-                    const Color(0xFF6366F1), // Indigo vibrante
-                    const Color(0xFF8B5CF6), // Violet
+                    const Color.fromARGB(255, 157, 4, 204), // Indigo vibrante
+                    const Color.fromARGB(255, 77, 26, 143), // Violet
                   ],
                   delay: 1000,
                 ),
@@ -424,7 +424,7 @@ class _HomeTecnicoPageState extends State<HomeTecnicoPage>
                     context.push('/distribuciones$negocioParam');
                   },
                   gradient: [
-                    const Color(0xFF7C3AED), // Purple
+                    const Color.fromARGB(255, 77, 30, 158), // Purple
                     const Color(0xFF3B82F6), // Blue
                   ],
                   delay: 1250,
