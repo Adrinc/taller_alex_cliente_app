@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:nethive_neo/pages/welcome_page.dart';
 import 'package:nethive_neo/pages/login_page/login_page.dart';
-import 'package:nethive_neo/pages/empresa_selector_page.dart';
-import 'package:nethive_neo/pages/negocio_selector_page.dart';
-import 'package:nethive_neo/pages/home_tecnico_page.dart';
-import 'package:nethive_neo/pages/scanner_page_new.dart' as new_scanner;
-import 'package:nethive_neo/pages/inventario_page.dart';
-import 'package:nethive_neo/pages/distribuciones_page.dart';
-import 'package:nethive_neo/pages/crear_componente_page.dart';
-import 'package:nethive_neo/pages/componente_selector_page.dart';
-import 'package:nethive_neo/pages/conexiones_page.dart';
+import 'package:nethive_neo/pages/register_page.dart';
+import 'package:nethive_neo/pages/taller_alex/dashboard_page.dart';
+import 'package:nethive_neo/pages/agendar_cita_page.dart';
+import 'package:nethive_neo/pages/mis_vehiculos_page.dart';
+import 'package:nethive_neo/pages/mis_ordenes_page.dart';
+import 'package:nethive_neo/pages/historial_page.dart';
+import 'package:nethive_neo/pages/promociones_page.dart';
+import 'package:nethive_neo/pages/notificaciones_page.dart';
+import 'package:nethive_neo/pages/perfil_page.dart';
+
 import 'package:nethive_neo/helpers/globals.dart';
 
 class AppRouter {
@@ -48,108 +48,67 @@ class AppRouter {
         builder: (context, state) => const LoginPage(),
       ),
 
-      // Selección de empresa (primera pantalla después del login)
+      // Dashboard principal del cliente
       GoRoute(
-        path: '/empresa-selector',
-        name: 'empresa-selector',
-        builder: (context, state) => const EmpresaSelectorPage(),
+        path: '/dashboard',
+        name: 'dashboard',
+        builder: (context, state) => const DashboardPage(),
       ),
 
-      // Selección de negocio/sucursal
+      // Registro de cliente
       GoRoute(
-        path: '/negocio-selector',
-        name: 'negocio-selector',
-        builder: (context, state) {
-          final empresaId = state.uri.queryParameters['empresaId']!;
-          return NegocioSelectorPage(empresaId: empresaId);
-        },
+        path: '/register',
+        name: 'register',
+        builder: (context, state) => const RegisterPage(),
       ),
 
-      // Home principal del técnico
+      // Mis Vehículos
       GoRoute(
-        path: '/home',
-        name: 'home',
-        builder: (context, state) {
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return HomeTecnicoPage(negocioId: negocioId);
-        },
+        path: '/vehiculos',
+        name: 'vehiculos',
+        builder: (context, state) => const MisVehiculosPage(),
       ),
 
-      // Scanner RFID
+      // Agendar Cita
       GoRoute(
-        path: '/scanner',
-        name: 'scanner',
-        builder: (context, state) {
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return new_scanner.ScannerPage(negocioId: negocioId);
-        },
+        path: '/agendar-cita',
+        name: 'agendar-cita',
+        builder: (context, state) => const AgendarCitaPage(),
       ),
 
-      // Inventario
+      // Mis Órdenes
       GoRoute(
-        path: '/inventario',
-        name: 'inventario',
-        builder: (context, state) {
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return InventarioPage(negocioId: negocioId);
-        },
+        path: '/ordenes',
+        name: 'ordenes',
+        builder: (context, state) => const MisOrdenesPage(),
       ),
 
-      // Conexiones
+      // Historial
       GoRoute(
-        path: '/conexiones',
-        name: 'conexiones',
-        builder: (context, state) {
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return ConexionesPage(negocioId: negocioId ?? '');
-        },
+        path: '/historial',
+        name: 'historial',
+        builder: (context, state) => const HistorialPage(),
       ),
 
-      // Distribuciones
+      // Promociones
       GoRoute(
-        path: '/distribuciones',
-        name: 'distribuciones',
-        builder: (context, state) {
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return DistribucionesPage(negocioId: negocioId);
-        },
+        path: '/promociones',
+        name: 'promociones',
+        builder: (context, state) => const PromocionesPage(),
       ),
 
-      // Componente Form (para agregar/editar componentes)
+      // Notificaciones
       GoRoute(
-        path: '/componente/crear',
-        name: 'componente-crear',
-        builder: (context, state) {
-          final rfidCode = state.uri.queryParameters['rfid'];
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return CrearComponentePage(
-            rfidCode: rfidCode,
-            negocioId: negocioId,
-          );
-        },
+        path: '/notificaciones',
+        name: 'notificaciones',
+        builder: (context, state) => const NotificacionesPage(),
       ),
 
+      // Perfil
       GoRoute(
-        path: '/componente/selector',
-        name: 'componente-selector',
-        builder: (context, state) {
-          final rfidCode = state.uri.queryParameters['rfid'];
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return ComponenteSelectorPage(
-            rfidCode: rfidCode,
-            negocioId: negocioId,
-          );
-        },
-      ),
-
-      GoRoute(
-        path: '/componente-form',
-        name: 'componente-form',
-        builder: (context, state) => const Scaffold(
-          body: Center(
-            child: Text('Formulario de Componente\n(En desarrollo)'),
-          ),
-        ),
+        path: '/perfil',
+        name: 'perfil',
+        builder: (context, state) => const PerfilPage(),
       ),
     ],
   );

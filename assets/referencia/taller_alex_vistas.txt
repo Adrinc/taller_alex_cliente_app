@@ -1,0 +1,556 @@
+Vistas del taller de Alex
+-- vw_asignaciones_tecnico --
+
+asignacion_id (uuid)
+empleado_id (uuid)
+usuario_empleado_id (uuid)
+rol_asignacion (rol_asignacion)
+cita_id (uuid)
+inicio (timestamptz)
+fin (timestamptz)
+estado (estado_cita)
+cliente_id (uuid)
+cliente_nombre (text)
+vehiculo_id (uuid)
+placa (text)
+marca (text)
+modelo (text)
+anio (integer)
+sucursal_id (uuid)
+sucursal_nombre (text)
+
+-- vw_citas_resumen --
+
+cita_id (uuid)
+inicio (timestamptz)
+fin (timestamptz)
+estado (estado_cita)
+fuente (fuente_cita)
+cliente_id (uuid)
+cliente_nombre (text)
+vehiculo_id (uuid)
+placa (text)
+marca (text)
+modelo (text)
+anio (integer)
+sucursal_id (uuid)
+sucursal_nombre (text)
+servicios (ARRAY)
+imagen_id (uuid)
+imagen_path (text)
+
+-- vw_estado_vehiculo --
+
+vehiculo_id (uuid)
+placa (text)
+marca (text)
+modelo (text)
+anio (integer)
+orden_id (uuid)
+estado_orden (estado_orden_servicio)
+fecha_inicio (timestamptz)
+fecha_fin_estimada (timestamptz)
+fecha_fin_real (timestamptz)
+
+-- vw_historial_sucursal --
+
+sucursal_id (uuid)
+sucursal (text)
+orden_id (uuid)
+estado (estado_orden_servicio)
+fecha_inicio (timestamptz)
+fecha_fin_real (timestamptz)
+cliente_id (uuid)
+placa (text)
+marca (text)
+modelo (text)
+
+-- vw_historial_vehiculo --
+
+vehiculo_id (uuid)
+placa (text)
+marca (text)
+modelo (text)
+anio (integer)
+orden_id (uuid)
+numero_orden (text)
+fecha_inicio (timestamptz)
+fecha_fin_real (timestamptz)
+estado (estado_orden_servicio)
+total_servicios (numeric)
+total_refacciones (numeric)
+total_general (numeric)
+
+-- vw_inventario_alerta --
+
+refaccion_id (uuid)
+sucursal_id (uuid)
+sku (text)
+nombre (text)
+existencias (integer)
+minimo_alerta (integer)
+imagen_id (uuid)
+imagen_path (text)
+
+-- vw_totales_orden --
+
+orden_id (uuid)
+total_servicios (numeric)
+total_refacciones (numeric)
+total_general (numeric)
+sucursal_id (uuid)
+
+
+-- vw_dashboard_global  --
+
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+total_citas (int) → número total de citas registradas en la sucursal
+citas_hoy (int) → número de citas con inicio en la fecha actual
+total_ordenes (int) → número total de órdenes de servicio creadas en la sucursal
+ordenes_abiertas (int) → número de órdenes en estados activos (no cerradas, no entregadas, no canceladas)
+ordenes_cerradas (int) → número de órdenes en estados cerrada o entregada
+ingresos_totales (numeric) → suma de los montos de pagos con estado “pagado” en esa sucursal
+refacciones_alerta (int) → cantidad de refacciones cuyo stock está igual o por debajo del mínimo
+empleados_activos (int) → número de empleados activos relacionados con esa sucursal
+
+-- vw_mapa_sucursales --
+
+sucursal_id (uuid) → clave interna para drill-down en CRM
+sucursal_nombre (text)
+imagen_url (text) o archivo_id si usas la tabla archivos
+direccion (text)
+lat (numeric)
+lng (numeric)
+empleados_activos (int) → cuántos empleados están ligados a la sucursal
+reportes_totales (int) → puede ser el conteo de órdenes de servicio, inspecciones o bitácora (según definas “reporte”)
+citas_hoy (int) → opcional, para mostrar carga de trabajo inmediata en el mapa
+telefono (text)
+email_contacto (text)
+capacidad_bahias (int)
+
+-- vw_dashboard_sucursal --
+
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+citas_hoy (int) → número de citas con inicio en la fecha actual
+citas_pendientes_hoy (int) → citas de hoy en estado pendiente
+citas_no_asistio_hoy (int) → citas de hoy con estado no_asistio
+ordenes_abiertas (int) → órdenes activas (no cerradas, no entregadas, no canceladas)
+ordenes_cerradas_hoy (int) → órdenes cerradas o entregadas en la fecha actual
+ingresos_hoy (numeric) → suma de pagos con estado pagado en la fecha actual
+ingresos_mes (numeric) → suma de pagos con estado pagado en el mes actual
+bahias_totales (int) → cantidad de bahías registradas en la sucursal
+bahias_ocupadas_hoy (int) → cantidad de bahías reservadas/ocupadas en la fecha actual
+refacciones_alerta (int) → cantidad de refacciones con stock por debajo o igual al mínimo
+
+-- vw_reservas_bahias --
+
+reserva_id (uuid) (PK de agenda_bahias)
+bahia_id (uuid) (FK → bahias_trabajo.id)
+bahia_nombre (text)
+cita_id (uuid) (FK → citas.id)
+inicio (timestamptz)
+fin (timestamptz)
+cliente_nombre (text)
+vehiculo (text) → concatenación de marca + modelo + año
+estado_cita (estado_cita enum)
+
+-- vw_ocupacion_bahias_hoy --
+
+bahia_id (uuid) (FK → bahias_trabajo.id)
+bahia_nombre (text)
+sucursal_id (uuid) (FK → sucursales.id)
+reservas_hoy (int) → número de reservas hechas para hoy
+minutos_ocupados (int) → minutos totales ocupados en el día
+minutos_disponibles (int) → minutos libres en el día
+porcentaje_ocupacion (numeric) → % de utilización (ocupados / totales)
+
+
+
+-- vw_empleados_sucursal --
+
+empleado_id (uuid) (FK → empleados.id)
+empleado_nombre (text) → concat(nombre + apellido desde usuarios)
+puesto (puesto_empleado enum)
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+activo (bool)
+en_turno_now (bool) → true si está en un turno activo ahora
+turno_inicio (timestamptz, nullable)
+turno_fin (timestamptz, nullable)
+imagen_id (uuid)
+imagen_path (text)
+
+-- vw_desempeno_empleado_sucursal --
+
+empleado_id (uuid) (FK → empleados.id)
+sucursal_id (uuid) (FK → sucursales.id)
+minutos_hoy (int) → suma de minutos registrados en tiempos_tecnico en la fecha actual
+ordenes_abiertas (int) → órdenes de servicio no cerradas asociadas al empleado
+
+-- vw_empleados_grid --
+
+empleado_id (uuid)
+empleado_nombre (text)
+puesto (enum)
+activo (bool)
+correo (text)
+telefono (text)
+direccion (text)
+sucursal_id (uuid)
+sucursal_nombre (text)
+en_turno_now (bool)
+turno_inicio (timestamptz)
+turno_fin (timestamptz)
+minutos_hoy (int)
+ordenes_abiertas (int)
+imagen_id (uuid)
+imagen_path (text)
+
+-- vw_clientes_sucursal -- 
+
+cliente_id (uuid) (FK → clientes.id)
+cliente_nombre (text)
+correo (text)
+telefono (text)
+direccion (text)
+rfc (text)
+notas (text)
+total_vehiculos (int) → cantidad de vehículos registrados del cliente
+citas_proximas (int) → número de citas con inicio en o después de hoy
+ultima_visita (timestamptz) → fecha de la última orden finalizada
+total_gastado (numeric) → suma de pagos con estado pagado
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+imagen_id (uuid)
+imagen_path (text)
+
+
+-- vw_historial_cliente -- ((técnico: servicios, refacciones, totales))
+
+cliente_id (uuid) (FK → clientes.id)
+cliente_nombre (text)
+vehiculo_id (uuid) (FK → vehiculos.id)
+placa (text)
+marca (text)
+modelo (text)
+anio (int)
+orden_id (uuid) (FK → ordenes_servicio.id)
+estado (estado_orden_servicio enum)
+fecha_inicio (timestamptz)
+fecha_fin_real (timestamptz)
+total_servicios (numeric) → suma de items de servicios en la orden
+total_refacciones (numeric) → suma de items de refacciones en la orden
+total_general (numeric) → total_servicios + total_refacciones
+imagen_id (uuid)
+imagen_path (text)
+activo (bool)
+numero_orden (text)
+servicios_incluidos (text)
+
+-- vw_historial_cliente_detalle --
+cliente_id (uuid) (FK → clientes.id)
+cliente_nombre (text)
+vehiculo_id (uuid) (FK → vehiculos.id)
+placa (text)
+marca (text)
+modelo (text)
+anio (int)
+orden_id (uuid) (FK → ordenes_servicio.id)
+numero_orden (text)
+estado_orden (estado_orden_servicio enum)
+fecha_inicio (timestamptz)
+fecha_fin_real (timestamptz)
+total_servicios (numeric) → suma de items de servicios en la orden
+total_refacciones (numeric) → suma de items de refacciones en la orden
+total_general (numeric) → total_servicios + total_refacciones
+servicios_incluidos (text) → lista de servicios concatenados por orden
+imagen_id (uuid) (FK → archivos.id)
+imagen_path (text)
+
+
+-- vw_citas_activas_sucursal --
+
+cita_id (uuid) (FK → citas.id)
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+inicio (timestamptz)
+fin (timestamptz)
+estado (estado_cita enum)
+fuente (fuente_cita enum)
+cliente_id (uuid) (FK → clientes.id)
+cliente_nombre (text)
+vehiculo_id (uuid) (FK → vehiculos.id)
+placa (text)
+marca (text)
+modelo (text)
+anio (int)
+servicios (text[]) → lista de servicios solicitados en la cita
+bahia_id (uuid) (FK → bahias_trabajo.id, nullable)
+imagen_id (uuid)
+imagen_path (text)
+
+-- vw_ordenes_sucursal --
+
+orden_id (uuid) (FK → ordenes_servicio.id)
+numero (text) → folio único de la orden
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+estado (estado_orden_servicio enum)
+fecha_inicio (timestamptz)
+fecha_fin_estimada (timestamptz)
+fecha_fin_real (timestamptz)
+cliente_id (uuid) (FK → clientes.id)
+cliente_nombre (text)
+vehiculo_id (uuid) (FK → vehiculos.id)
+placa (text)
+marca (text)
+modelo (text)
+anio (int)
+total_servicios (numeric)
+total_refacciones (numeric)
+total_general (numeric)
+pagos (numeric) → suma de pagos con estado “pagado”
+saldo (numeric) → total_general – pagos
+imagen_id (uuid)
+imagen_path (text)
+
+-- vw_backlog_aprobaciones --
+
+orden_id (uuid) (FK → ordenes_servicio.id)
+numero (text) → número de orden
+sucursal_id (uuid) (FK → sucursales.id)
+cliente_nombre (text)
+placa (text)
+orden_item_id (uuid) (FK → orden_items_servicio.id)
+descripcion (text) → detalle del servicio/refacción pendiente
+cantidad (numeric)
+precio_unitario (numeric)
+subtotal (numeric)
+requiere_aprobacion (bool)
+aprobado (bool)
+aprobado_por (uuid, nullable)
+aprobado_en (timestamptz, nullable)
+
+
+
+-- vw_inventario_sucursal --
+
+refaccion_id (uuid) (FK → inventario_refacciones.id)
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+sku (text, UNIQUE)
+nombre (text)
+descripcion (text)
+proveedor (text)
+precio_unitario (numeric)
+existencias (int)
+minimo_alerta (int)
+activo (bool)
+imagen_id (uuid, FK → archivos.id, nullable)
+imagen_path (text, nullable)
+
+-- vw_historial_refacciones --
+
+orden_refaccion_id (uuid) (PK → orden_refacciones.id)
+orden_id (uuid) (FK → ordenes_servicio.id)
+numero_orden (text) → folio/número de orden
+estado_orden (estado_orden_servicio enum)
+cita_id (uuid) (FK → citas.id)
+cliente_nombre (text)
+placa (text)
+marca (text)
+modelo (text)
+refaccion_id (uuid) (FK → inventario_refacciones.id)
+sku (text)
+refaccion_nombre (text)
+cantidad (numeric)
+precio_unitario (numeric)
+subtotal (numeric)
+fecha_inicio (timestamptz) → inicio de la orden
+fecha_fin_real (timestamptz, nullable) → fin de la orden
+
+-- vw_historial_cliente_financiero -- (nuevo: ingresos pagados, sucursales)
+
+cliente_id (uuid)
+cliente_nombre (text)
+cita_id (uuid)
+cita_inicio (timestamptz)
+orden_id (uuid)
+orden_estado (enum)
+fecha_inicio (timestamptz)
+fecha_fin_real (timestamptz)
+sucursal_id (uuid)
+sucursal_nombre (text)
+total_pagado (numeric)
+numero_orden (text)
+
+-- vw_pagos_detalle --
+
+pago_id (uuid) (FK → pagos.id)
+fecha_pago (timestamptz)
+monto (numeric)
+moneda (text)
+metodo (metodo_pago enum)
+estado (estado_pago enum)
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+orden_id (uuid) (FK → ordenes_servicio.id)
+numero_orden (text)
+cliente_id (uuid) (FK → clientes.id)
+cliente_nombre (text)
+cliente_rfc (text)
+vehiculo_id (uuid) (FK → vehiculos.id)
+placa (text)
+marca (text)
+modelo (text)
+factura_id (uuid, nullable) (FK → facturas.id)
+factura_folio (text, nullable)
+factura_fecha (timestamptz, nullable)
+pdf_url (text, nullable)
+xml_url (text, nullable)
+
+-- vw_pagos_totales_sucursal --
+
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+fecha (date/timestamptz) → agrupado por día (date_trunc('day', fecha_pago))
+cantidad_pagos (int)
+total_pagado (numeric) → suma de pagos con estado pagado
+total_pendiente (numeric) → suma de pagos con estado pendiente
+total_fallido (numeric) → suma de pagos con estado fallido
+
+-- vw_promociones_sucursal (vista) --
+
+promocion_id (uuid) (FK → promociones.id)
+titulo (text)
+descripcion (text)
+tipo_descuento (enum)
+valor_descuento (numeric)
+fecha_inicio (date)
+fecha_fin (date)
+activo (bool)
+condiciones_json (jsonb)
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+created_at (timestamptz)
+updated_at (timestamptz)
+
+-- vw_promociones_activas (vista existente; sin cambios) --
+promocion_id (uuid) (FK → promociones.id)
+titulo (text)
+descripcion (text)
+tipo_descuento (taller_alex.tipo_descuento)
+valor_descuento (numeric)
+fecha_inicio (date)
+fecha_fin (date)
+activo (bool)
+condiciones_json (jsonb)
+sucursal_id (uuid) (FK → sucursales.id)
+
+-- vw_promociones_roi --
+promocion_id (uuid)
+titulo (text)
+canjes (bigint)
+clientes_unicos (bigint)
+descuento_total (numeric)
+ingreso_bruto (numeric)
+ingreso_neto (numeric)
+roi (numeric)
+
+
+-- vw_resumen_sucursal --
+
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+periodo (timestamptz / date trunc month) → mes de referencia
+total_citas (int)
+citas_completadas (int)
+citas_canceladas (int)
+total_ordenes (int)
+ordenes_abiertas (int) → en_proceso, pausada
+ordenes_cerradas (int) → cerrada, entregada
+
+-- vw_ingresos_sucursal --
+
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+fecha (date/timestamptz truncado a día)
+total_pagado (numeric) → suma de pagos con estado pagado
+total_pendiente (numeric) → suma de pagos con estado pendiente
+total_fallido (numeric) → suma de pagos con estado fallido
+
+-- vw_servicios_top_sucursal --
+
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+servicio_nombre (text)
+veces_solicitado (int) → cantidad de veces que aparece en órdenes
+total_ingresos (numeric) → suma de subtotales de ese servicio
+
+-- vw_refacciones_top_sucursal --
+
+sucursal_id (uuid) (FK → sucursales.id)
+sucursal_nombre (text)
+refaccion_nombre (text)
+total_usada (numeric) → suma de cantidades usadas en órdenes
+total_ingresos (numeric) → suma de subtotales generados
+
+-- vw_usuarios_pendientes  --
+
+usuario_id (uuid)
+nombre (text)
+apellido (text)
+telefono (text)
+estado (estado_usuario)
+fecha_registro (timestamptz)
+dias_esperando (integer)
+organization_fk (bigint, NULLABLE)
+role_fk (bigint, NULLABLE)
+rol_nombre (text, NULLABLE)
+
+-- vw_clientes_inactivos --
+
+cliente_id (uuid)
+cliente_nombre (text)
+ultima_visita (timestamptz)
+dias_inactivo (int)
+
+-- vw_clientes_sucursales_frecuentes --
+
+cliente_id (uuid)
+sucursal_id (uuid)
+sucursal_nombre (text)
+total_visitas (bigint)
+
+
+-- vw_inventario_caducidad --
+refaccion_id (uuid)
+sucursal_id (uuid)
+sucursal_nombre (text)
+sku (text)
+nombre (text)
+existencias (int)
+fecha_caducidad (date)
+dias_para_vencer (int)
+
+-- vw_inventario_resumen --
+sku (text)
+nombre (text)
+descripcion (text)
+proveedor (text)
+existencias_totales (bigint)
+minimo_alerta_global (bigint)
+posiciones_con_stock (bigint)
+sucursales_con_stock (bigint)
+
+-- vw_refacciones_rotacion_mensual --
+refaccion_id (uuid)
+sku (text)
+refaccion_nombre (text)
+sucursal_id (uuid)
+sucursal_nombre (text)
+periodo (date) (date_trunc('month'))
+qty_usada (numeric)
+ingresos_generados (numeric)

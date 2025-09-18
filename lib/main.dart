@@ -7,6 +7,7 @@ import 'package:nethive_neo/helpers/constants.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/providers/providers.dart';
 import 'package:nethive_neo/router/app_router.dart';
+import 'package:nethive_neo/theme/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -20,34 +21,31 @@ void main() async {
       eventsPerSecond: 2,
     ),
   );
-  supabaseLU = SupabaseClient(supabaseUrl, anonKey, schema: 'nethive');
+  supabaseLU = SupabaseClient(supabaseUrl, anonKey, schema: 'taller_alex');
   await initGlobals();
 
-  runApp(const NetHiveApp());
+  runApp(const TallerAlexApp());
 }
 
-class NetHiveApp extends StatelessWidget {
-  const NetHiveApp({super.key});
+class TallerAlexApp extends StatelessWidget {
+  const TallerAlexApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => UserState()),
-        ChangeNotifierProvider(create: (_) => EmpresasNegociosProvider()),
-        ChangeNotifierProvider(create: (_) => ComponentesProvider()),
-        ChangeNotifierProvider(create: (_) => RfidScannerProvider()),
-        ChangeNotifierProvider(create: (_) => ConnectionsProvider()),
-        ChangeNotifierProvider(create: (_) => SyncProvider()),
         ChangeNotifierProvider(create: (_) => ThemeConfigProvider()),
-        ChangeNotifierProvider(create: (_) => ComponenteCreationProvider()),
-        ChangeNotifierProvider(create: (_) => DistribucionesProvider()),
       ],
       child: MaterialApp.router(
-        title: 'NetHive Mobile',
+        title: 'Taller Alex Cliente',
         routerConfig: AppRouter.router,
         theme: ThemeData(
-          primarySwatch: Colors.green,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: TallerAlexColors.primaryFuchsia,
+            brightness: Brightness.light,
+          ),
+          useMaterial3: true,
           fontFamily: 'Poppins',
         ),
         localizationsDelegates: const [

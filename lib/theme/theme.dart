@@ -4,6 +4,50 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/models/configuration.dart';
 
+// Colores Taller Alex - Paleta Fucsia/Rosa Neumórfica
+class TallerAlexColors {
+  // Colores principales
+  static const Color primaryFuchsia = Color(0xFFE91E63); // Fucsia vibrante
+  static const Color primaryRose = Color(0xFFF06292); // Rosa medio
+  static const Color lightRose = Color(0xFFF8BBD9); // Rosa claro
+  static const Color paleRose = Color(0xFFFCE4EC); // Rosa muy claro
+
+  // Backgrounds neumórficos
+  static const Color neumorphicBase = Color(0xFFF5F5F5); // Gris muy claro
+  static const Color neumorphicSurface = Color(0xFFFFFFFF); // Blanco puro
+  static const Color neumorphicBackground =
+      Color(0xFFF8F9FA); // Casi blanco con tinte
+
+  // Sombras neumórficas
+  static const Color shadowDark = Color(0xFFD1D9E6); // Sombra oscura suave
+  static const Color shadowLight =
+      Color(0xFFFFFFFF); // Sombra clara (highlight)
+
+  // Gradientes fucsia
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [primaryFuchsia, primaryRose],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient softGradient = LinearGradient(
+    colors: [lightRose, paleRose],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Colores de estado
+  static const Color success = Color(0xFF4CAF50);
+  static const Color warning = Color(0xFFFF9800);
+  static const Color error = Color(0xFFF44336);
+  static const Color info = Color(0xFF2196F3);
+
+  // Colores de texto
+  static const Color textPrimary = Color(0xFF2C3E50);
+  static const Color textSecondary = Color(0xFF7B8794);
+  static const Color textLight = Color(0xFFB0B7C3);
+}
+
 const kThemeModeKey = '__theme_mode__';
 
 // TODO: Implement mobile theme switching
@@ -70,39 +114,16 @@ abstract class AppTheme {
   abstract Color success;
   abstract Color formBackground;
 
-  Gradient blueGradient = const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[
-      Color(0xFF1E40AF), // Azul profundo
-      Color(0xFF3B82F6), // Azul brillante
-      Color(0xFF0369A1), // Azul medio
-      Color(0xFF0F172A), // Azul muy oscuro
-    ],
-  );
+  // Gradientes Taller Alex - Fucsia
+  Gradient blueGradient =
+      TallerAlexColors.primaryGradient; // Gradiente fucsia principal
 
-  Gradient primaryGradient = const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[
-      Color(0xFF10B981), // Verde esmeralda
-      Color(0xFF059669), // Verde intenso
-      Color(0xFF0D9488), // Verde-azulado
-      Color(0xFF0F172A), // Azul muy oscuro
-    ],
-  );
+  Gradient primaryGradient =
+      TallerAlexColors.primaryGradient; // Gradiente fucsia principal
 
-  // Nuevo gradiente para elementos modernos
-  Gradient modernGradient = const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[
-      Color(0xFF1E40AF), // Azul profundo
-      Color(0xFF3B82F6), // Azul brillante
-      Color(0xFF10B981), // Verde esmeralda
-      Color(0xFF7C3AED), // Púrpura
-    ],
-  );
+  // Gradiente suave para backgrounds
+  Gradient modernGradient =
+      TallerAlexColors.softGradient; // Gradiente fucsia suave
 
   // Gradiente para backgrounds oscuros
   Gradient darkBackgroundGradient = const LinearGradient(
@@ -141,18 +162,19 @@ abstract class AppTheme {
 
 class LightModeTheme extends AppTheme {
   @override
-  Color primaryColor = const Color(0xFF10B981); // Verde esmeralda principal
+  Color primaryColor = TallerAlexColors.primaryFuchsia; // Fucsia principal
   @override
-  Color secondaryColor = const Color(0xFF059669); // Verde más oscuro
+  Color secondaryColor = TallerAlexColors.primaryRose; // Rosa secundario
   @override
-  Color tertiaryColor = const Color(0xFF0D9488); // Verde azulado
+  Color tertiaryColor = TallerAlexColors.lightRose; // Rosa claro
   @override
-  Color alternate = const Color(0xFF3B82F6); // Azul de acento
+  Color alternate = TallerAlexColors.paleRose; // Rosa muy claro
   @override
-  Color primaryBackground = const Color(0xFF0F172A); // Fondo muy oscuro
+  Color primaryBackground =
+      TallerAlexColors.neumorphicBackground; // Fondo neumórfico
   @override
   Color secondaryBackground =
-      const Color(0xFF1E293B); // Fondo secundario oscuro
+      TallerAlexColors.neumorphicSurface; // Superficie blanca
   @override
   Color tertiaryBackground = const Color(0xFF334155); // Fondo terciario
   @override
@@ -414,4 +436,161 @@ class ThemeTypography extends Typography {
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
       );
+}
+
+// Componentes Neumórficos de Taller Alex
+class NeumorphicContainer extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets? padding;
+  final EdgeInsets? margin;
+  final double borderRadius;
+  final double depth;
+  final Color? backgroundColor;
+  final double? width;
+  final double? height;
+
+  const NeumorphicContainer({
+    Key? key,
+    required this.child,
+    this.padding,
+    this.margin,
+    this.borderRadius = 16,
+    this.depth = 4,
+    this.backgroundColor,
+    this.width,
+    this.height,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = backgroundColor ?? TallerAlexColors.neumorphicSurface;
+
+    return Container(
+      width: width,
+      height: height,
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: [
+          // Sombra oscura (abajo y derecha)
+          BoxShadow(
+            color: TallerAlexColors.shadowDark.withOpacity(0.3),
+            offset: Offset(depth.abs(), depth.abs()),
+            blurRadius: (depth * 2).abs(),
+          ),
+          // Sombra clara (arriba y izquierda)
+          BoxShadow(
+            color: TallerAlexColors.shadowLight,
+            offset: Offset(-depth.abs() / 2, -depth.abs() / 2),
+            blurRadius: depth.abs(),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class NeumorphicCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets? padding;
+  final EdgeInsets? margin;
+  final VoidCallback? onTap;
+  final double borderRadius;
+  final double depth;
+
+  const NeumorphicCard({
+    Key? key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.margin,
+    this.onTap,
+    this.borderRadius = 16,
+    this.depth = 6,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: NeumorphicContainer(
+        margin: margin,
+        padding: padding,
+        borderRadius: borderRadius,
+        depth: depth,
+        child: child,
+      ),
+    );
+  }
+}
+
+class NeumorphicButton extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onPressed;
+  final EdgeInsets padding;
+  final double borderRadius;
+  final Color? backgroundColor;
+  final bool isPressed;
+
+  const NeumorphicButton({
+    Key? key,
+    required this.child,
+    this.onPressed,
+    this.padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+    this.borderRadius = 12,
+    this.backgroundColor,
+    this.isPressed = false,
+  }) : super(key: key);
+
+  @override
+  State<NeumorphicButton> createState() => _NeumorphicButtonState();
+}
+
+class _NeumorphicButtonState extends State<NeumorphicButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPressed = widget.isPressed || _isPressed;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        padding: widget.padding,
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? TallerAlexColors.neumorphicSurface,
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          boxShadow: isPressed
+              ? [
+                  // Sombras más suaves cuando está presionado
+                  BoxShadow(
+                    color: TallerAlexColors.shadowDark.withOpacity(0.1),
+                    offset: const Offset(1, 1),
+                    blurRadius: 2,
+                  ),
+                ]
+              : [
+                  // Sombras normales
+                  BoxShadow(
+                    color: TallerAlexColors.shadowDark.withOpacity(0.3),
+                    offset: const Offset(4, 4),
+                    blurRadius: 8,
+                  ),
+                  BoxShadow(
+                    color: TallerAlexColors.shadowLight,
+                    offset: const Offset(-2, -2),
+                    blurRadius: 4,
+                  ),
+                ],
+        ),
+        child: widget.child,
+      ),
+    );
+  }
 }

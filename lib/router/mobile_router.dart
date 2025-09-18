@@ -1,16 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:nethive_neo/pages/welcome_page.dart';
 import 'package:nethive_neo/pages/login_page/login_page.dart';
-import 'package:nethive_neo/pages/empresa_selector_page.dart';
-import 'package:nethive_neo/pages/negocio_selector_page.dart';
-import 'package:nethive_neo/pages/home_tecnico_page.dart';
-import 'package:nethive_neo/pages/scanner_page_new.dart' as new_scanner;
+import 'package:nethive_neo/pages/taller_alex/dashboard_page.dart';
+import 'package:nethive_neo/pages/register_page.dart';
+import 'package:nethive_neo/pages/agendar_cita_page.dart';
+import 'package:nethive_neo/pages/mis_vehiculos_page.dart';
+import 'package:nethive_neo/pages/mis_ordenes_page.dart';
+import 'package:nethive_neo/pages/historial_page.dart';
+import 'package:nethive_neo/pages/promociones_page.dart';
+import 'package:nethive_neo/pages/notificaciones_page.dart';
+import 'package:nethive_neo/pages/perfil_page.dart';
+
+import 'package:nethive_neo/helpers/globals.dart';
 
 class MobileRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
+    redirect: (context, state) {
+      final isLoggedIn = supabaseLU.auth.currentUser != null;
+      final currentPath = state.matchedLocation;
+
+      // Permitir acceso a welcome y login sin restricciones
+      if (currentPath == '/' ||
+          currentPath == '/login' ||
+          currentPath == '/register') {
+        return null;
+      }
+
+      // Si no está logueado y trata de acceder a páginas protegidas, va a login
+      if (!isLoggedIn) {
+        return '/login';
+      }
+
+      return null;
+    },
     routes: [
+      // Página de bienvenida inicial
+      GoRoute(
+        path: '/',
+        name: 'welcome',
+        builder: (context, state) => const WelcomePage(),
+      ),
+
       // Autenticación
       GoRoute(
         path: '/login',
@@ -18,92 +51,67 @@ class MobileRouter {
         builder: (context, state) => const LoginPage(),
       ),
 
-      // Selección de empresa
+      // Registro de cliente
       GoRoute(
-        path: '/empresa-selector',
-        name: 'empresa-selector',
-        builder: (context, state) => const EmpresaSelectorPage(),
+        path: '/register',
+        name: 'register',
+        builder: (context, state) => const RegisterPage(),
       ),
 
-      // Selección de negocio/sucursal
+      // Dashboard principal del cliente
       GoRoute(
-        path: '/negocio-selector',
-        name: 'negocio-selector',
-        builder: (context, state) {
-          final empresaId = state.uri.queryParameters['empresaId']!;
-          return NegocioSelectorPage(empresaId: empresaId);
-        },
+        path: '/dashboard',
+        name: 'dashboard',
+        builder: (context, state) => const DashboardPage(),
       ),
 
-      // Home principal del técnico
+      // Mis Vehículos
       GoRoute(
-        path: '/home',
-        name: 'home',
-        builder: (context, state) {
-          final negocioId = state.uri.queryParameters['negocioId'];
-          return HomeTecnicoPage(negocioId: negocioId);
-        },
-        routes: [
-          // Scanner RFID
-          GoRoute(
-            path: '/scanner',
-            name: 'scanner',
-            builder: (context, state) => const new_scanner.ScannerPage(),
-          ),
+        path: '/vehiculos',
+        name: 'vehiculos',
+        builder: (context, state) => const MisVehiculosPage(),
+      ),
 
-          // Inventario (placeholder)
-          GoRoute(
-            path: '/inventario',
-            name: 'inventario',
-            builder: (context, state) => Scaffold(
-              appBar: AppBar(title: const Text('Inventario')),
-              body: const Center(
-                child: Text('Página de Inventario - Próximamente'),
-              ),
-            ),
-          ),
+      // Agendar Cita
+      GoRoute(
+        path: '/agendar-cita',
+        name: 'agendar-cita',
+        builder: (context, state) => const AgendarCitaPage(),
+      ),
 
-          // Conexiones (placeholder)
-          GoRoute(
-            path: '/conexiones',
-            name: 'conexiones',
-            builder: (context, state) => Scaffold(
-              appBar: AppBar(title: const Text('Conexiones')),
-              body: const Center(
-                child: Text('Página de Conexiones - Próximamente'),
-              ),
-            ),
-          ),
+      // Mis Órdenes
+      GoRoute(
+        path: '/ordenes',
+        name: 'ordenes',
+        builder: (context, state) => const MisOrdenesPage(),
+      ),
 
-          // Formulario de componente (placeholder)
-          GoRoute(
-            path: '/componente-form',
-            name: 'componente-form',
-            builder: (context, state) {
-              final rfidCode = state.uri.queryParameters['rfidCode'];
-              final componenteId = state.uri.queryParameters['componenteId'];
+      // Historial
+      GoRoute(
+        path: '/historial',
+        name: 'historial',
+        builder: (context, state) => const HistorialPage(),
+      ),
 
-              return Scaffold(
-                appBar: AppBar(
-                  title: Text(componenteId != null
-                      ? 'Editar Componente'
-                      : 'Crear Componente'),
-                ),
-                body: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Formulario de Componente - Próximamente'),
-                      if (rfidCode != null) Text('Código RFID: $rfidCode'),
-                      if (componenteId != null)
-                        Text('ID Componente: $componenteId'),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
+      // Promociones
+      GoRoute(
+        path: '/promociones',
+        name: 'promociones',
+        builder: (context, state) => const PromocionesPage(),
+      ),
+
+      // Notificaciones
+      GoRoute(
+        path: '/notificaciones',
+        name: 'notificaciones',
+        builder: (context, state) => const NotificacionesPage(),
+      ),
+
+      // Perfil
+      GoRoute(
+        path: '/perfil',
+        name: 'perfil',
+        builder: (context, state) => const PerfilPage(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
