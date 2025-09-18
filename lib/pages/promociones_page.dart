@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
+import 'package:nethive_neo/providers/taller_alex/cupones_provider.dart';
 
 class PromocionesPage extends StatefulWidget {
   const PromocionesPage({super.key});
@@ -74,42 +76,6 @@ class _PromocionesPageState extends State<PromocionesPage>
     },
   ];
 
-  final List<Map<String, dynamic>> _myCoupons = [
-    {
-      'id': 'CUP-2024-001',
-      'promoId': 'PROMO-001',
-      'title': 'Cambio de Aceite 2x1',
-      'discount': 50,
-      'type': 'percentage',
-      'validUntil': DateTime(2024, 12, 31),
-      'status': 'disponible',
-      'dateAdded': DateTime(2024, 9, 15),
-      'usedDate': null,
-    },
-    {
-      'id': 'CUP-2024-002',
-      'promoId': 'PROMO-003',
-      'title': 'Diagnóstico Gratis',
-      'discount': 350,
-      'type': 'fixed',
-      'validUntil': DateTime(2024, 10, 31),
-      'status': 'disponible',
-      'dateAdded': DateTime(2024, 9, 10),
-      'usedDate': null,
-    },
-    {
-      'id': 'CUP-2024-003',
-      'promoId': 'PROMO-002',
-      'title': 'Afinación 30% OFF',
-      'discount': 30,
-      'type': 'percentage',
-      'validUntil': DateTime(2024, 9, 15),
-      'status': 'usado',
-      'dateAdded': DateTime(2024, 8, 20),
-      'usedDate': DateTime(2024, 9, 5),
-    },
-  ];
-
   final double _walletBalance = 1250.0;
 
   @override
@@ -130,11 +96,11 @@ class _PromocionesPageState extends State<PromocionesPage>
     super.dispose();
   }
 
-  List<Map<String, dynamic>> get _availableCoupons {
-    return _myCoupons
-        .where((coupon) =>
-            coupon['status'] == 'disponible' &&
-            DateTime.now().isBefore(coupon['validUntil']))
+  List<Map<String, dynamic>> _getAvailableCoupons(CuponesProvider provider) {
+    return provider.misCupones
+        .where((cupon) =>
+            !cupon['usado'] &&
+            DateTime.now().isBefore(cupon['fechaVencimiento']))
         .toList();
   }
 
@@ -226,14 +192,22 @@ class _PromocionesPageState extends State<PromocionesPage>
               ),
 
               // Wallet de cupones disponibles
-              if (_availableCoupons.isNotEmpty)
-                FadeIn(
-                  duration: const Duration(milliseconds: 800),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildWalletCard(),
-                  ),
-                ),
+              Consumer<CuponesProvider>(
+                builder: (context, cuponesProvider, child) {
+                  final availableCoupons =
+                      _getAvailableCoupons(cuponesProvider);
+                  if (availableCoupons.isNotEmpty) {
+                    return FadeIn(
+                      duration: const Duration(milliseconds: 800),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildWalletCard(availableCoupons),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
 
               const SizedBox(height: 20),
 
@@ -260,7 +234,13 @@ class _PromocionesPageState extends State<PromocionesPage>
                       ),
                       tabs: [
                         Tab(text: 'Promociones (${_activePromotions.length})'),
-                        Tab(text: 'Mis Cupones (${_myCoupons.length})'),
+                        Consumer<CuponesProvider>(
+                          builder: (context, cuponesProvider, child) {
+                            return Tab(
+                                text:
+                                    'Mis Cupones (${cuponesProvider.misCupones.length})');
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -286,7 +266,7 @@ class _PromocionesPageState extends State<PromocionesPage>
     );
   }
 
-  Widget _buildWalletCard() {
+  Widget _buildWalletCard(List<Map<String, dynamic>> availableCoupons) {
     return NeumorphicCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,7 +309,7 @@ class _PromocionesPageState extends State<PromocionesPage>
                       ),
                     ),
                     Text(
-                      '${_availableCoupons.length} cupones listos para usar',
+                      '${availableCoupons.length} cupones listos para usar',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: TallerAlexColors.textSecondary,
@@ -364,9 +344,9 @@ class _PromocionesPageState extends State<PromocionesPage>
             height: 80,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: _availableCoupons.take(3).length,
+              itemCount: availableCoupons.take(3).length,
               itemBuilder: (context, index) {
-                final coupon = _availableCoupons[index];
+                final coupon = availableCoupons[index];
                 return Container(
                   width: 200,
                   margin: const EdgeInsets.only(right: 12),
@@ -399,7 +379,7 @@ class _PromocionesPageState extends State<PromocionesPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            coupon['title'],
+            coupon['titulo'],
             style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -412,9 +392,9 @@ class _PromocionesPageState extends State<PromocionesPage>
           Row(
             children: [
               Text(
-                coupon['type'] == 'percentage'
-                    ? '${coupon['discount']}% OFF'
-                    : '\$${coupon['discount']} OFF',
+                coupon['tipo'] == 'porcentaje'
+                    ? '${coupon['descuento']}% OFF'
+                    : '\$${coupon['descuento']} OFF',
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -690,86 +670,91 @@ class _PromocionesPageState extends State<PromocionesPage>
   }
 
   Widget _buildMyCoupons() {
-    if (_myCoupons.isEmpty) {
-      return FadeIn(
-        duration: const Duration(milliseconds: 800),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    gradient: TallerAlexColors.primaryGradient,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.wallet_giftcard,
-                    size: 64,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'No tienes cupones',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: TallerAlexColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Explora las promociones disponibles y agrega cupones a tu wallet',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: TallerAlexColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                NeumorphicButton(
-                  onPressed: () => _tabController.animateTo(0),
-                  backgroundColor: TallerAlexColors.primaryFuchsia,
-                  child: Text(
-                    'Ver promociones',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    return Consumer<CuponesProvider>(
+      builder: (context, cuponesProvider, child) {
+        final misCupones = cuponesProvider.misCupones;
 
-    return FadeInUp(
-      duration: const Duration(milliseconds: 800),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _myCoupons.length,
-        itemBuilder: (context, index) {
-          final coupon = _myCoupons[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            child: _buildCouponCard(coupon),
+        if (misCupones.isEmpty) {
+          return FadeIn(
+            duration: const Duration(milliseconds: 800),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        gradient: TallerAlexColors.primaryGradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.wallet_giftcard,
+                        size: 64,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      'No tienes cupones',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: TallerAlexColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Explora las promociones disponibles y agrega cupones a tu wallet',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: TallerAlexColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    NeumorphicButton(
+                      onPressed: () => _tabController.animateTo(0),
+                      backgroundColor: TallerAlexColors.primaryFuchsia,
+                      child: Text(
+                        'Ver promociones',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
-        },
-      ),
+        }
+
+        return FadeInUp(
+          duration: const Duration(milliseconds: 800),
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: misCupones.length,
+            itemBuilder: (context, index) {
+              final coupon = misCupones[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: _buildCouponCard(coupon),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
   Widget _buildCouponCard(Map<String, dynamic> coupon) {
-    final bool isActive = coupon['status'] == 'disponible' &&
-        DateTime.now().isBefore(coupon['validUntil']);
-    final bool isExpired = DateTime.now().isAfter(coupon['validUntil']);
-    final bool isUsed = coupon['status'] == 'usado';
+    final bool isUsed = coupon['usado'] == true;
+    final bool isExpired = DateTime.now().isAfter(coupon['fechaVencimiento']);
+    final bool isActive = !isUsed && !isExpired;
 
     return NeumorphicCard(
       child: Container(
@@ -817,7 +802,7 @@ class _PromocionesPageState extends State<PromocionesPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          coupon['title'],
+                          coupon['titulo'],
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -840,17 +825,16 @@ class _PromocionesPageState extends State<PromocionesPage>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _getCouponStatusColor(coupon['status'], isExpired)
+                      color: _getCouponStatusColor(isUsed, isExpired)
                           .withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      _getCouponStatusText(coupon['status'], isExpired),
+                      _getCouponStatusText(isUsed, isExpired),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color:
-                            _getCouponStatusColor(coupon['status'], isExpired),
+                        color: _getCouponStatusColor(isUsed, isExpired),
                       ),
                     ),
                   ),
@@ -872,9 +856,9 @@ class _PromocionesPageState extends State<PromocionesPage>
                       ),
                     ),
                     Text(
-                      coupon['type'] == 'percentage'
-                          ? '${coupon['discount']}% OFF'
-                          : '\$${coupon['discount']} OFF',
+                      coupon['tipo'] == 'porcentaje'
+                          ? '${coupon['descuento']}% OFF'
+                          : '\$${coupon['descuento']} OFF',
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -897,7 +881,7 @@ class _PromocionesPageState extends State<PromocionesPage>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Válido hasta: ${coupon['validUntil'].day}/${coupon['validUntil'].month}/${coupon['validUntil'].year}',
+                    'Válido hasta: ${coupon['fechaVencimiento'].day}/${coupon['fechaVencimiento'].month}/${coupon['fechaVencimiento'].year}',
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: TallerAlexColors.textSecondary,
@@ -906,7 +890,7 @@ class _PromocionesPageState extends State<PromocionesPage>
                 ],
               ),
 
-              if (isUsed && coupon['usedDate'] != null) ...[
+              if (isUsed && coupon['fechaUso'] != null) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -917,7 +901,7 @@ class _PromocionesPageState extends State<PromocionesPage>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Usado el: ${coupon['usedDate'].day}/${coupon['usedDate'].month}/${coupon['usedDate'].year}',
+                      'Usado el: ${coupon['fechaUso'].day}/${coupon['fechaUso'].month}/${coupon['fechaUso'].year}',
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.green,
@@ -976,28 +960,16 @@ class _PromocionesPageState extends State<PromocionesPage>
     }
   }
 
-  Color _getCouponStatusColor(String status, bool isExpired) {
+  Color _getCouponStatusColor(bool isUsed, bool isExpired) {
     if (isExpired) return Colors.red;
-    switch (status) {
-      case 'disponible':
-        return Colors.green;
-      case 'usado':
-        return Colors.blue;
-      default:
-        return TallerAlexColors.textLight;
-    }
+    if (isUsed) return Colors.blue;
+    return Colors.green;
   }
 
-  String _getCouponStatusText(String status, bool isExpired) {
+  String _getCouponStatusText(bool isUsed, bool isExpired) {
     if (isExpired) return 'Vencido';
-    switch (status) {
-      case 'disponible':
-        return 'Disponible';
-      case 'usado':
-        return 'Usado';
-      default:
-        return 'Inactivo';
-    }
+    if (isUsed) return 'Usado';
+    return 'Disponible';
   }
 
   void _showPromotionDetails(Map<String, dynamic> promotion) {
@@ -1138,10 +1110,11 @@ class _PromocionesPageState extends State<PromocionesPage>
   }
 
   void _addCouponToWallet(Map<String, dynamic> promotion) {
-    // Verificar si ya tiene un cupón de esta promoción
-    final hasCoupon = _myCoupons.any((coupon) =>
-        coupon['promoId'] == promotion['id'] &&
-        coupon['status'] == 'disponible');
+    final cuponesProvider =
+        Provider.of<CuponesProvider>(context, listen: false);
+
+    // Verificar si ya tiene este cupón
+    final hasCoupon = cuponesProvider.cuponEnWallet(promotion['id']);
 
     if (hasCoupon) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1152,6 +1125,9 @@ class _PromocionesPageState extends State<PromocionesPage>
       );
       return;
     }
+
+    // Agregar cupón al wallet
+    cuponesProvider.agregarCuponAlWallet(promotion['id']);
 
     showDialog(
       context: context,
@@ -1275,7 +1251,7 @@ class _PromocionesPageState extends State<PromocionesPage>
   void _shareCoupon(Map<String, dynamic> coupon) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Compartiendo cupón "${coupon['title']}"...'),
+        content: Text('Compartiendo cupón "${coupon['titulo']}"...'),
         action: SnackBarAction(
           label: 'Copiar código',
           onPressed: () {

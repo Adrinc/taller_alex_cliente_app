@@ -5,6 +5,7 @@ import 'package:nethive_neo/pages/login_page/login_page.dart';
 import 'package:nethive_neo/pages/register_page.dart';
 import 'package:nethive_neo/pages/taller_alex/dashboard_page.dart';
 import 'package:nethive_neo/pages/agendar_cita_page.dart';
+import 'package:nethive_neo/pages/mis_citas_page.dart';
 import 'package:nethive_neo/pages/mis_vehiculos_page.dart';
 import 'package:nethive_neo/pages/mis_ordenes_page.dart';
 import 'package:nethive_neo/pages/historial_page.dart';
@@ -76,11 +77,23 @@ class AppRouter {
         builder: (context, state) => const AgendarCitaPage(),
       ),
 
+      // Mis Citas
+      GoRoute(
+        path: '/mis-citas',
+        name: 'mis-citas',
+        builder: (context, state) => const MisCitasPage(),
+      ),
+
       // Mis Órdenes
       GoRoute(
         path: '/ordenes',
         name: 'ordenes',
-        builder: (context, state) => const MisOrdenesPage(),
+        builder: (context, state) {
+          final ordenId = state.extra != null
+              ? (state.extra as Map<String, dynamic>)['ordenId'] as int?
+              : null;
+          return MisOrdenesPage(ordenId: ordenId);
+        },
       ),
 
       // Historial

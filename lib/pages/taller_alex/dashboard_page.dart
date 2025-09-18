@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
+import 'package:nethive_neo/providers/taller_alex/usuario_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -13,12 +15,13 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final String _clientName = 'María González'; // Demo data
   final bool _hasActiveOrder = true; // Demo data
   final String _vehicleInService = 'Honda Civic 2020 - ABC-123'; // Demo data
-  final String _serviceStatus = 'Diagnóstico completado - Esperando aprobación'; // Demo data
+  final String _serviceStatus =
+      'Diagnóstico completado - Esperando aprobación'; // Demo data
   final bool _hasUpcomingAppointment = true; // Demo data
-  final String _nextAppointment = 'Mañana 10:00 AM - Mantenimiento'; // Demo data
+  final String _nextAppointment =
+      'Mañana 10:00 AM - Mantenimiento'; // Demo data
 
   @override
   Widget build(BuildContext context) {
@@ -42,51 +45,95 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header con saludo y notificaciones
+                // Header con saludo, avatar y notificaciones
                 FadeInDown(
                   duration: const Duration(milliseconds: 800),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '¡Hola, $_clientName! 👋',
-                              style: GoogleFonts.poppins(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                color: TallerAlexColors.textPrimary,
+                  child: Consumer<UsuarioProvider>(
+                    builder: (context, usuarioProvider, child) {
+                      return Row(
+                        children: [
+                          // Avatar del usuario
+                          GestureDetector(
+                            onTap: () => context.go('/perfil'),
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                gradient: TallerAlexColors.primaryGradient,
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: TallerAlexColors.primaryFuchsia
+                                        .withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Bienvenida a Taller Alex',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                color: TallerAlexColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => context.go('/notificaciones'),
-                        child: NeumorphicContainer(
-                          padding: const EdgeInsets.all(12),
-                          borderRadius: 16,
-                          child: Badge(
-                            backgroundColor: TallerAlexColors.primaryFuchsia,
-                            label: const Text('3'),
-                            child: Icon(
-                              Icons.notifications_outlined,
-                              color: TallerAlexColors.primaryFuchsia,
-                              size: 28,
+                              child: usuarioProvider.imagenBytes != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(25),
+                                      child: Image.memory(
+                                        usuarioProvider.imagenBytes!,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        usuarioProvider.getIniciales(),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '¡Hola, ${usuarioProvider.nombreCompleto.split(' ').first}! 👋',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: TallerAlexColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Bienvenido a Taller Alex',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    color: TallerAlexColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => context.go('/notificaciones'),
+                            child: NeumorphicContainer(
+                              padding: const EdgeInsets.all(12),
+                              borderRadius: 16,
+                              child: Badge(
+                                backgroundColor:
+                                    TallerAlexColors.primaryFuchsia,
+                                label: const Text('3'),
+                                child: Icon(
+                                  Icons.notifications_outlined,
+                                  color: TallerAlexColors.primaryFuchsia,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
 
@@ -112,7 +159,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        gradient: TallerAlexColors.primaryGradient,
+                                        gradient:
+                                            TallerAlexColors.primaryGradient,
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: const Icon(
@@ -124,21 +172,24 @@ class _DashboardPageState extends State<DashboardPage> {
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'Vehículo en Servicio',
                                             style: GoogleFonts.poppins(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,
-                                              color: TallerAlexColors.textPrimary,
+                                              color:
+                                                  TallerAlexColors.textPrimary,
                                             ),
                                           ),
                                           Text(
                                             _vehicleInService,
                                             style: GoogleFonts.poppins(
                                               fontSize: 14,
-                                              color: TallerAlexColors.textSecondary,
+                                              color: TallerAlexColors
+                                                  .textSecondary,
                                             ),
                                           ),
                                         ],
@@ -155,7 +206,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: TallerAlexColors.lightRose.withOpacity(0.2),
+                                    color: TallerAlexColors.lightRose
+                                        .withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Row(
@@ -174,7 +226,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                           _serviceStatus,
                                           style: GoogleFonts.poppins(
                                             fontSize: 12,
-                                            color: TallerAlexColors.textSecondary,
+                                            color:
+                                                TallerAlexColors.textSecondary,
                                           ),
                                         ),
                                       ),
@@ -195,7 +248,8 @@ class _DashboardPageState extends State<DashboardPage> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: TallerAlexColors.lightRose.withOpacity(0.3),
+                                  color: TallerAlexColors.lightRose
+                                      .withOpacity(0.3),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
@@ -272,6 +326,13 @@ class _DashboardPageState extends State<DashboardPage> {
                         gradient: TallerAlexColors.primaryGradient,
                       ),
                       _buildQuickAccessCard(
+                        icon: Icons.event_available,
+                        title: 'Mis\nCitas',
+                        subtitle: 'Ver programadas',
+                        onTap: () => context.go('/mis-citas'),
+                        color: const Color(0xFF9C27B0),
+                      ),
+                      _buildQuickAccessCard(
                         icon: Icons.directions_car,
                         title: 'Mis\nVehículos',
                         subtitle: '2 registrados',
@@ -292,48 +353,12 @@ class _DashboardPageState extends State<DashboardPage> {
                         onTap: () => context.go('/historial'),
                         color: Colors.green,
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                // Sección adicional
-                FadeInUp(
-                  duration: const Duration(milliseconds: 800),
-                  delay: const Duration(milliseconds: 800),
-                  child: Text(
-                    'Extras',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: TallerAlexColors.textPrimary,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Tarjetas adicionales
-                FadeInUp(
-                  duration: const Duration(milliseconds: 800),
-                  delay: const Duration(milliseconds: 1000),
-                  child: Column(
-                    children: [
-                      _buildServiceCard(
+                      _buildQuickAccessCard(
                         icon: Icons.local_offer,
                         title: 'Promociones',
-                        subtitle: 'Ver ofertas disponibles',
+                        subtitle: 'Ver ofertas',
                         onTap: () => context.go('/promociones'),
                         color: Colors.purple,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildServiceCard(
-                        icon: Icons.person,
-                        title: 'Mi Perfil',
-                        subtitle: 'Configurar cuenta',
-                        onTap: () => context.go('/perfil'),
-                        color: Colors.teal,
                       ),
                     ],
                   ),

@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
+import 'package:nethive_neo/providers/taller_alex/usuario_provider.dart';
 
 class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
@@ -15,7 +18,6 @@ class PerfilPage extends StatefulWidget {
 
 class _PerfilPageState extends State<PerfilPage> with TickerProviderStateMixin {
   late TabController _tabController;
-  final ImagePicker _picker = ImagePicker();
 
   // Controladores de formulario
   final _nameController = TextEditingController();
@@ -33,7 +35,6 @@ class _PerfilPageState extends State<PerfilPage> with TickerProviderStateMixin {
   // String _tema = 'claro';
 
   // Datos del usuario
-  String? _profileImage;
   final Map<String, dynamic> _userData = {
     'name': 'Juan Pérez García',
     'email': 'juan.perez@email.com',
@@ -53,11 +54,13 @@ class _PerfilPageState extends State<PerfilPage> with TickerProviderStateMixin {
   }
 
   void _initializeControllers() {
-    _nameController.text = _userData['name'];
-    _emailController.text = _userData['email'];
-    _phoneController.text = _userData['phone'];
-    _addressController.text = _userData['address'];
-    _rfcController.text = _userData['rfc'];
+    final usuarioProvider =
+        Provider.of<UsuarioProvider>(context, listen: false);
+    _nameController.text = usuarioProvider.nombreCompleto;
+    _emailController.text = usuarioProvider.email;
+    _phoneController.text = usuarioProvider.telefono;
+    _addressController.text = usuarioProvider.direccion;
+    _rfcController.text = usuarioProvider.rfc;
   }
 
   @override
@@ -151,20 +154,60 @@ class _PerfilPageState extends State<PerfilPage> with TickerProviderStateMixin {
                                 ),
                               ],
                             ),
-                            child: _profileImage != null
-                                ? ClipRRect(
+                            child: Consumer<UsuarioProvider>(
+                              builder: (context, usuarioProvider, child) {
+                                final imagenBytes = usuarioProvider.imagenBytes;
+                                final imagenPerfil =
+                                    usuarioProvider.imagenPerfil;
+
+                                if (imagenBytes != null) {
+                                  // Mostrar imagen desde bytes (nuevo método)
+                                  return ClipRRect(
                                     borderRadius: BorderRadius.circular(60),
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color: Colors.white,
+                                    child: Image.memory(
+                                      imagenBytes,
+                                      width: 120,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Icon(
+                                          Icons.person,
+                                          size: 60,
+                                          color: Colors.white,
+                                        );
+                                      },
                                     ),
-                                  )
-                                : Icon(
+                                  );
+                                } else if (imagenPerfil != null) {
+                                  // Mostrar imagen desde ruta (método anterior como fallback)
+                                  return ClipRRect(
+                                    borderRadius: BorderRadius.circular(60),
+                                    child: Image.file(
+                                      File(imagenPerfil),
+                                      width: 120,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Icon(
+                                          Icons.person,
+                                          size: 60,
+                                          color: Colors.white,
+                                        );
+                                      },
+                                    ),
+                                  );
+                                } else {
+                                  // Mostrar icono predeterminado
+                                  return Icon(
                                     Icons.person,
                                     size: 60,
                                     color: Colors.white,
-                                  ),
+                                  );
+                                }
+                              },
+                            ),
                           ),
                           Positioned(
                             bottom: 0,
@@ -197,19 +240,25 @@ class _PerfilPageState extends State<PerfilPage> with TickerProviderStateMixin {
                       const SizedBox(height: 16),
 
                       // Información básica
-                      Text(
-                        _userData['name'],
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: TallerAlexColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        _userData['email'],
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: TallerAlexColors.textSecondary,
+                      Consumer<UsuarioProvider>(
+                        builder: (context, usuarioProvider, child) => Column(
+                          children: [
+                            Text(
+                              usuarioProvider.nombreCompleto,
+                              style: GoogleFonts.poppins(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: TallerAlexColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              usuarioProvider.email,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: TallerAlexColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1012,7 +1061,7 @@ class _PerfilPageState extends State<PerfilPage> with TickerProviderStateMixin {
                     child: NeumorphicButton(
                       onPressed: () {
                         Navigator.of(context).pop();
-                        _pickImage(ImageSource.camera);
+                        _pickImageFromCamera();
                       },
                       child: Column(
                         children: [
@@ -1038,7 +1087,7 @@ class _PerfilPageState extends State<PerfilPage> with TickerProviderStateMixin {
                     child: NeumorphicButton(
                       onPressed: () {
                         Navigator.of(context).pop();
-                        _pickImage(ImageSource.gallery);
+                        _pickImageFromGallery();
                       },
                       child: Column(
                         children: [
@@ -1068,33 +1117,67 @@ class _PerfilPageState extends State<PerfilPage> with TickerProviderStateMixin {
     );
   }
 
-  void _pickImage(ImageSource source) async {
+  void _pickImageFromGallery() async {
     try {
-      final image = await _picker.pickImage(source: source);
-      if (image != null) {
-        setState(() {
-          _profileImage = image.path;
-        });
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        final usuarioProvider =
+            Provider.of<UsuarioProvider>(context, listen: false);
+        // Almacenar los bytes de la imagen en el provider
+        usuarioProvider.actualizarImagenBytes(result.files.single.bytes!);
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Foto de perfil actualizada'),
+            backgroundColor: TallerAlexColors.primaryFuchsia,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al seleccionar imagen'),
+        SnackBar(
+          content: Text('Error al seleccionar imagen: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
 
-  void _saveChanges() {
-    // TODO: Implementar guardado de cambios
+  void _pickImageFromCamera() async {
+    // Para demo, redirigimos a la galería ya que la cámara necesita permisos especiales
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
+        content: Text('En modo demo, usa la galería por favor'),
+        backgroundColor: TallerAlexColors.primaryFuchsia,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    _pickImageFromGallery();
+  }
+
+  void _saveChanges() {
+    final usuarioProvider =
+        Provider.of<UsuarioProvider>(context, listen: false);
+
+    usuarioProvider.actualizarDatosCompletos(
+      nombre: _nameController.text,
+      email: _emailController.text,
+      telefono: _phoneController.text,
+      direccion: _addressController.text,
+      rfc: _rfcController.text,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: Text('Cambios guardados correctamente'),
+        backgroundColor: TallerAlexColors.primaryFuchsia,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

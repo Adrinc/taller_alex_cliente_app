@@ -6,6 +6,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nethive_neo/helpers/constants.dart';
 import 'package:nethive_neo/helpers/globals.dart';
 import 'package:nethive_neo/providers/providers.dart';
+import 'package:nethive_neo/providers/taller_alex/citas_provider.dart';
+import 'package:nethive_neo/providers/taller_alex/usuario_provider.dart';
+import 'package:nethive_neo/providers/taller_alex/vehiculos_provider.dart';
+import 'package:nethive_neo/providers/taller_alex/cupones_provider.dart';
+import 'package:nethive_neo/providers/taller_alex/ordenes_provider.dart';
 import 'package:nethive_neo/router/app_router.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -36,6 +41,11 @@ class TallerAlexApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => UserState()),
         ChangeNotifierProvider(create: (_) => ThemeConfigProvider()),
+        ChangeNotifierProvider(create: (_) => CitasProvider()),
+        ChangeNotifierProvider(create: (_) => UsuarioProvider()),
+        ChangeNotifierProvider(create: (_) => VehiculosProvider()),
+        ChangeNotifierProvider(create: (_) => CuponesProvider()),
+        ChangeNotifierProvider(create: (_) => OrdenesProvider()),
       ],
       child: MaterialApp.router(
         title: 'Taller Alex Cliente',

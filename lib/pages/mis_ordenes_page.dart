@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
+import 'package:nethive_neo/providers/taller_alex/ordenes_provider.dart';
 
 class MisOrdenesPage extends StatefulWidget {
-  const MisOrdenesPage({super.key});
+  final int? ordenId;
+
+  const MisOrdenesPage({super.key, this.ordenId});
 
   @override
   State<MisOrdenesPage> createState() => _MisOrdenesPageState();
@@ -19,13 +23,13 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
   // Datos de demo
   final List<Map<String, dynamic>> _activeOrders = [
     {
-      'id': 'ORD-2024-001',
+      'id': 'ORD-2025-001',
       'vehicle': 'Honda Civic 2020 - ABC-123',
       'status': 'diagnostico',
       'statusText': 'Diagnóstico en proceso',
       'progress': 0.3,
-      'startDate': '17 Sep 2024',
-      'estimatedEnd': '18 Sep 2024',
+      'startDate': '24 Sep 2025',
+      'estimatedEnd': '25 Sep 2025',
       'branch': 'Sucursal Centro',
       'technician': 'Juan Pérez',
       'services': [
@@ -53,13 +57,13 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
 
   final List<Map<String, dynamic>> _pastOrders = [
     {
-      'id': 'ORD-2024-002',
+      'id': 'ORD-2025-002',
       'vehicle': 'Toyota Corolla 2019 - XYZ-789',
       'status': 'completado',
       'statusText': 'Completado',
       'progress': 1.0,
-      'startDate': '28 Ago 2024',
-      'endDate': '29 Ago 2024',
+      'startDate': '28 Ago 2025',
+      'endDate': '29 Ago 2025',
       'branch': 'Sucursal Norte',
       'technician': 'María García',
       'totalCost': 1850.0,
@@ -80,13 +84,13 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
       'rating': 5,
     },
     {
-      'id': 'ORD-2024-003',
+      'id': 'ORD-2025-003',
       'vehicle': 'Honda Civic 2020 - ABC-123',
       'status': 'completado',
       'statusText': 'Completado',
       'progress': 1.0,
-      'startDate': '15 Jul 2024',
-      'endDate': '15 Jul 2024',
+      'startDate': '15 Jul 2025',
+      'endDate': '15 Jul 2025',
       'branch': 'Sucursal Centro',
       'technician': 'Carlos López',
       'totalCost': 750.0,
@@ -167,14 +171,15 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
                         ),
                       ),
                       if (_activeOrders.isNotEmpty &&
-                          _activeOrders.any((order) => order['services'].any(
-                              (service) =>
-                                  service['notifications'] > 0 ||
+                          _activeOrders.any((order) =>
+                              (order['notifications'] as int?) != null &&
+                                  order['notifications'] > 0 ||
+                              order['services'].any((service) =>
                                   service['requiresApproval'] == true)))
                         Badge(
                           backgroundColor: TallerAlexColors.primaryFuchsia,
-                          label:
-                              Text('${_activeOrders.first['notifications']}'),
+                          label: Text(
+                              '${_activeOrders.fold(0, (sum, order) => sum + ((order['notifications'] as int?) ?? 0))}'),
                           child: Icon(
                             Icons.notifications_outlined,
                             color: TallerAlexColors.primaryFuchsia,
@@ -987,22 +992,503 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Información general
-                      Text(
-                        order['id'],
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: TallerAlexColors.primaryFuchsia,
+                      NeumorphicCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        order['id'],
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700,
+                                          color:
+                                              TallerAlexColors.primaryFuchsia,
+                                        ),
+                                      ),
+                                      Text(
+                                        order['vehicle'],
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: TallerAlexColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: TallerAlexColors.primaryGradient,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    order['statusText'],
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Progreso visual
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.timeline,
+                                  color: TallerAlexColors.primaryFuchsia,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Progreso: ${(order['progress'] * 100).toInt()}%',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: TallerAlexColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            NeumorphicContainer(
+                              width: double.infinity,
+                              height: 12,
+                              borderRadius: 6,
+                              depth: -2,
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: double.infinity,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: TallerAlexColors.neumorphicBase,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: MediaQuery.of(context).size.width *
+                                        order['progress'] *
+                                        0.8,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      gradient:
+                                          TallerAlexColors.primaryGradient,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Text(
-                        order['vehicle'],
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          color: TallerAlexColors.textSecondary,
+
+                      const SizedBox(height: 20),
+
+                      // Información del servicio
+                      NeumorphicCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Información del Servicio',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: TallerAlexColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildDetailRow(
+                                Icons.location_on, 'Sucursal', order['branch']),
+                            const SizedBox(height: 12),
+                            _buildDetailRow(Icons.person, 'Técnico asignado',
+                                order['technician']),
+                            const SizedBox(height: 12),
+                            _buildDetailRow(Icons.schedule, 'Fecha inicio',
+                                order['startDate']),
+                            const SizedBox(height: 12),
+                            _buildDetailRow(Icons.event, 'Fecha estimada fin',
+                                order['estimatedEnd'] ?? 'Por definir'),
+                            if (order['totalCost'] != null) ...[
+                              const SizedBox(height: 12),
+                              _buildDetailRow(Icons.attach_money, 'Costo total',
+                                  '\$${order['totalCost'].toStringAsFixed(0)}'),
+                            ],
+                          ],
                         ),
                       ),
-                      // Más detalles aquí...
+
+                      const SizedBox(height: 20),
+
+                      // Timeline de servicios
+                      NeumorphicCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Timeline de Servicios',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: TallerAlexColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ...order['services'].asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final service = entry.value;
+                              final isLast =
+                                  index == order['services'].length - 1;
+
+                              return Column(
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Timeline dot
+                                      Column(
+                                        children: [
+                                          Container(
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              gradient: _getServiceStatusColor(
+                                                          service['status']) ==
+                                                      Colors.green
+                                                  ? TallerAlexColors
+                                                      .primaryGradient
+                                                  : null,
+                                              color: _getServiceStatusColor(
+                                                          service['status']) !=
+                                                      Colors.green
+                                                  ? _getServiceStatusColor(
+                                                          service['status'])
+                                                      .withOpacity(0.2)
+                                                  : null,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: _getServiceStatusColor(
+                                                    service['status']),
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: service['status'] ==
+                                                    'completado'
+                                                ? const Icon(Icons.check,
+                                                    size: 16,
+                                                    color: Colors.white)
+                                                : service['status'] ==
+                                                        'en_proceso'
+                                                    ? Icon(Icons.refresh,
+                                                        size: 16,
+                                                        color:
+                                                            _getServiceStatusColor(
+                                                                service[
+                                                                    'status']))
+                                                    : Icon(Icons.schedule,
+                                                        size: 16,
+                                                        color:
+                                                            _getServiceStatusColor(
+                                                                service[
+                                                                    'status'])),
+                                          ),
+                                          if (!isLast)
+                                            Container(
+                                              width: 2,
+                                              height: 40,
+                                              color: TallerAlexColors.textLight
+                                                  .withOpacity(0.3),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 16),
+
+                                      // Service details
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    service['name'],
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: TallerAlexColors
+                                                          .textPrimary,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        _getServiceStatusColor(
+                                                                service[
+                                                                    'status'])
+                                                            .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  child: Text(
+                                                    service['statusText'],
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color:
+                                                          _getServiceStatusColor(
+                                                              service[
+                                                                  'status']),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            if (service['description'] !=
+                                                null) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                service['description'],
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 14,
+                                                  color: TallerAlexColors
+                                                      .textSecondary,
+                                                ),
+                                              ),
+                                            ],
+                                            if (service['cost'] != null) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Costo: \$${service['cost'].toStringAsFixed(0)}',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: TallerAlexColors
+                                                      .primaryFuchsia,
+                                                ),
+                                              ),
+                                            ],
+                                            if (service['estimatedCost'] !=
+                                                null) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Costo estimado: \$${service['estimatedCost'].toStringAsFixed(0)}',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.orange,
+                                                ),
+                                              ),
+                                            ],
+                                            if (service['evidence'] != null &&
+                                                service['evidence']
+                                                    .isNotEmpty) ...[
+                                              const SizedBox(height: 12),
+                                              GestureDetector(
+                                                onTap: () => _showEvidence(
+                                                    service['evidence'],
+                                                    service['name']),
+                                                child: NeumorphicContainer(
+                                                  padding:
+                                                      const EdgeInsets.all(12),
+                                                  borderRadius: 8,
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.photo_camera,
+                                                        color: TallerAlexColors
+                                                            .primaryFuchsia,
+                                                        size: 20,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          'Ver evidencia (${service['evidence'].length} fotos)',
+                                                          style: GoogleFonts
+                                                              .poppins(
+                                                            fontSize: 14,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: TallerAlexColors
+                                                                .primaryFuchsia,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Icon(
+                                                        Icons.arrow_forward_ios,
+                                                        color: TallerAlexColors
+                                                            .primaryFuchsia,
+                                                        size: 16,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (!isLast) const SizedBox(height: 20),
+                                ],
+                              );
+                            }).toList(),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Información adicional
+                      NeumorphicCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Información Adicional',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: TallerAlexColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildDetailRow(Icons.access_time,
+                                'Tiempo estimado total', '2-3 horas'),
+                            const SizedBox(height: 12),
+                            _buildDetailRow(Icons.phone, 'Teléfono sucursal',
+                                '55 1234 5678'),
+                            const SizedBox(height: 12),
+                            _buildDetailRow(Icons.email, 'Email de contacto',
+                                'centro@talleralex.com'),
+                            const SizedBox(height: 12),
+                            _buildDetailRow(Icons.directions_car, 'Kilometraje',
+                                '85,432 km'),
+                            if (order['notifications'] != null &&
+                                order['notifications'] > 0) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.notification_important,
+                                      color: Colors.orange,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Tienes ${order['notifications']} notificaciones pendientes',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.orange,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Botones de acción
+                      Row(
+                        children: [
+                          Expanded(
+                            child: NeumorphicButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                // TODO: Implementar contacto con técnico
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.phone,
+                                    color: TallerAlexColors.primaryFuchsia,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Llamar',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600,
+                                      color: TallerAlexColors.primaryFuchsia,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: NeumorphicButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                // TODO: Implementar chat con técnico
+                              },
+                              backgroundColor: TallerAlexColors.primaryFuchsia,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.chat,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Chat',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -1015,6 +1501,13 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
   }
 
   void _showEvidence(List<String> evidence, String serviceName) {
+    // Mapear nombres de evidencia a rutas de imágenes reales
+    final Map<String, String> evidenceImages = {
+      'diag1.jpg': 'images/evidencia_demo/evi1.png',
+      'diag2.jpg': 'images/evidencia_demo/evi2.png',
+      'frenos1.jpg': 'images/evidencia_demo/evi1.png',
+    };
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1031,25 +1524,108 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
         ),
         content: SizedBox(
           width: 300,
-          height: 200,
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: evidence.length,
-            itemBuilder: (context, index) => Container(
-              decoration: BoxDecoration(
-                color: TallerAlexColors.neumorphicBase,
-                borderRadius: BorderRadius.circular(8),
+          height: 400,
+          child: Column(
+            children: [
+              Text(
+                'Fotos tomadas durante el servicio',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: TallerAlexColors.textSecondary,
+                ),
               ),
-              child: Icon(
-                Icons.photo,
-                color: TallerAlexColors.primaryFuchsia,
-                size: 40,
+              const SizedBox(height: 16),
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: evidence.length,
+                  itemBuilder: (context, index) {
+                    final imagePath = evidenceImages[evidence[index]] ??
+                        'images/evidencia_demo/evi1.png';
+
+                    return GestureDetector(
+                      onTap: () =>
+                          _showFullScreenImage(imagePath, evidence[index]),
+                      child: NeumorphicContainer(
+                        borderRadius: 12,
+                        depth: 2,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            children: [
+                              Image.asset(
+                                imagePath,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                  decoration: BoxDecoration(
+                                    color: TallerAlexColors.neumorphicBase,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.photo,
+                                    color: TallerAlexColors.primaryFuchsia,
+                                    size: 40,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.7),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Text(
+                                    evidence[index].split('.').first,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    Icons.fullscreen,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
+            ],
           ),
         ),
         actions: [
@@ -1064,6 +1640,75 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showFullScreenImage(String imagePath, String imageName) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: TallerAlexColors.neumorphicBase,
+                    child: Icon(
+                      Icons.photo,
+                      color: TallerAlexColors.primaryFuchsia,
+                      size: 100,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  imageName,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1136,6 +1781,38 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: TallerAlexColors.primaryFuchsia,
+          size: 20,
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '$label:',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: TallerAlexColors.textSecondary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: TallerAlexColors.textPrimary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

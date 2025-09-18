@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/services/api_error_handler.dart';
+import 'package:nethive_neo/providers/taller_alex/vehiculos_provider.dart';
 
 class MisVehiculosPage extends StatefulWidget {
   const MisVehiculosPage({super.key});
@@ -16,37 +19,7 @@ class MisVehiculosPage extends StatefulWidget {
 }
 
 class _MisVehiculosPageState extends State<MisVehiculosPage> {
-  // Datos de demo - en producción vendrían de la base de datos
-  List<Map<String, dynamic>> _vehicles = [
-    {
-      'id': 1,
-      'brand': 'Honda',
-      'model': 'Civic',
-      'year': 2020,
-      'plate': 'ABC-123',
-      'color': 'Blanco',
-      'vin': '1HGBH41JXMN109186',
-      'fuelType': 'Gasolina',
-      'image': null,
-      'services': 8,
-      'lastService': '15 Sep 2024',
-    },
-    {
-      'id': 2,
-      'brand': 'Toyota',
-      'model': 'Corolla',
-      'year': 2019,
-      'plate': 'XYZ-789',
-      'color': 'Azul',
-      'vin': '5Y2SL62823Z411565',
-      'fuelType': 'Gasolina',
-      'image': null,
-      'services': 12,
-      'lastService': '28 Ago 2024',
-    },
-  ];
-
-  bool _isLoading = false;
+  // Los datos ahora se manejan a través del VehiculosProvider
 
   @override
   Widget build(BuildContext context) {
@@ -65,77 +38,86 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              FadeInDown(
-                duration: const Duration(milliseconds: 600),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      NeumorphicButton(
-                        onPressed: () => context.go('/dashboard'),
-                        padding: const EdgeInsets.all(12),
-                        borderRadius: 12,
-                        child: Icon(
-                          Icons.arrow_back,
-                          color: TallerAlexColors.primaryFuchsia,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'Mis Vehículos',
-                          style: GoogleFonts.poppins(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: TallerAlexColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                      NeumorphicButton(
-                        onPressed: () => _showAddVehicleModal(),
-                        padding: const EdgeInsets.all(12),
-                        borderRadius: 12,
-                        backgroundColor: TallerAlexColors.primaryFuchsia,
-                        child: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          child: Consumer<VehiculosProvider>(
+            builder: (context, vehiculosProvider, child) {
+              final vehicles = vehiculosProvider.vehiculos;
 
-              // Lista de vehículos
-              Expanded(
-                child: _vehicles.isEmpty
-                    ? _buildEmptyState()
-                    : FadeInUp(
-                        duration: const Duration(milliseconds: 800),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: _vehicles.length,
-                          itemBuilder: (context, index) {
-                            final vehicle = _vehicles[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              child: _buildVehicleCard(vehicle, index),
-                            );
-                          },
-                        ),
+              return Column(
+                children: [
+                  // Header
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 600),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          NeumorphicButton(
+                            onPressed: () => context.go('/dashboard'),
+                            padding: const EdgeInsets.all(12),
+                            borderRadius: 12,
+                            child: Icon(
+                              Icons.arrow_back,
+                              color: TallerAlexColors.primaryFuchsia,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              'Mis Vehículos (${vehicles.length})',
+                              style: GoogleFonts.poppins(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: TallerAlexColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          NeumorphicButton(
+                            onPressed: () =>
+                                _showAddVehicleModal(vehiculosProvider),
+                            padding: const EdgeInsets.all(12),
+                            borderRadius: 12,
+                            backgroundColor: TallerAlexColors.primaryFuchsia,
+                            child: const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
-              ),
-            ],
+                    ),
+                  ),
+
+                  // Lista de vehículos
+                  Expanded(
+                    child: vehicles.isEmpty
+                        ? _buildEmptyState(vehiculosProvider)
+                        : FadeInUp(
+                            duration: const Duration(milliseconds: 800),
+                            child: ListView.builder(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
+                              itemCount: vehicles.length,
+                              itemBuilder: (context, index) {
+                                final vehicle = vehicles[index];
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  child: _buildVehicleCard(
+                                      vehicle, index, vehiculosProvider),
+                                );
+                              },
+                            ),
+                          ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(VehiculosProvider vehiculosProvider) {
     return FadeIn(
       duration: const Duration(milliseconds: 800),
       child: Center(
@@ -177,7 +159,7 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
               ),
               const SizedBox(height: 32),
               NeumorphicButton(
-                onPressed: () => _showAddVehicleModal(),
+                onPressed: () => _showAddVehicleModal(vehiculosProvider),
                 backgroundColor: TallerAlexColors.primaryFuchsia,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -203,7 +185,8 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
     );
   }
 
-  Widget _buildVehicleCard(Map<String, dynamic> vehicle, int index) {
+  Widget _buildVehicleCard(Map<String, dynamic> vehicle, int index,
+      VehiculosProvider vehiculosProvider) {
     return SlideInLeft(
       duration: Duration(milliseconds: 800 + (index * 100)),
       child: NeumorphicCard(
@@ -221,19 +204,7 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
                     color: TallerAlexColors.neumorphicBase,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: vehicle['image'] != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.file(
-                            File(vehicle['image']),
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : Icon(
-                          Icons.directions_car,
-                          size: 40,
-                          color: TallerAlexColors.primaryFuchsia,
-                        ),
+                  child: _buildVehicleImage(vehicle),
                 ),
                 const SizedBox(width: 16),
                 // Información principal
@@ -309,9 +280,9 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
                   ],
                   onSelected: (value) {
                     if (value == 'edit') {
-                      _showEditVehicleModal(vehicle);
+                      _showEditVehicleModal(vehicle, vehiculosProvider);
                     } else if (value == 'delete') {
-                      _showDeleteConfirmation(vehicle);
+                      _showDeleteConfirmation(vehicle, vehiculosProvider);
                     }
                   },
                 ),
@@ -442,6 +413,56 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
     );
   }
 
+  Widget _buildVehicleImage(Map<String, dynamic> vehicle) {
+    final imageBytes = vehicle['imageBytes'] as Uint8List?;
+    final imagePath = vehicle['imagePath'] as String?;
+
+    if (imageBytes != null) {
+      // Mostrar imagen desde bytes (nuevo método)
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.memory(
+          imageBytes,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              Icons.directions_car,
+              size: 40,
+              color: TallerAlexColors.primaryFuchsia,
+            );
+          },
+        ),
+      );
+    } else if (imagePath != null) {
+      // Mostrar imagen desde ruta (método anterior como fallback)
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(
+          File(imagePath),
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              Icons.directions_car,
+              size: 40,
+              color: TallerAlexColors.primaryFuchsia,
+            );
+          },
+        ),
+      );
+    } else {
+      // Mostrar icono predeterminado
+      return Icon(
+        Icons.directions_car,
+        size: 40,
+        color: TallerAlexColors.primaryFuchsia,
+      );
+    }
+  }
+
   Widget _buildInfoItem(String label, String value, IconData icon) {
     return Row(
       children: [
@@ -477,27 +498,31 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
     );
   }
 
-  void _showAddVehicleModal() {
+  void _showAddVehicleModal(VehiculosProvider vehiculosProvider) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _VehicleFormModal(
         onSave: (vehicleData) {
-          setState(() {
-            _vehicles.add({
-              'id': _vehicles.length + 1,
-              ...vehicleData,
-              'services': 0,
-              'lastService': 'Sin servicios',
-            });
-          });
+          vehiculosProvider.agregarVehiculo(
+            brand: vehicleData['brand'],
+            model: vehicleData['model'],
+            year: vehicleData['year'],
+            plate: vehicleData['plate'],
+            color: vehicleData['color'],
+            vin: vehicleData['vin'],
+            fuelType: vehicleData['fuelType'],
+            imageBytes: vehicleData['imageBytes'],
+            imagePath: vehicleData['imagePath'],
+          );
         },
       ),
     );
   }
 
-  void _showEditVehicleModal(Map<String, dynamic> vehicle) {
+  void _showEditVehicleModal(
+      Map<String, dynamic> vehicle, VehiculosProvider vehiculosProvider) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -505,21 +530,14 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
       builder: (context) => _VehicleFormModal(
         vehicle: vehicle,
         onSave: (vehicleData) {
-          setState(() {
-            final index = _vehicles.indexWhere((v) => v['id'] == vehicle['id']);
-            if (index != -1) {
-              _vehicles[index] = {
-                ...vehicle,
-                ...vehicleData,
-              };
-            }
-          });
+          vehiculosProvider.actualizarVehiculo(vehicle['id'], vehicleData);
         },
       ),
     );
   }
 
-  void _showDeleteConfirmation(Map<String, dynamic> vehicle) {
+  void _showDeleteConfirmation(
+      Map<String, dynamic> vehicle, VehiculosProvider vehiculosProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -552,9 +570,7 @@ class _MisVehiculosPageState extends State<MisVehiculosPage> {
           ),
           NeumorphicButton(
             onPressed: () {
-              setState(() {
-                _vehicles.removeWhere((v) => v['id'] == vehicle['id']);
-              });
+              vehiculosProvider.eliminarVehiculo(vehicle['id']);
               Navigator.of(context).pop();
               ApiErrorHandler.callToast('Vehículo eliminado');
             },
@@ -596,7 +612,8 @@ class _VehicleFormModalState extends State<_VehicleFormModal> {
   final _vinController = TextEditingController();
 
   String _selectedFuelType = 'Gasolina';
-  File? _vehicleImage;
+  Uint8List? _vehicleImageBytes;
+  String? _vehicleImagePath;
   bool _isLoading = false;
 
   final List<String> _fuelTypes = [
@@ -638,9 +655,10 @@ class _VehicleFormModalState extends State<_VehicleFormModal> {
       _colorController.text = widget.vehicle!['color'];
       _vinController.text = widget.vehicle!['vin'];
       _selectedFuelType = widget.vehicle!['fuelType'];
-      if (widget.vehicle!['image'] != null) {
-        _vehicleImage = File(widget.vehicle!['image']);
-      }
+
+      // Cargar imagen existente
+      _vehicleImageBytes = widget.vehicle!['imageBytes'] as Uint8List?;
+      _vehicleImagePath = widget.vehicle!['imagePath'] as String?;
     }
   }
 
@@ -721,22 +739,11 @@ class _VehicleFormModalState extends State<_VehicleFormModal> {
                             width: 120,
                             height: 120,
                             borderRadius: 12,
-                            depth: _vehicleImage != null ? -4 : 4,
-                            child: _vehicleImage != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.file(
-                                      _vehicleImage!,
-                                      width: 120,
-                                      height: 120,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : Icon(
-                                    Icons.add_a_photo,
-                                    size: 40,
-                                    color: TallerAlexColors.primaryFuchsia,
-                                  ),
+                            depth: (_vehicleImageBytes != null ||
+                                    _vehicleImagePath != null)
+                                ? -4
+                                : 4,
+                            child: _buildModalVehicleImage(),
                           ),
                         ),
                       ),
@@ -928,6 +935,53 @@ class _VehicleFormModalState extends State<_VehicleFormModal> {
     );
   }
 
+  Widget _buildModalVehicleImage() {
+    if (_vehicleImageBytes != null) {
+      // Mostrar imagen desde bytes (nuevo método)
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.memory(
+          _vehicleImageBytes!,
+          width: 120,
+          height: 120,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              Icons.add_a_photo,
+              size: 40,
+              color: TallerAlexColors.primaryFuchsia,
+            );
+          },
+        ),
+      );
+    } else if (_vehicleImagePath != null) {
+      // Mostrar imagen desde ruta (método anterior como fallback)
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(
+          File(_vehicleImagePath!),
+          width: 120,
+          height: 120,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              Icons.add_a_photo,
+              size: 40,
+              color: TallerAlexColors.primaryFuchsia,
+            );
+          },
+        ),
+      );
+    } else {
+      // Mostrar icono predeterminado
+      return Icon(
+        Icons.add_a_photo,
+        size: 40,
+        color: TallerAlexColors.primaryFuchsia,
+      );
+    }
+  }
+
   Widget _buildTextField(
     String label,
     TextEditingController controller,
@@ -1020,21 +1074,19 @@ class _VehicleFormModalState extends State<_VehicleFormModal> {
 
   Future<void> _pickImage() async {
     try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
       );
 
-      if (pickedFile != null) {
+      if (result != null && result.files.single.bytes != null) {
         setState(() {
-          _vehicleImage = File(pickedFile.path);
+          _vehicleImageBytes = result.files.single.bytes!;
+          _vehicleImagePath = null; // Limpiar ruta si se usan bytes
         });
       }
     } catch (e) {
-      await ApiErrorHandler.callToast('Error al seleccionar imagen');
+      await ApiErrorHandler.callToast('Error al seleccionar imagen: $e');
     }
   }
 
@@ -1055,7 +1107,8 @@ class _VehicleFormModalState extends State<_VehicleFormModal> {
         'color': _colorController.text,
         'vin': _vinController.text.toUpperCase(),
         'fuelType': _selectedFuelType,
-        'image': _vehicleImage?.path,
+        'imageBytes': _vehicleImageBytes,
+        'imagePath': _vehicleImagePath,
       };
 
       widget.onSave(vehicleData);
