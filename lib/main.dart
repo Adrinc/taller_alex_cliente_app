@@ -11,6 +11,7 @@ import 'package:nethive_neo/providers/taller_alex/usuario_provider.dart';
 import 'package:nethive_neo/providers/taller_alex/vehiculos_provider.dart';
 import 'package:nethive_neo/providers/taller_alex/cupones_provider.dart';
 import 'package:nethive_neo/providers/taller_alex/ordenes_provider.dart';
+import 'package:nethive_neo/providers/taller_alex/notificaciones_provider.dart';
 import 'package:nethive_neo/router/app_router.dart';
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,6 +47,7 @@ class TallerAlexApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => VehiculosProvider()),
         ChangeNotifierProvider(create: (_) => CuponesProvider()),
         ChangeNotifierProvider(create: (_) => OrdenesProvider()),
+        ChangeNotifierProvider(create: (_) => NotificacionesProvider()),
       ],
       child: MaterialApp.router(
         title: 'Taller Alex Cliente',

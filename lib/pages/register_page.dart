@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 import 'package:nethive_neo/theme/theme.dart';
-import 'package:nethive_neo/providers/providers.dart';
 import 'package:nethive_neo/services/api_error_handler.dart';
 
 class RegisterPage extends StatefulWidget {

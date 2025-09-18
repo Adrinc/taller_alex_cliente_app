@@ -8,6 +8,7 @@ import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/providers/taller_alex/citas_provider.dart';
 import 'package:nethive_neo/providers/taller_alex/vehiculos_provider.dart';
 import 'package:nethive_neo/providers/taller_alex/cupones_provider.dart';
+import 'package:nethive_neo/providers/taller_alex/notificaciones_provider.dart';
 
 class AgendarCitaPage extends StatefulWidget {
   const AgendarCitaPage({super.key});
@@ -1577,8 +1578,15 @@ class _AgendarCitaPageState extends State<AgendarCitaPage> {
     setState(() => _isProcessing = true);
 
     try {
-      // Agregar cita al provider
+      // Configurar callback de notificaciones
       final citasProvider = Provider.of<CitasProvider>(context, listen: false);
+      final notificacionesProvider =
+          Provider.of<NotificacionesProvider>(context, listen: false);
+
+      citasProvider.configurarNotificaciones(
+        notificacionesProvider.agregarNotificacionCitaCreada,
+      );
+
       final serviciosSeleccionados =
           _services.where((s) => s['selected']).toList();
 

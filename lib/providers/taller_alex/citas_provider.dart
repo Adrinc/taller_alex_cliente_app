@@ -1,10 +1,17 @@
 import 'package:flutter/foundation.dart';
 
 class CitasProvider extends ChangeNotifier {
+  // Referencia al provider de notificaciones (se inyectará)
+  Function(Map<String, dynamic>)? _onCitaCreada;
   final List<Map<String, dynamic>> _citas = [];
   int _nextId = 1;
 
   List<Map<String, dynamic>> get citas => List.unmodifiable(_citas);
+
+  // Configurar callback para notificaciones
+  void configurarNotificaciones(Function(Map<String, dynamic>) callback) {
+    _onCitaCreada = callback;
+  }
 
   void agregarCita({
     required Map<String, dynamic> vehiculo,
@@ -36,6 +43,10 @@ class CitasProvider extends ChangeNotifier {
     };
 
     _citas.add(nuevaCita);
+
+    // Generar notificación automática de cita creada
+    _onCitaCreada?.call(nuevaCita);
+
     notifyListeners();
   }
 

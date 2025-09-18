@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
-import 'package:nethive_neo/providers/taller_alex/ordenes_provider.dart';
 
 class MisOrdenesPage extends StatefulWidget {
   final int? ordenId;
@@ -51,7 +49,6 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
               'Se detectó desgaste excesivo en balatas delanteras y discos traseros.',
         },
       ],
-      'notifications': 3,
     },
   ];
 
@@ -170,22 +167,6 @@ class _MisOrdenesPageState extends State<MisOrdenesPage>
                           ),
                         ),
                       ),
-                      if (_activeOrders.isNotEmpty &&
-                          _activeOrders.any((order) =>
-                              (order['notifications'] as int?) != null &&
-                                  order['notifications'] > 0 ||
-                              order['services'].any((service) =>
-                                  service['requiresApproval'] == true)))
-                        Badge(
-                          backgroundColor: TallerAlexColors.primaryFuchsia,
-                          label: Text(
-                              '${_activeOrders.fold(0, (sum, order) => sum + ((order['notifications'] as int?) ?? 0))}'),
-                          child: Icon(
-                            Icons.notifications_outlined,
-                            color: TallerAlexColors.primaryFuchsia,
-                            size: 28,
-                          ),
-                        ),
                     ],
                   ),
                 ),

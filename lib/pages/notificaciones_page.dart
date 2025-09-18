@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
+import 'package:nethive_neo/providers/taller_alex/notificaciones_provider.dart';
 
 class NotificacionesPage extends StatefulWidget {
   const NotificacionesPage({super.key});
@@ -17,6 +19,7 @@ class _NotificacionesPageState extends State<NotificacionesPage>
   late TabController _tabController;
 
   String _selectedFilter = 'todas';
+  String _selectedCategory = 'todas';
   bool _showFilters = false;
 
   // Configuraciones de notificaciones
@@ -26,80 +29,137 @@ class _NotificacionesPageState extends State<NotificacionesPage>
   bool _notificacionesRecordatorio = true;
   bool _notificacionesSistema = false;
 
-  // Datos de demo
-  final List<Map<String, dynamic>> _notifications = [
+  // Eliminamos la lista hardcodeada para usar el provider
+  /* final List<Map<String, dynamic>> _notifications = [
+    // Notificación coherente con ORD-2025-001 de mis_ordenes_page.dart
     {
       'id': 'NOT-001',
-      'type': 'servicio',
-      'title': 'Servicio completado',
+      'type': 'aprobacion',
+      'category': 'Servicios',
+      'title': 'Aprobación requerida - Frenos',
       'message':
-          'Tu Honda Civic ya está listo para recoger. ¡Excelente trabajo realizado!',
-      'date': DateTime.now().subtract(const Duration(hours: 2)),
+          'Se detectó desgaste excesivo en balatas delanteras y discos traseros de tu Honda Civic (ABC-123). Requiere tu aprobación para proceder. Costo estimado: \$2,500',
+      'date': DateTime.now().subtract(const Duration(hours: 3)),
       'isRead': false,
-      'priority': 'alta',
-      'orderId': 'ORD-2024-001',
-      'actions': ['Ver orden', 'Calificar'],
+      'priority': 'urgente',
+      'orderId': 'ORD-2025-001',
+      'vehiculo': 'Honda Civic 2020 - ABC-123',
+      'tecnico': 'Juan Pérez',
+      'actions': ['Aprobar', 'Rechazar', 'Ver evidencia', 'Ver orden'],
     },
     {
       'id': 'NOT-002',
-      'type': 'aprobacion',
-      'title': 'Aprobación requerida',
+      'type': 'servicio',
+      'category': 'Servicios',
+      'title': 'Diagnóstico en progreso',
       'message':
-          'Se detectó desgaste en las balatas. Requiere tu aprobación para proceder. Costo estimado: \$2,500',
-      'date': DateTime.now().subtract(const Duration(hours: 4)),
+          'Hemos iniciado el diagnóstico general de tu Honda Civic. El técnico Juan Pérez te mantendrá informado del progreso.',
+      'date': DateTime.now().subtract(const Duration(hours: 6)),
       'isRead': false,
-      'priority': 'urgente',
-      'orderId': 'ORD-2024-001',
-      'actions': ['Aprobar', 'Rechazar', 'Ver detalles'],
+      'priority': 'media',
+      'orderId': 'ORD-2025-001',
+      'vehiculo': 'Honda Civic 2020 - ABC-123',
+      'tecnico': 'Juan Pérez',
+      'actions': ['Ver progreso', 'Ver orden', 'Contactar técnico'],
     },
+    // Notificaciones de promociones coherentes con promociones_page.dart
     {
       'id': 'NOT-003',
       'type': 'promocion',
-      'title': '¡Nueva promoción disponible!',
+      'category': 'Promociones',
+      'title': 'Nueva promoción: Cambio de Aceite + Filtros',
       'message':
-          'Cambio de aceite 2x1 válido hasta fin de mes. ¡No te lo pierdas!',
-      'date': DateTime.now().subtract(const Duration(days: 1)),
+          '¡2x1 en cambio de aceite! Incluye filtro de aceite y aire gratis. Válida hasta el 31 de diciembre.',
+      'date': DateTime.now().subtract(const Duration(hours: 12)),
       'isRead': true,
       'priority': 'media',
       'promoId': 'PROMO-001',
-      'actions': ['Ver promoción'],
+      'descuento': '50% OFF',
+      'validoHasta': '31 Dic 2024',
+      'actions': ['Ver promoción', 'Agregar a wallet', 'Agendar cita'],
     },
     {
       'id': 'NOT-004',
-      'type': 'recordatorio',
-      'title': 'Recordatorio de cita',
+      'type': 'promocion',
+      'category': 'Promociones',
+      'title': 'Diagnóstico Gratis disponible',
       'message':
-          'Tu cita está programada para mañana a las 10:00 AM en Sucursal Centro',
+          'Diagnóstico computarizado gratuito en servicios mayores a \$1,500. ¡Ahorra \$350!',
       'date': DateTime.now().subtract(const Duration(days: 1)),
       'isRead': true,
       'priority': 'media',
-      'citaId': 'CIT-2024-003',
-      'actions': ['Ver cita', 'Reagendar'],
+      'promoId': 'PROMO-003',
+      'descuento': '\$350 OFF',
+      'validoHasta': '31 Oct 2024',
+      'actions': ['Ver promoción', 'Agregar a wallet'],
     },
+    // Notificación de cita confirmada (para cuando se creen nuevas)
     {
       'id': 'NOT-005',
-      'type': 'servicio',
-      'title': 'Diagnóstico iniciado',
+      'type': 'confirmacion',
+      'category': 'Citas',
+      'title': 'Cita confirmada exitosamente',
       'message':
-          'Hemos iniciado el diagnóstico de tu vehículo. Te mantendremos informado del progreso.',
-      'date': DateTime.now().subtract(const Duration(days: 2)),
+          'Tu cita para el Honda Civic ha sido confirmada para el 25 Sep 2025 a las 10:00 AM en Sucursal Centro.',
+      'date': DateTime.now().subtract(const Duration(hours: 18)),
       'isRead': true,
-      'priority': 'baja',
-      'orderId': 'ORD-2024-001',
-      'actions': ['Ver progreso'],
+      'priority': 'alta',
+      'citaId': 1,
+      'fechaCita': '25 Sep 2025',
+      'horaCita': '10:00 AM',
+      'sucursal': 'Sucursal Centro',
+      'vehiculo': 'Honda Civic 2020 - ABC-123',
+      'actions': ['Ver cita', 'Reagendar', 'Cancelar'],
     },
+    // Recordatorio de cita próxima
     {
       'id': 'NOT-006',
-      'type': 'sistema',
-      'title': 'Actualización de la app',
+      'type': 'recordatorio',
+      'category': 'Recordatorios',
+      'title': 'Recordatorio: Cita mañana',
       'message':
-          'Nueva versión disponible con mejoras en la experiencia de usuario',
+          'No olvides tu cita mañana 25 Sep a las 10:00 AM en Sucursal Centro. Lleva tu vehículo con combustible suficiente.',
+      'date': DateTime.now().subtract(const Duration(hours: 20)),
+      'isRead': true,
+      'priority': 'alta',
+      'citaId': 1,
+      'fechaCita': '25 Sep 2025',
+      'horaCita': '10:00 AM',
+      'sucursal': 'Sucursal Centro',
+      'vehiculo': 'Honda Civic 2020 - ABC-123',
+      'actions': ['Ver cita', 'Reagendar', 'Llegar ubicación'],
+    },
+    // Notificación de orden completada histórica
+    {
+      'id': 'NOT-007',
+      'type': 'completado',
+      'category': 'Servicios',
+      'title': 'Servicio completado - Toyota Corolla',
+      'message':
+          'Tu Toyota Corolla (XYZ-789) ya está listo para recoger. Servicios: Cambio de aceite y Afinación menor. Total: \$1,850',
+      'date': DateTime.now().subtract(const Duration(days: 2)),
+      'isRead': true,
+      'priority': 'alta',
+      'orderId': 'ORD-2025-002',
+      'vehiculo': 'Toyota Corolla 2019 - XYZ-789',
+      'tecnico': 'María García',
+      'total': '\$1,850',
+      'actions': ['Ver orden', 'Calificar servicio', 'Descargar factura'],
+    },
+    // Notificación de sistema
+    {
+      'id': 'NOT-008',
+      'type': 'sistema',
+      'category': 'Sistema',
+      'title': 'Bienvenido a Taller Alex',
+      'message':
+          'Gracias por elegir Taller Alex. Explora nuestras promociones y agenda tu primera cita.',
       'date': DateTime.now().subtract(const Duration(days: 3)),
       'isRead': true,
       'priority': 'baja',
-      'actions': ['Actualizar'],
+      'actions': ['Ver promociones', 'Agendar cita'],
     },
-  ];
+  ]; */
 
   @override
   void initState() {
@@ -114,11 +174,23 @@ class _NotificacionesPageState extends State<NotificacionesPage>
   }
 
   List<Map<String, dynamic>> get _filteredNotifications {
-    var notifications = _notifications;
+    final notificacionesProvider =
+        Provider.of<NotificacionesProvider>(context, listen: false);
+    // Crear una copia mutable de la lista
+    var notifications =
+        List<Map<String, dynamic>>.from(notificacionesProvider.notificaciones);
 
+    // Filtrar por tipo
     if (_selectedFilter != 'todas') {
       notifications = notifications
           .where((notif) => notif['type'] == _selectedFilter)
+          .toList();
+    }
+
+    // Filtrar por categoría
+    if (_selectedCategory != 'todas') {
+      notifications = notifications
+          .where((notif) => notif['category'] == _selectedCategory)
           .toList();
     }
 
@@ -127,150 +199,167 @@ class _NotificacionesPageState extends State<NotificacionesPage>
     return notifications;
   }
 
-  int get _unreadCount {
-    return _notifications.where((notif) => !notif['isRead']).length;
+  // Obtener categorías disponibles
+  List<String> get _availableCategories {
+    final notificacionesProvider =
+        Provider.of<NotificacionesProvider>(context, listen: false);
+    final categories = notificacionesProvider.notificaciones
+        .map((notif) => notif['category'] as String)
+        .toSet()
+        .toList();
+    // Crear una copia mutable antes de insertar
+    final result = List<String>.from(categories);
+    result.insert(0, 'todas');
+    return result;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TallerAlexColors.neumorphicBackground,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              TallerAlexColors.neumorphicBackground,
-              TallerAlexColors.paleRose.withOpacity(0.1),
-              TallerAlexColors.neumorphicBackground,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              FadeInDown(
-                duration: const Duration(milliseconds: 600),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      NeumorphicButton(
-                        onPressed: () => context.go('/dashboard'),
-                        padding: const EdgeInsets.all(12),
-                        borderRadius: 12,
-                        child: Icon(
-                          Icons.arrow_back,
-                          color: TallerAlexColors.primaryFuchsia,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Text(
-                              'Notificaciones',
-                              style: GoogleFonts.poppins(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                color: TallerAlexColors.textPrimary,
-                              ),
+    return Consumer<NotificacionesProvider>(
+      builder: (context, notificacionesProvider, child) {
+        return Scaffold(
+          backgroundColor: TallerAlexColors.neumorphicBackground,
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  TallerAlexColors.neumorphicBackground,
+                  TallerAlexColors.paleRose.withOpacity(0.1),
+                  TallerAlexColors.neumorphicBackground,
+                ],
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 600),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          NeumorphicButton(
+                            onPressed: () => context.go('/dashboard'),
+                            padding: const EdgeInsets.all(12),
+                            borderRadius: 12,
+                            child: Icon(
+                              Icons.arrow_back,
+                              color: TallerAlexColors.primaryFuchsia,
                             ),
-                            if (_unreadCount > 0) ...[
-                              const SizedBox(width: 8),
-                              Badge(
-                                backgroundColor:
-                                    TallerAlexColors.primaryFuchsia,
-                                label: Text('$_unreadCount'),
-                              ),
-                            ],
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Text(
+                                  'Notificaciones',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: TallerAlexColors.textPrimary,
+                                  ),
+                                ),
+                                if (notificacionesProvider
+                                        .notificacionesNoLeidas >
+                                    0) ...[
+                                  const SizedBox(width: 8),
+                                  Badge(
+                                    backgroundColor:
+                                        TallerAlexColors.primaryFuchsia,
+                                    label: Text(
+                                        '${notificacionesProvider.notificacionesNoLeidas}'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          NeumorphicButton(
+                            onPressed: _toggleFilters,
+                            padding: const EdgeInsets.all(12),
+                            borderRadius: 12,
+                            child: Icon(
+                              Icons.filter_list,
+                              color: TallerAlexColors.primaryFuchsia,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          NeumorphicButton(
+                            onPressed: _markAllAsRead,
+                            padding: const EdgeInsets.all(12),
+                            borderRadius: 12,
+                            child: Icon(
+                              Icons.done_all,
+                              color: TallerAlexColors.primaryFuchsia,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Filtros
+                  if (_showFilters)
+                    FadeIn(
+                      duration: const Duration(milliseconds: 300),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildFilters(),
+                      ),
+                    ),
+
+                  // Tabs
+                  FadeIn(
+                    duration: const Duration(milliseconds: 800),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      child: NeumorphicCard(
+                        padding: const EdgeInsets.all(4),
+                        child: TabBar(
+                          controller: _tabController,
+                          indicator: BoxDecoration(
+                            gradient: TallerAlexColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          labelColor: Colors.white,
+                          unselectedLabelColor: TallerAlexColors.textSecondary,
+                          labelStyle: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          unselectedLabelStyle: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w500,
+                          ),
+                          tabs: [
+                            Tab(
+                                text:
+                                    'Notificaciones (${_filteredNotifications.length})'),
+                            Tab(text: 'Configuración'),
                           ],
                         ),
                       ),
-                      NeumorphicButton(
-                        onPressed: _toggleFilters,
-                        padding: const EdgeInsets.all(12),
-                        borderRadius: 12,
-                        child: Icon(
-                          Icons.filter_list,
-                          color: TallerAlexColors.primaryFuchsia,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      NeumorphicButton(
-                        onPressed: _markAllAsRead,
-                        padding: const EdgeInsets.all(12),
-                        borderRadius: 12,
-                        child: Icon(
-                          Icons.done_all,
-                          color: TallerAlexColors.primaryFuchsia,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
 
-              // Filtros
-              if (_showFilters)
-                FadeIn(
-                  duration: const Duration(milliseconds: 300),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildFilters(),
-                  ),
-                ),
+                  const SizedBox(height: 20),
 
-              // Tabs
-              FadeIn(
-                duration: const Duration(milliseconds: 800),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  child: NeumorphicCard(
-                    padding: const EdgeInsets.all(4),
-                    child: TabBar(
+                  // Content
+                  Expanded(
+                    child: TabBarView(
                       controller: _tabController,
-                      indicator: BoxDecoration(
-                        gradient: TallerAlexColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      labelColor: Colors.white,
-                      unselectedLabelColor: TallerAlexColors.textSecondary,
-                      labelStyle: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      unselectedLabelStyle: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w500,
-                      ),
-                      tabs: [
-                        Tab(
-                            text:
-                                'Notificaciones (${_filteredNotifications.length})'),
-                        Tab(text: 'Configuración'),
+                      children: [
+                        _buildNotificationsList(),
+                        _buildSettings(),
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
-
-              const SizedBox(height: 20),
-
-              // Content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildNotificationsList(),
-                    _buildSettings(),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -280,13 +369,55 @@ class _NotificacionesPageState extends State<NotificacionesPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Filtrar por tipo',
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: TallerAlexColors.textPrimary,
-            ),
+          // Filtro por categoría
+          Row(
+            children: [
+              Icon(
+                Icons.category,
+                color: TallerAlexColors.primaryFuchsia,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Filtrar por categoría',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: TallerAlexColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _availableCategories
+                .map((category) => _buildCategoryChip(
+                    category, _getCategoryDisplayName(category)))
+                .toList(),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Filtro por tipo
+          Row(
+            children: [
+              Icon(
+                Icons.filter_list,
+                color: TallerAlexColors.primaryFuchsia,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Filtrar por tipo',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: TallerAlexColors.textPrimary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -294,10 +425,12 @@ class _NotificacionesPageState extends State<NotificacionesPage>
             runSpacing: 8,
             children: [
               _buildFilterChip('todas', 'Todas'),
-              _buildFilterChip('servicio', 'Servicio'),
-              _buildFilterChip('aprobacion', 'Aprobaciones'),
-              _buildFilterChip('promocion', 'Promociones'),
+              _buildFilterChip('servicio', 'En progreso'),
+              _buildFilterChip('aprobacion', 'Requieren acción'),
+              _buildFilterChip('promocion', 'Ofertas'),
+              _buildFilterChip('confirmacion', 'Confirmaciones'),
               _buildFilterChip('recordatorio', 'Recordatorios'),
+              _buildFilterChip('completado', 'Completados'),
               _buildFilterChip('sistema', 'Sistema'),
             ],
           ),
@@ -343,6 +476,77 @@ class _NotificacionesPageState extends State<NotificacionesPage>
         ),
       ),
     );
+  }
+
+  Widget _buildCategoryChip(String value, String label) {
+    final isSelected = _selectedCategory == value;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedCategory = value;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(colors: [
+                  TallerAlexColors.lightRose,
+                  TallerAlexColors.paleRose
+                ])
+              : null,
+          color: !isSelected ? TallerAlexColors.neumorphicBase : null,
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? Border.all(
+                  color: TallerAlexColors.primaryFuchsia,
+                  width: 2,
+                )
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              offset: const Offset(2, 2),
+              blurRadius: 4,
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              offset: const Offset(-2, -2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isSelected
+                ? TallerAlexColors.primaryFuchsia
+                : TallerAlexColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getCategoryDisplayName(String category) {
+    switch (category) {
+      case 'todas':
+        return 'Todas';
+      case 'Servicios':
+        return '🔧 Servicios';
+      case 'Promociones':
+        return '🎁 Promociones';
+      case 'Citas':
+        return '📅 Citas';
+      case 'Recordatorios':
+        return '⏰ Recordatorios';
+      case 'Sistema':
+        return '⚙️ Sistema';
+      default:
+        return category;
+    }
   }
 
   Widget _buildNotificationsList() {
@@ -950,11 +1154,9 @@ class _NotificacionesPageState extends State<NotificacionesPage>
           NeumorphicButton(
             onPressed: () {
               Navigator.of(context).pop();
-              setState(() {
-                for (var notification in _notifications) {
-                  notification['isRead'] = true;
-                }
-              });
+              final notificacionesProvider =
+                  Provider.of<NotificacionesProvider>(context, listen: false);
+              notificacionesProvider.marcarTodasComoLeidas();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content:
@@ -977,34 +1179,69 @@ class _NotificacionesPageState extends State<NotificacionesPage>
   }
 
   void _markAsRead(String notificationId) {
-    setState(() {
-      final notification =
-          _notifications.firstWhere((notif) => notif['id'] == notificationId);
-      notification['isRead'] = true;
-    });
+    final notificacionesProvider =
+        Provider.of<NotificacionesProvider>(context, listen: false);
+    notificacionesProvider.marcarComoLeida(notificationId);
   }
 
   void _handleNotificationAction(
       Map<String, dynamic> notification, String action) {
+    // Marcar como leída al interactuar
+    _markAsRead(notification['id']);
+
     switch (action) {
       case 'Ver orden':
-        context.go('/mis-ordenes');
+      case 'Ver progreso':
+        context.go('/ordenes');
         break;
       case 'Ver promoción':
+      case 'Agregar a wallet':
         context.go('/promociones');
         break;
       case 'Ver cita':
+        context.go('/mis-citas');
+        break;
+      case 'Agendar cita':
         context.go('/agendar-cita');
+        break;
+      case 'Reagendar':
+        context.go('/mis-citas');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Función de reagendar en desarrollo')),
+        );
+        break;
+      case 'Cancelar':
+        _showCancelCitaDialog(notification);
         break;
       case 'Aprobar':
       case 'Rechazar':
         _showApprovalDialog(notification, action == 'Aprobar');
         break;
+      case 'Ver evidencia':
+        _showNotificationDetails(notification);
+        break;
+      case 'Contactar técnico':
+        _showContactTechnicianDialog(notification);
+        break;
+      case 'Calificar servicio':
       case 'Calificar':
         _showRatingDialog(notification);
         break;
+      case 'Descargar factura':
+        _downloadInvoice(notification);
+        break;
+      case 'Ver ubicación':
+      case 'Llegar ubicación':
+        _showLocationDialog(notification);
+        break;
       case 'Ver detalles':
         _showNotificationDetails(notification);
+        break;
+      case 'Ver promociones':
+        context.go('/promociones');
+        break;
+      case 'Actualizar':
+        _showUpdateDialog();
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1262,9 +1499,9 @@ class _NotificacionesPageState extends State<NotificacionesPage>
           NeumorphicButton(
             onPressed: () {
               Navigator.of(context).pop();
-              setState(() {
-                _notifications.clear();
-              });
+              final notificacionesProvider =
+                  Provider.of<NotificacionesProvider>(context, listen: false);
+              notificacionesProvider.limpiarNotificacionesLeidas();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Todas las notificaciones eliminadas'),
@@ -1279,6 +1516,154 @@ class _NotificacionesPageState extends State<NotificacionesPage>
                 color: Colors.white,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCancelCitaDialog(Map<String, dynamic> notification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: TallerAlexColors.neumorphicBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Cancelar Cita',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: Text('¿Estás seguro de que deseas cancelar tu cita?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('No', style: GoogleFonts.poppins()),
+          ),
+          NeumorphicButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Cita cancelada exitosamente')),
+              );
+            },
+            backgroundColor: Colors.red,
+            child: Text('Sí, cancelar',
+                style: GoogleFonts.poppins(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showContactTechnicianDialog(Map<String, dynamic> notification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: TallerAlexColors.neumorphicBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Contactar Técnico',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Técnico: ${notification['tecnico'] ?? 'No asignado'}'),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                NeumorphicButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.phone),
+                      SizedBox(width: 4),
+                      Text('Llamar')
+                    ],
+                  ),
+                ),
+                NeumorphicButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  backgroundColor: TallerAlexColors.primaryFuchsia,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.chat, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text('Chat', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _downloadInvoice(Map<String, dynamic> notification) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Descargando factura de ${notification['orderId']}...'),
+        action: SnackBarAction(
+          label: 'Ver',
+          onPressed: () => context.go('/ordenes'),
+        ),
+      ),
+    );
+  }
+
+  void _showLocationDialog(Map<String, dynamic> notification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: TallerAlexColors.neumorphicBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Ubicación',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${notification['sucursal'] ?? 'Sucursal Centro'}'),
+            Text('Av. Reforma 123, Col. Centro'),
+            Text('Tel: 55 1234 5678'),
+            const SizedBox(height: 16),
+            NeumorphicButton(
+              onPressed: () => Navigator.of(context).pop(),
+              backgroundColor: TallerAlexColors.primaryFuchsia,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.navigation, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Abrir en Maps', style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUpdateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: TallerAlexColors.neumorphicBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Actualizar App',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+        content:
+            Text('Nueva versión disponible con mejoras y nuevas funciones.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Después'),
+          ),
+          NeumorphicButton(
+            onPressed: () => Navigator.of(context).pop(),
+            backgroundColor: TallerAlexColors.primaryFuchsia,
+            child: Text('Actualizar', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

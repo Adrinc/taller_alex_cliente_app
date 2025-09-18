@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/providers/taller_alex/usuario_provider.dart';
+import 'package:nethive_neo/providers/taller_alex/notificaciones_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -114,22 +115,27 @@ class _DashboardPageState extends State<DashboardPage> {
                               ],
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () => context.go('/notificaciones'),
-                            child: NeumorphicContainer(
-                              padding: const EdgeInsets.all(12),
-                              borderRadius: 16,
-                              child: Badge(
-                                backgroundColor:
-                                    TallerAlexColors.primaryFuchsia,
-                                label: const Text('3'),
-                                child: Icon(
-                                  Icons.notifications_outlined,
-                                  color: TallerAlexColors.primaryFuchsia,
-                                  size: 28,
+                          Consumer<NotificacionesProvider>(
+                            builder: (context, notificacionesProvider, child) {
+                              return GestureDetector(
+                                onTap: () => context.go('/notificaciones'),
+                                child: NeumorphicContainer(
+                                  padding: const EdgeInsets.all(12),
+                                  borderRadius: 16,
+                                  child: Badge(
+                                    backgroundColor:
+                                        TallerAlexColors.primaryFuchsia,
+                                    label: Text(
+                                        '${notificacionesProvider.notificacionesNoLeidas}'),
+                                    child: Icon(
+                                      Icons.notifications_outlined,
+                                      color: TallerAlexColors.primaryFuchsia,
+                                      size: 28,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         ],
                       );
