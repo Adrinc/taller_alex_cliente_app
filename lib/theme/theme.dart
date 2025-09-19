@@ -18,10 +18,11 @@ class TallerAlexColors {
   static const Color neumorphicBackground =
       Color(0xFFF8F9FA); // Casi blanco con tinte
 
-  // Sombras neumórficas
-  static const Color shadowDark = Color(0xFFD1D9E6); // Sombra oscura suave
+  // Sombras neumórficas INTENSIFICADAS
+  static const Color shadowDark =
+      Color(0xFF9DA4B0); // Sombra oscura MÁS INTENSA
   static const Color shadowLight =
-      Color(0xFFFFFFFF); // Sombra clara (highlight)
+      Color(0xFFFFFFFF); // Sombra clara (highlight) PURA
 
   // Gradientes fucsia
   static const LinearGradient primaryGradient = LinearGradient(
