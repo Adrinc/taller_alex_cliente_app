@@ -1,8 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
 
@@ -24,7 +25,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
-  String? _profileImagePath;
+  Uint8List? _profileImageBytes;
 
   @override
   void dispose() {
@@ -37,13 +38,27 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
 
-    if (image != null) {
-      setState(() {
-        _profileImagePath = image.path;
-      });
+      if (result != null && result.files.single.bytes != null) {
+        setState(() {
+          _profileImageBytes = result.files.single.bytes!;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al seleccionar imagen: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -108,22 +123,31 @@ class _RegisterPageState extends State<RegisterPage> {
                   duration: const Duration(milliseconds: 800),
                   child: Column(
                     children: [
-                      // Logo
+                      // Logo oficial de Taller Alex
                       NeumorphicContainer(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(20),
                         borderRadius: 25,
                         depth: 6,
                         child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: const BoxDecoration(
-                            gradient: TallerAlexColors.primaryGradient,
-                            shape: BoxShape.circle,
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: TallerAlexColors.primaryFuchsia
+                                    .withOpacity(0.15),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: const Icon(
-                            Icons.car_repair,
-                            size: 35,
-                            color: Colors.white,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              'assets/images/favicon.png',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                       ),
@@ -170,12 +194,14 @@ class _RegisterPageState extends State<RegisterPage> {
                               height: 100,
                               borderRadius: 50,
                               depth: -3, // Hundido
-                              child: _profileImagePath != null
+                              child: _profileImageBytes != null
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(50),
-                                      child: Image.network(
-                                        _profileImagePath!,
+                                      child: Image.memory(
+                                        _profileImageBytes!,
                                         fit: BoxFit.cover,
+                                        width: 100,
+                                        height: 100,
                                       ),
                                     )
                                   : Column(

@@ -1,10 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:email_validator/email_validator.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 import 'package:nethive_neo/theme/theme.dart';
 import 'package:nethive_neo/services/api_error_handler.dart';
@@ -28,7 +28,7 @@ class _RegisterPageState extends State<RegisterPage>
   bool _passwordVisibility = false;
   bool _confirmPasswordVisibility = false;
   bool _isLoading = false;
-  File? _profileImage;
+  Uint8List? _profileImageBytes;
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -81,21 +81,18 @@ class _RegisterPageState extends State<RegisterPage>
 
   Future<void> _pickImage() async {
     try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 500,
-        maxHeight: 500,
-        imageQuality: 85,
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
       );
 
-      if (pickedFile != null) {
+      if (result != null && result.files.single.bytes != null) {
         setState(() {
-          _profileImage = File(pickedFile.path);
+          _profileImageBytes = result.files.single.bytes!;
         });
       }
     } catch (e) {
-      await ApiErrorHandler.callToast('Error al seleccionar imagen');
+      await ApiErrorHandler.callToast('Error al seleccionar imagen: $e');
     }
   }
 
@@ -197,35 +194,39 @@ class _RegisterPageState extends State<RegisterPage>
                             Container(
                               width: 50,
                               height: 50,
-                              decoration: const BoxDecoration(
-                                gradient: TallerAlexColors.primaryGradient,
-                                shape: BoxShape.circle,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: TallerAlexColors.primaryFuchsia
+                                        .withOpacity(0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                              child: const Icon(
-                                Icons.car_repair,
-                                size: 28,
-                                color: Colors.white,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.asset(
+                                  'assets/images/favicon.png',
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                ShaderMask(
-                                  shaderCallback: (bounds) => TallerAlexColors
-                                      .primaryGradient
-                                      .createShader(bounds),
-                                  child: Text(
-                                    'Taller Alex',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
+                                Text(
+                                  'Registro de Cliente',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    color: TallerAlexColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 Text(
-                                  'Registro de Cliente',
+                                  'Únete a la familia',
                                   style: GoogleFonts.poppins(
                                     fontSize: 12,
                                     color: TallerAlexColors.textSecondary,
@@ -261,13 +262,14 @@ class _RegisterPageState extends State<RegisterPage>
                                       width: 100,
                                       height: 100,
                                       borderRadius: 50,
-                                      depth: _profileImage != null ? -4 : 4,
-                                      child: _profileImage != null
+                                      depth:
+                                          _profileImageBytes != null ? -4 : 4,
+                                      child: _profileImageBytes != null
                                           ? ClipRRect(
                                               borderRadius:
                                                   BorderRadius.circular(50),
-                                              child: Image.file(
-                                                _profileImage!,
+                                              child: Image.memory(
+                                                _profileImageBytes!,
                                                 width: 100,
                                                 height: 100,
                                                 fit: BoxFit.cover,
