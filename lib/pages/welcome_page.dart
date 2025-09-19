@@ -81,37 +81,30 @@ class _WelcomePageState extends State<WelcomePage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Icono del taller con gradiente fucsia
+                      // Logo oficial de Taller Alex (incluye texto)
                       Container(
-                        width: 100,
-                        height: 100,
-                        decoration: const BoxDecoration(
-                          gradient: TallerAlexColors.primaryGradient,
-                          shape: BoxShape.circle,
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: TallerAlexColors.primaryFuchsia
+                                  .withOpacity(0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
-                        child: const Icon(
-                          Icons.car_repair,
-                          size: 55,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Nombre del taller
-                      ShaderMask(
-                        shaderCallback: (bounds) => TallerAlexColors
-                            .primaryGradient
-                            .createShader(bounds),
-                        child: Text(
-                          'Taller Alex',
-                          style: GoogleFonts.poppins(
-                            fontSize: 42,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.asset(
+                            'assets/images/favicon.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 24),
 
                       Text(
                         'Tu Auto, Nuestro Compromiso',
@@ -221,13 +214,22 @@ class _WelcomePageState extends State<WelcomePage>
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          gradient: TallerAlexColors.primaryGradient,
                           borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: TallerAlexColors.primaryFuchsia
+                                  .withOpacity(0.15),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: const Icon(
-                          Icons.smartphone,
-                          color: Colors.white,
-                          size: 28,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            'assets/images/favicon.png',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),

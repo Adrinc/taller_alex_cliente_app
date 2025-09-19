@@ -104,37 +104,30 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         depth: 8,
                         child: Column(
                           children: [
-                            // Icono del taller
+                            // Logo oficial de Taller Alex (incluye texto)
                             Container(
-                              width: 80,
-                              height: 80,
-                              decoration: const BoxDecoration(
-                                gradient: TallerAlexColors.primaryGradient,
-                                shape: BoxShape.circle,
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: TallerAlexColors.primaryFuchsia
+                                        .withOpacity(0.2),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
                               ),
-                              child: const Icon(
-                                Icons.car_repair,
-                                size: 45,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Nombre del taller
-                            ShaderMask(
-                              shaderCallback: (bounds) => TallerAlexColors
-                                  .primaryGradient
-                                  .createShader(bounds),
-                              child: Text(
-                                'Taller Alex',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  'assets/images/favicon.png',
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 16),
 
                             Text(
                               'Tu Auto, Nuestro Compromiso',
